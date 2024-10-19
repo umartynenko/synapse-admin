@@ -66,6 +66,7 @@ The following changes are already implemented:
 * [Authenticated Media support](https://github.com/etkecc/synapse-admin/pull/51)
 * [Better media preview/download](https://github.com/etkecc/synapse-admin/pull/53)
 * [Login with access token](https://github.com/etkecc/synapse-admin/pull/58)
+* [Fix footer causing vertical scrollbar](https://github.com/etkecc/synapse-admin/pull/60)
 
 _the list will be updated as new changes are added_
 
