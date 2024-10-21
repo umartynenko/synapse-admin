@@ -13,6 +13,7 @@ This project is built using [react-admin](https://marmelab.com/react-admin/).
 * [Configuration](#configuration)
   * [Restricting available homeserver](#restricting-available-homeserver)
   * [Protecting appservice managed users](#protecting-appservice-managed-users)
+  * [Adding custom menu items](#adding-custom-menu-items)
   * [Providing support URL](#providing-support-url)
 * [Usage](#usage)
   * [Supported Synapse](#supported-synapse)
@@ -67,6 +68,7 @@ The following changes are already implemented:
 * [Better media preview/download](https://github.com/etkecc/synapse-admin/pull/53)
 * [Login with access token](https://github.com/etkecc/synapse-admin/pull/58)
 * [Fix footer causing vertical scrollbar](https://github.com/etkecc/synapse-admin/pull/60)
+* [Custom Menu Items](https://github.com/etkecc/synapse-admin/pull/79)
 
 _the list will be updated as new changes are added_
 
@@ -129,9 +131,29 @@ Example for [mautrix-telegram](https://github.com/mautrix/telegram)
 }
 ```
 
+### Adding custom menu items
+
+You can add custom menu items to the main menu by providing a `menu` array in the `config.json`.
+
+```json
+{
+  "menu": [
+    {
+      "label": "Contact support",
+      "icon": "SupportAgent",
+      "url": "https://github.com/etkecc/synapse-admin/issues"
+    }
+  ]
+}
+```
+
+Where `icon` is one of the [preloaded icons](./src/components/icons.ts)
+
 ### Providing support URL
 
-Synapse-Admin provides a support link in the main menu - `Contact support`. By default, the link points to the GitHub issues page of the project. You can change this link by providing a `supportURL` in the `config.json`.
+**Deprecated**: use `menu` config option described above. Automatically migrated to the `menu` if the `supportURL` is present.
+
+~~Synapse-Admin provides a support link in the main menu - `Contact support`. By default, the link points to the GitHub issues page of the project. You can change this link by providing a `supportURL` in the `config.json`.~~
 
 ```json
 {
