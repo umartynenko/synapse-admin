@@ -1,4 +1,10 @@
-# Synapse Admin UI [![GitHub license](https://img.shields.io/github/license/Awesome-Technologies/synapse-admin)](https://github.com/Awesome-Technologies/synapse-admin/blob/master/LICENSE)
+<p align="center">
+  <img alt="Synapse Admin Logo" src="./public/images/logo.webp" height="140" />
+  <h3 align="center">Synapse Admin <img alt="License" src="https://img.shields.io/github/license/Awesome-Technologies/synapse-admin"></h3>
+  <p align="center">Manager your Synapse homeserver with ease</p>
+</p>
+
+---
 
 ![Screenshots](./screenshots.jpg)
 

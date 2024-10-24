@@ -1,4 +1,4 @@
-import { Box, Link, Typography } from "@mui/material";
+import { Avatar, Box, Link, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
 const Footer = () => {
@@ -23,6 +23,7 @@ const Footer = () => {
       p: 1,
     }}>
     <Typography variant="body2">
+      <Avatar src="./images/logo.webp" sx={{ width: "1rem", height: "1rem", display: "inline-block", verticalAlign: "sub" }} />
       <Link sx={{ color: "#888", textDecoration: 'none' }} href="https://github.com/etkecc/synapse-admin" target="_blank">
         Synapse-Admin
       </Link> <Link href={`https://github.com/etkecc/synapse-admin/releases/tag/`+version} target="_blank">

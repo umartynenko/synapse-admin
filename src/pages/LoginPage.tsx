@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 
-import LockIcon from "@mui/icons-material/Lock";
 import { Avatar, Box, Button, Card, CardActions, CircularProgress, MenuItem, Select, Tab, Tabs, Typography } from "@mui/material";
 import {
   Form,
@@ -249,9 +248,7 @@ const LoginPage = () => {
             {loading ? (
               <CircularProgress size={25} thickness={2} />
             ) : (
-              <Avatar className="icon">
-                <LockIcon />
-              </Avatar>
+              <Avatar sx={{ width: "120px", height: "120px" }} src="./images/logo.webp"/>
             )}
           </Box>
           <Box className="hint">{translate("synapseadmin.auth.welcome")}</Box>
