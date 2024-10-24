@@ -2,10 +2,10 @@
   <img alt="Synapse Admin Logo" src="./public/images/logo.webp" height="140" />
   <h3 align="center">
     Synapse Admin<br>
-    <img alt="License" src="https://img.shields.io/github/license/etkecc/synapse-admin">
     <a href="https://matrix.to/#/#synapse-admin:etke.cc">
       <img alt="Community room" src="https://img.shields.io/badge/room-community_room-green?logo=matrix&label=%23synapse-admin%3Aetke.cc">
-    </a>
+    </a><br>
+    <img alt="License" src="https://img.shields.io/github/license/etkecc/synapse-admin">
   </h3>
   <p align="center">Manager your Synapse homeserver with ease</p>
 </p>
