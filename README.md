@@ -35,7 +35,7 @@ This project is built using [react-admin](https://marmelab.com/react-admin/).
     * [Steps for 1)](#steps-for-1)
     * [Steps for 2)](#steps-for-2)
     * [Steps for 3)](#steps-for-3)
-  * [Serving Synapse-Admin on a different path](#serving-synapse-admin-on-a-different-path)
+  * [Serving Synapse Admin on a different path](#serving-synapse-admin-on-a-different-path)
 * [Development](#development-1)
 
 <!-- vim-markdown-toc -->
@@ -67,7 +67,7 @@ The following changes are already implemented:
 * [Display actual Synapse errors](https://github.com/etkecc/synapse-admin/pull/17)
 * [Fix base_url being undefined on unsuccessful login](https://github.com/etkecc/synapse-admin/pull/18)
 * [Put the version into manifest.json](https://github.com/Awesome-Technologies/synapse-admin/issues/507) (CI only)
-* [Federation page improvements](https://github.com/Awesome-Technologies/synapse-admin/pull/583) (using theme colors)
+* [Federation page improvements](https://github.com/Awesome-Technologies/synapse-admin/pull/583) (using icons)
 * [Add UI option to block deleted rooms from being rejoined](https://github.com/etkecc/synapse-admin/pull/26)
 * [Fix required fields check on Bulk registration CSV upload](https://github.com/etkecc/synapse-admin/pull/32)
 * [Fix requests with invalid MXIDs on Bulk registration](https://github.com/etkecc/synapse-admin/pull/33)
@@ -168,7 +168,7 @@ Where `icon` is one of the [preloaded icons](./src/components/icons.ts)
 
 **Deprecated**: use `menu` config option described above. Automatically migrated to the `menu` if the `supportURL` is present.
 
-~~Synapse-Admin provides a support link in the main menu - `Contact support`. By default, the link points to the GitHub issues page of the project. You can change this link by providing a `supportURL` in the `config.json`.~~
+~~Synapse Admin provides a support link in the main menu - `Contact support`. By default, the link points to the GitHub issues page of the project. You can change this link by providing a `supportURL` in the `config.json`.~~
 
 ```json
 {
@@ -255,7 +255,7 @@ You have three options:
 
 - browse to http://localhost:8080
 
-### Serving Synapse-Admin on a different path
+### Serving Synapse Admin on a different path
 
 The path prefix where synapse-admin is served can only be changed during the build step.
 
@@ -263,7 +263,7 @@ If you downloaded the source code, use `yarn build --base=/my-prefix` to set a p
 
 If you want to build your own Docker container, use the `BASE_PATH` argument.
 
-We do not support directly changing the path where Synapse-Admin is served in the pre-built Docker container. Instead please use a reverse proxy if you need to move Synapse-Admin to a different base path. If you want to serve multiple applications with different paths on the same domain, you need a reverse proxy anyway.
+We do not support directly changing the path where Synapse Admin is served in the pre-built Docker container. Instead please use a reverse proxy if you need to move Synapse Admin to a different base path. If you want to serve multiple applications with different paths on the same domain, you need a reverse proxy anyway.
 
 Example for Traefik:
 

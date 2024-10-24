@@ -25,7 +25,7 @@ const Footer = () => {
     <Typography variant="body2">
       <Avatar src="./images/logo.webp" sx={{ width: "1rem", height: "1rem", display: "inline-block", verticalAlign: "sub" }} />
       <Link sx={{ color: "#888", textDecoration: 'none' }} href="https://github.com/etkecc/synapse-admin" target="_blank">
-        Synapse-Admin
+        Synapse Admin
       </Link> <Link href={`https://github.com/etkecc/synapse-admin/releases/tag/`+version} target="_blank">
         <span style={{ fontWeight: 'bold', color: "#000" }}>{version}</span>
       </Link> <Link sx={{ color: "#888", textDecoration: 'none' }} href="https://etke.cc/?utm_source=synapse-admin&utm_medium=footer&utm_campaign=synapse-admin" target="_blank">
