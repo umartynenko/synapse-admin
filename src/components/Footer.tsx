@@ -31,8 +31,8 @@ const Footer = () => {
       </Link> <Link sx={{ color: "#888", textDecoration: 'none' }} href="https://etke.cc/?utm_source=synapse-admin&utm_medium=footer&utm_campaign=synapse-admin" target="_blank">
         by etke.cc
       </Link> <Link sx={{ color: "#888", textDecoration: 'none' }} href="https://github.com/awesome-technologies/synapse-admin" target="_blank">
-        (originally developed by Awesome Technologies Innovationslabor GmbH)
-      </Link>
+        (originally developed by Awesome Technologies Innovationslabor GmbH).
+      </Link> <Link sx={{ fontWeight: 'bold', color: "#000", textDecoration: 'none' }} href="https://matrix.to/#/#synapse-admin:etke.cc" target="_blank">#synapse-admin:etke.cc</Link>
     </Typography>
   </Box>
   );
