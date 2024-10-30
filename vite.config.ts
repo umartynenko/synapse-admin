@@ -8,10 +8,35 @@ export default defineConfig({
   plugins: [
     react(),
     vitePluginVersionMark({
+      name: "Synapse Admin",
       command: "git describe --tags || git rev-parse --short HEAD",
-      ifMeta: true,
-      ifLog: true,
+      ifMeta: false,
+      ifLog: false,
       ifGlobal: true,
+      outputFile: (version) => ({
+        path: "manifest.json",
+        content: JSON.stringify({
+          name: "Synapse Admin",
+          version: version,
+          description: "Synapse Admin is an admin console for synapse Matrix homeserver with additional features.",
+          categories: ["productivity", "utilities"],
+          orientation: "landscape",
+          icons: [{
+            src: "favicon.ico",
+            sizes: "32x32",
+            type: "image/x-icon"
+          },{
+            src: "images/logo.webp",
+            sizes: "512x512",
+            type: "image/webp",
+            purpose: "any maskable"
+          }],
+          start_url: ".",
+          display: "standalone",
+          theme_color: "#000000",
+          background_color: "#ffffff"
+        }),
+      }),
     }),
   ],
 });
