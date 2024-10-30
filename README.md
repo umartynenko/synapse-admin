@@ -66,7 +66,8 @@ The following changes are already implemented:
 * [Fix redirect URL after user creation](https://github.com/etkecc/synapse-admin/pull/16)
 * [Display actual Synapse errors](https://github.com/etkecc/synapse-admin/pull/17)
 * [Fix base_url being undefined on unsuccessful login](https://github.com/etkecc/synapse-admin/pull/18)
-* [Put the version into manifest.json](https://github.com/Awesome-Technologies/synapse-admin/issues/507) (CI only)
+* [Put the version into manifest.json](https://github.com/Awesome-Technologies/synapse-admin/issues/507) (later replaced
+with a proper manifest.json generation on build)
 * [Federation page improvements](https://github.com/Awesome-Technologies/synapse-admin/pull/583) (using icons)
 * [Add UI option to block deleted rooms from being rejoined](https://github.com/etkecc/synapse-admin/pull/26)
 * [Fix required fields check on Bulk registration CSV upload](https://github.com/etkecc/synapse-admin/pull/32)
