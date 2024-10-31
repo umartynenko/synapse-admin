@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     vitePluginVersionMark({
       name: "Synapse Admin",
-      command: "git describe --tags || git rev-parse --short HEAD",
+      command: "git describe --tags || git rev-parse --short HEAD || echo 'unknown'",
       ifMeta: false,
       ifLog: false,
       ifGlobal: true,
