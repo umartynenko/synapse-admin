@@ -159,7 +159,7 @@ const en: SynapseTranslationMessages = {
         erase_avatar: "Erase avatar",
         delete_media: "Delete all media uploaded by the user(-s)",
         redact_events: "Redact all events sent by the user(-s)",
-      },
+      }
     },
     rooms: {
       name: "Room |||| Rooms",
