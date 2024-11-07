@@ -68,3 +68,20 @@ export const LoadConfig = (context: Config): Config => {
   } as Config;
 
 }
+
+
+export const ClearConfig = () => {
+  // config.json
+  storage.removeItem("restrict_base_url");
+  storage.removeItem("as_managed_users");
+  storage.removeItem("support_url");
+  storage.removeItem("menu");
+
+  // session
+  storage.removeItem("home_server");
+  storage.removeItem("base_url");
+  storage.removeItem("user_id");
+  storage.removeItem("device_id");
+  storage.removeItem("access_token");
+  storage.removeItem("login_type");
+}
