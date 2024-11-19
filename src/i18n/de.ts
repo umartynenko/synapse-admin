@@ -37,7 +37,7 @@ const de: SynapseTranslationMessages = {
   synapseadmin: {
     auth: {
       base_url: "Heimserver URL",
-      welcome: "Willkommen bei Synapse-admin",
+      welcome: "Willkommen bei Synapse Admin",
       server_version: "Synapse Version",
       supports_specs: "unterstützt Matrix-Specs",
       username_error: "Bitte vollständigen Nutzernamen angeben: '@user:domain'",

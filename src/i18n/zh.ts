@@ -35,7 +35,7 @@ const zh: SynapseTranslationMessages = {
   synapseadmin: {
     auth: {
       base_url: "服务器 URL",
-      welcome: "欢迎来到 Synapse-admin",
+      welcome: "欢迎来到 Synapse Admin",
       server_version: "Synapse 版本",
       username_error: "请输入完整有效的用户 ID: '@user:domain'",
       protocol_error: "URL 需要以'http://'或'https://'作为起始",
