@@ -28,7 +28,6 @@
   * [Restricting available homeserver](#restricting-available-homeserver)
   * [Protecting appservice managed users](#protecting-appservice-managed-users)
   * [Adding custom menu items](#adding-custom-menu-items)
-  * [Providing support URL](#providing-support-url)
 * [Usage](#usage)
   * [Supported Synapse](#supported-synapse)
   * [Prerequisites](#prerequisites)
@@ -157,120 +156,20 @@ That way `username` and `homeserver` fields will be pre-filled with `admin` and 
 
 You can restrict the homeserver(s), so that the user can no longer define it himself.
 
-Edit `config.json` to restrict either to a single homeserver:
-
-```json
-{
-  "restrictBaseUrl": "https://matrix.example.com"
-}
-```
-
-similar for `/.well-known/matrix/client`:
-
-```json
-{
-  "cc.etke.synapse-admin": {
-    "restrictBaseUrl": "https://matrix.example.com"
-  }
-}
-```
-
-or to a list of homeservers:
-
-```json
-{
-  "restrictBaseUrl": ["https://your-first-matrix-server.example.com", "https://your-second-matrix-server.example.com"]
-}
-```
-
-similar for `/.well-known/matrix/client`:
-
-```json
-{
-  "cc.etke.synapse-admin": {
-    "restrictBaseUrl": ["https://your-first-matrix-server.example.com", "https://your-second-matrix-server.example.com"]
-  }
-}
-```
+[Documentation](./docs/restrict-hs.md)
 
 ### Protecting appservice managed users
 
 To avoid accidental adjustments of appservice-managed users (e.g., puppets created by a bridge) and breaking the bridge,
 you can specify the list of MXIDs (regexp) that should be prohibited from any changes, except display name and avatar.
 
-Example for [mautrix-telegram](https://github.com/mautrix/telegram)
-
-```json
-{
-  "asManagedUsers": ["^@telegram_[a-zA-Z0-9]+:example\\.com$"]
-}
-```
-
-similar for `/.well-known/matrix/client`:
-
-```json
-{
-  "cc.etke.synapse-admin": {
-    "asManagedUsers": ["^@telegram_[a-zA-Z0-9]+:example\\.com$"]
-  }
-}
-```
+[Documentation](./docs/system-users.md)
 
 ### Adding custom menu items
 
-You can add custom menu items to the main menu by providing a `menu` array in the `config.json`.
+You can add custom menu items to the main menu by providing a `menu` array in the config.
 
-```json
-{
-  "menu": [
-    {
-      "label": "Contact support",
-      "icon": "SupportAgent",
-      "url": "https://github.com/etkecc/synapse-admin/issues"
-    }
-  ]
-}
-```
-
-similar for `/.well-known/matrix/client`:
-
-```json
-{
-  "cc.etke.synapse-admin": {
-    "menu": [
-      {
-        "label": "Contact support",
-        "icon": "SupportAgent",
-        "url": "https://github.com/etkecc/synapse-admin/issues"
-      }
-    ]
-  }
-}
-```
-
-Where `icon` is one of the [preloaded icons](./src/components/icons.ts)
-
-### Providing support URL
-
-**Deprecated**: use `menu` config option described above. Automatically migrated to the `menu` if the `supportURL` is present.
-
-~~Synapse Admin provides a support link in the main menu - `Contact support`. By default, the link points to the GitHub issues page of the project. You can change this link by providing a `supportURL` in the `config.json`.~~
-
-```json
-{
-  "supportURL": "https://example.com/support"
-}
-```
-
-similar for `/.well-known/matrix/client`:
-
-```json
-{
-  "cc.etke.synapse-admin": {
-    "supportURL": "https://example.com/support"
-  }
-}
-```
+[Documentation](./docs/custom-menu.md)
 
 ## Usage
 
