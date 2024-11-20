@@ -5,24 +5,24 @@
     <a href="https://matrix.to/#/#synapse-admin:etke.cc">
       <img alt="Community room" src="https://img.shields.io/badge/room-community_room-green?logo=matrix&label=%23synapse-admin%3Aetke.cc">
     </a><br>
-    <img alt="License" src="https://img.shields.io/github/license/etkecc/synapse-admin">
+    <a href="./LICENSE">
+      <img alt="License" src="https://img.shields.io/github/license/etkecc/synapse-admin">
+    </a>
   </h3>
-  <p align="center">Manager your Synapse homeserver with ease</p>
+  <p align="center">Feature-packed and visually customizable: A better way to manage your Synapse homeserver.</p>
 </p>
 
 ---
 
-![Login form](./screenshots/auth.webp)
+![Login form showing dark and light modes](./screenshots/auth.webp)
 ![Screenshots](./screenshots/screenshots.jpg)
-
-This project is built using [react-admin](https://marmelab.com/react-admin/).
 
 <!-- vim-markdown-toc GFM -->
 
 * [Fork differences](#fork-differences)
-  * [Availability](#availability)
   * [Changes](#changes)
   * [Development](#development)
+  * [Support](#support)
 * [Configuration](#configuration)
   * [Prefilling login form](#prefilling-login-form)
   * [Restricting available homeserver](#restricting-available-homeserver)
@@ -44,58 +44,60 @@ This project is built using [react-admin](https://marmelab.com/react-admin/).
 
 ## Fork differences
 
-With [Awesome-Technologies/synapse-admin](https://github.com/Awesome-Technologies/synapse-admin) as the upstream, this
-fork is intended to be a more feature-rich version of the original project. The main goal is to provide a more
-user-friendly interface for managing Synapse homeservers.
+With [Awesome-Technologies/synapse-admin](https://github.com/Awesome-Technologies/synapse-admin) as the upstream,
+this fork introduces numerous enhancements to improve usability and extend functionality,
+including support for authenticated media, advanced user management options, and visual customization.
+The full list is described below in the [Changes](#changes) section.
 
-### Availability
+**Availability**
 
 * As a core/default component on [etke.cc](https://etke.cc/?utm_source=github&utm_medium=readme&utm_campaign=synapse-admin)
-* Via CDN on [admin.etke.cc](https://admin.etke.cc)
+* As a standalone app on [admin.etke.cc](https://admin.etke.cc)
+* As a prebuilt distribution on [GitHub Releases](https://github.com/etkecc/synapse-admin/releases)
+* As a Docker container on [GitHub Container Registry](https://github.com/etkecc/synapse-admin/pkgs/container/synapse-admin)
 * As a component in [Matrix-Docker-Ansible-Deploy Playbook](https://github.com/spantaleev/matrix-docker-ansible-deploy/blob/master/docs/configuring-playbook-synapse-admin.md)
 
 ### Changes
 
 The following changes are already implemented:
 
-* [Prevent admins from deleting themselves](https://github.com/etkecc/synapse-admin/pull/1)
-* [Fix user's default tab not being shown](https://github.com/etkecc/synapse-admin/pull/8)
-* [Add identifier when authorizing with password](https://github.com/Awesome-Technologies/synapse-admin/pull/601)
-* [Add ability to toggle whether to show locked users](https://github.com/Awesome-Technologies/synapse-admin/pull/573)
-* [Fix user's display name in header on user's page](https://github.com/etkecc/synapse-admin/pull/9)
-* [Fix footer overlapping content](https://github.com/Awesome-Technologies/synapse-admin/issues/574)
-* Switch from nginx to [SWS](https://static-web-server.net/) for serving the app, reducing the size of the Docker image
-* [Fix redirect URL after user creation](https://github.com/etkecc/synapse-admin/pull/16)
-* [Display actual Synapse errors](https://github.com/etkecc/synapse-admin/pull/17)
-* [Fix base_url being undefined on unsuccessful login](https://github.com/etkecc/synapse-admin/pull/18)
-* [Put the version into manifest.json](https://github.com/Awesome-Technologies/synapse-admin/issues/507) (later replaced
-with a proper manifest.json generation on build)
-* [Federation page improvements](https://github.com/Awesome-Technologies/synapse-admin/pull/583) (using icons)
-* [Add UI option to block deleted rooms from being rejoined](https://github.com/etkecc/synapse-admin/pull/26)
-* [Fix required fields check on Bulk registration CSV upload](https://github.com/etkecc/synapse-admin/pull/32)
-* [Fix requests with invalid MXIDs on Bulk registration](https://github.com/etkecc/synapse-admin/pull/33)
-* [Expose user avatar URL field in the UI](https://github.com/etkecc/synapse-admin/pull/27)
-* [Upgrade react-admin to v5](https://github.com/etkecc/synapse-admin/pull/40)
-* [Restrict actions on specific users](https://github.com/etkecc/synapse-admin/pull/42)
-* [Add `Contact support` menu item](https://github.com/etkecc/synapse-admin/pull/45)
-* [Provide options to delete media and redact events on user erase](https://github.com/etkecc/synapse-admin/pull/49)
-* [Authenticated Media support](https://github.com/etkecc/synapse-admin/pull/51)
-* [Better media preview/download](https://github.com/etkecc/synapse-admin/pull/53)
-* [Login with access token](https://github.com/etkecc/synapse-admin/pull/58)
-* [Fix footer causing vertical scrollbar](https://github.com/etkecc/synapse-admin/pull/60)
-* [Custom Menu Items](https://github.com/etkecc/synapse-admin/pull/79)
-* [Add user profile to the top menu](https://github.com/etkecc/synapse-admin/pull/80)
-* [Enable visual customization](https://github.com/etkecc/synapse-admin/pull/81)
-* [Fix room state events display](https://github.com/etkecc/synapse-admin/pull/100)
-* [Sanitize CSV on import](https://github.com/etkecc/synapse-admin/pull/101)
-* Allow setting version using `SYNAPSE_ADMIN_VERSION` environment variable on build (if git is not available)
-* [Add option to control user's experimental features](https://github.com/etkecc/synapse-admin/pull/111)
-* [Add random password generation on user create/edit form](https://github.com/etkecc/synapse-admin/pull/123)
-* [Add option to set user's rate limits](https://github.com/etkecc/synapse-admin/pull/125)
-* [Support configuration via /.well-known/matrix/client](https://github.com/etkecc/synapse-admin/pull/126)
-* [Prevent accidental user overwrites](https://github.com/etkecc/synapse-admin/pull/139)
-* [Allow providing login form details via GET params](https://github.com/etkecc/synapse-admin/pull/140)
-* [Add preferred theme colors to login page and footer](https://github.com/etkecc/synapse-admin/pull/155)
+* 🛑 [Prevent admins from deleting themselves](https://github.com/etkecc/synapse-admin/pull/1)
+* 🐛 [Fix user's default tab not being shown](https://github.com/etkecc/synapse-admin/pull/8)
+* 🔑 [Add identifier when authorizing with password](https://github.com/Awesome-Technologies/synapse-admin/pull/601)
+* 🔒 [Add ability to toggle whether to show locked users](https://github.com/Awesome-Technologies/synapse-admin/pull/573)
+* 🖊️ [Fix user's display name in header on user's page](https://github.com/etkecc/synapse-admin/pull/9)
+* 🧹 [Fix footer overlapping content](https://github.com/Awesome-Technologies/synapse-admin/issues/574)
+* 🐋 Switch from nginx to [SWS](https://static-web-server.net/) for serving the app, reducing the size of the Docker image
+* 🔄 [Fix redirect URL after user creation](https://github.com/etkecc/synapse-admin/pull/16)
+* 🔍 [Display actual Synapse errors](https://github.com/etkecc/synapse-admin/pull/17)
+* ⚠️ [Fix base_url being undefined on unsuccessful login](https://github.com/etkecc/synapse-admin/pull/18)
+* 📜 [Put the version into manifest.json](https://github.com/Awesome-Technologies/synapse-admin/issues/507) (later replaced with a proper manifest.json generation on build)
+* 📊 [Federation page improvements](https://github.com/Awesome-Technologies/synapse-admin/pull/583) (using icons)
+* 🚪 [Add UI option to block deleted rooms from being rejoined](https://github.com/etkecc/synapse-admin/pull/26)
+* 🛠️ [Fix required fields check on Bulk registration CSV upload](https://github.com/etkecc/synapse-admin/pull/32)
+* 🛡️ [Fix requests with invalid MXIDs on Bulk registration](https://github.com/etkecc/synapse-admin/pull/33)
+* 🖼️ [Expose user avatar URL field in the UI](https://github.com/etkecc/synapse-admin/pull/27)
+* 🚀 [Upgrade react-admin to v5](https://github.com/etkecc/synapse-admin/pull/40)
+* 🔒 [Restrict actions on specific users](https://github.com/etkecc/synapse-admin/pull/42)
+* 📞 [Add `Contact support` menu item](https://github.com/etkecc/synapse-admin/pull/45)
+* 🧹 [Provide options to delete media and redact events on user erase](https://github.com/etkecc/synapse-admin/pull/49)
+* 🎞️ [Authenticated Media support](https://github.com/etkecc/synapse-admin/pull/51)
+* 👁️ [Better media preview/download](https://github.com/etkecc/synapse-admin/pull/53)
+* 🔐 [Login with access token](https://github.com/etkecc/synapse-admin/pull/58)
+* 📏 [Fix footer causing vertical scrollbar](https://github.com/etkecc/synapse-admin/pull/60)
+* 🍴 [Custom Menu Items](https://github.com/etkecc/synapse-admin/pull/79)
+* 🧑‍💻 [Add user profile to the top menu](https://github.com/etkecc/synapse-admin/pull/80)
+* 🎨 [Enable visual customization](https://github.com/etkecc/synapse-admin/pull/81)
+* 🛋️ [Fix room state events display](https://github.com/etkecc/synapse-admin/pull/100)
+* 🧹 [Sanitize CSV on import](https://github.com/etkecc/synapse-admin/pull/101)
+* ⚙️ Allow setting version using `SYNAPSE_ADMIN_VERSION` environment variable on build (if git is not available)
+* 🧪 [Add option to control user's experimental features](https://github.com/etkecc/synapse-admin/pull/111)
+* 🔑 [Add random password generation on user create/edit form](https://github.com/etkecc/synapse-admin/pull/123)
+* 🚦 [Add option to set user's rate limits](https://github.com/etkecc/synapse-admin/pull/125)
+* 🌐 [Support configuration via /.well-known/matrix/client](https://github.com/etkecc/synapse-admin/pull/126)
+* 🛑 [Prevent accidental user overwrites](https://github.com/etkecc/synapse-admin/pull/139)
+* 🔍 [Allow providing login form details via GET params](https://github.com/etkecc/synapse-admin/pull/140)
+* 🎨 [Add preferred theme colors to login page and footer](https://github.com/etkecc/synapse-admin/pull/155)
 
 _the list will be updated as new changes are added_
 
@@ -104,11 +106,18 @@ _the list will be updated as new changes are added_
 `just run-dev` to start the development stack (depending on your system speed, you may want to re-run this command if
    user creation fails)
 
+This command initializes the development environment (local Synapse server and Postgres DB),
+and launches the app in a dev mode at `http://localhost:5173`
+
 After that open `http://localhost:5173` in your browser, login using the following credentials:
 
 * Login: admin
 * Password: admin
 * Homeserver URL: http://localhost:8008
+
+### Support
+
+If you have any questions or need help, feel free to join the [community room](https://matrix.to/#/#synapse-admin:etke.cc) or create an issue on GitHub.
 
 ## Configuration
 
