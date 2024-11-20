@@ -15,6 +15,8 @@ The examples below contain the configuration settings to mark
 and [Baibot](https://github.com/etkecc/baibot) users of `example.com` homeserver as appservice-managed users,
 just to illustrate the options to protect both specific MXIDs (as in the Baibot example) and all puppets of a bridge (as in the Telegram and Slack examples).
 
+[Configuration options](config.md)
+
 ### config.json
 
 ```json

@@ -130,6 +130,8 @@ In case you use [spantaleev/matrix-docker-ansible-deploy](https://github.com/spa
 [etkecc/ansible](https://github.com/etkecc/ansible),
 configuration will be automatically added to the `/.well-known/matrix/client` file.
 
+[Configuration options](config.md)
+
 The `config.json` can be injected into a Docker container using a bind mount.
 
 ```yml

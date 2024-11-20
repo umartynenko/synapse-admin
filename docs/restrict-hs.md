@@ -17,6 +17,8 @@ So, if you have a homeserver `example.com` where users have MXIDs like `@user:ex
 but actual Synapse is installed on `matrix.example.com` subdomain, you should use `https://matrix.example.com` in the
 configuration.
 
+[Configuration options](config.md)
+
 ### config.json
 
 ```json

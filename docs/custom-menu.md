@@ -14,6 +14,8 @@ Each `menu` item can contain the following fields:
 default icon will be used.
 * `url` (required): The URL to navigate to when the menu item is clicked.
 
+[Configuration options](config.md)
+
 ### config.json
 
 ```json
