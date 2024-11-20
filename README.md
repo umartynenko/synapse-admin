@@ -220,29 +220,7 @@ You have three options:
 - move or symlink the `synapse-admin` into your vhosts root dir
 - open the url of the vhost in your browser
 
-**Example config for nginx:**
-
-Place it in `/etc/nginx/conf.d/synapse-admin.conf` (don't forget to replace server_name and root)
-```conf
-server {
-    listen 80;
-    listen [::]:80;
-    server_name example.com; # REPLACE with your domain
-    root /var/www/synapse-admin; # REPLACE with path where you extracted synapse admin
-    index index.html;
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-    location ~* \.(?:css|js|jpg|jpeg|gif|png|svg|ico|woff|woff2|ttf|eot|webp)$ {
-        expires 30d; # Set caching for static assets
-        add_header Cache-Control "public";
-    }
-
-    gzip on;
-    gzip_types text/plain application/javascript application/json text/css text/xml application/xml+rss;
-    gzip_min_length 1000;
-}
-```
+[Reverse Proxy Documentation with Examples](./docs/reverse-proxy.md)
 
 #### Steps for 2)
 
@@ -302,7 +280,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   synapse-admin:
-    image: etkecc/synapse-admin:latest
+    image: ghcr.io/etkecc/synapse-admin:latest
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
