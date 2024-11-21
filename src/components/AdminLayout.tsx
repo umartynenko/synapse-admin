@@ -2,7 +2,7 @@ import { CheckForApplicationUpdate, AppBar, TitlePortal, InspectorButton, Confir
 import { LoginMethod } from "../pages/LoginPage";
 import { useEffect, useState, Suspense } from "react";
 import { Icons, DefaultIcon } from "./icons";
-import { ClearConfig } from "./config";
+import { MenuItem, GetConfig, ClearConfig } from "./config";
 import Footer from "./Footer";
 
 const AdminUserMenu = () => {
@@ -53,18 +53,8 @@ const AdminAppBar = () => {
 };
 
 const AdminMenu = (props) => {
-  const [menu, setMenu] = useState([]);
-
-  useEffect(() => {
-    const menuConfig = localStorage.getItem('menu');
-    if (menuConfig) {
-      try {
-        setMenu(JSON.parse(menuConfig));
-      } catch (e) {
-        console.error('Error parsing menu configuration', e);
-      }
-    }
-  }, []);
+  const [menu, setMenu] = useState([] as MenuItem[]);
+  useEffect(() => setMenu(GetConfig().menu), []);
 
   return (
     <Menu {...props}>

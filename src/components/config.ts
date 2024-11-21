@@ -2,8 +2,7 @@ import storage from "../storage";
 
 export interface Config {
   restrictBaseUrl: string | string[];
-  asManagedUsers: string[];
-  supportURL: string;
+  asManagedUsers: RegExp[];
   menu: MenuItem[];
 }
 
@@ -15,73 +14,71 @@ export interface MenuItem {
 
 export const WellKnownKey = "cc.etke.synapse-admin";
 
-export const LoadConfig = (context: Config): Config => {
-  if (context.restrictBaseUrl) {
-    storage.setItem("restrict_base_url", JSON.stringify(context.restrictBaseUrl));
-  }
+// current configuration
+let config: Config = {
+  restrictBaseUrl: "",
+  asManagedUsers: [],
+  menu: [],
+};
 
-  if (context.asManagedUsers) {
-    storage.setItem("as_managed_users", JSON.stringify(context.asManagedUsers));
-  }
-
-  let menu: MenuItem[] = [];
-  if (context.menu) {
-    menu = context.menu;
-  }
-  if (context.supportURL) {
-    const migratedSupportURL = {
-      label: "Contact support",
-      icon: "SupportAgent",
-      url: context.supportURL,
-    };
-    console.warn("supportURL config option is deprecated. Please, use the menu option instead. Automatically migrated to the new menu option:", migratedSupportURL);
-    menu.push(migratedSupportURL as MenuItem);
-  }
-  if (menu.length > 0) {
-    storage.setItem("menu", JSON.stringify(menu));
-  }
-
-  // below we try to calculate "final" config, which will contain values from context and already set values in storage
-  // because LoadConfig could be called multiple times to get config from different sources
-  let finalRestrictBaseUrl: string | string[] = "";
+export const FetchConfig = async () => {
   try {
-    finalRestrictBaseUrl = JSON.parse(storage.getItem("restrict_base_url") || "");
-    if (Array.isArray(finalRestrictBaseUrl) && finalRestrictBaseUrl.length == 1) {
-      finalRestrictBaseUrl = finalRestrictBaseUrl[0];
+    const resp = await fetch("config.json");
+    const configJSON = await resp.json();
+    console.log("Loaded config.json", configJSON);
+    LoadConfig(configJSON);
+  } catch (e) {
+    console.error(e);
+  }
+
+  // if home_server is set, try to load https://home_server/.well-known/matrix/client
+  const homeserver = storage.getItem("home_server");
+  if (homeserver) {
+    try {
+      const resp = await fetch(`https://${homeserver}/.well-known/matrix/client`);
+        const configWK = await resp.json();
+      if (!configWK[WellKnownKey]) {
+        console.log(`Loaded https://${homeserver}.well-known/matrix/client, but it doesn't contain ${WellKnownKey} key, skipping`, configWK);
+      } else {
+          console.log(`Loaded https://${homeserver}.well-known/matrix/client`, configWK);
+            LoadConfig(configWK[WellKnownKey]);
+        }
+    } catch (e) {
+      console.log(`https://${homeserver}/.well-known/matrix/client not found, skipping`, e);
     }
-  } catch (e) {}
-  let finalAsManagedUsers: string[] = [];
-  try {
-    finalAsManagedUsers = JSON.parse(storage.getItem("as_managed_users") || "");
-  } catch (e) {}
-
-  let finalMenu: MenuItem[] = [];
-  try {
-    finalMenu = JSON.parse(storage.getItem("menu") || "");
-  } catch (e) {}
-
-  return {
-    restrictBaseUrl: finalRestrictBaseUrl,
-    asManagedUsers: finalAsManagedUsers,
-    supportURL: storage.getItem("support_url") || "",
-    menu: finalMenu,
-  } as Config;
+  }
 
 }
 
+// load config from context
+export const LoadConfig = (context: any) => {
+  if (context?.restrictBaseUrl) {
+    config.restrictBaseUrl = context.restrictBaseUrl as string | string[];
+  }
 
+  if (context?.asManagedUsers) {
+    config.asManagedUsers = context.asManagedUsers.map((regex: string) => new RegExp(regex));
+  }
+
+  let menu: MenuItem[] = [];
+  if (context?.menu) {
+    menu = context.menu as MenuItem[];
+  }
+  if (menu.length > 0) {
+    config.menu = menu;
+  }
+}
+
+// get config
+export const GetConfig = (): Config => {
+  return config;
+}
+
+
+// clear config
 export const ClearConfig = () => {
   // config.json
-  storage.removeItem("restrict_base_url");
-  storage.removeItem("as_managed_users");
-  storage.removeItem("support_url");
-  storage.removeItem("menu");
-
+  config = {} as Config;
   // session
-  storage.removeItem("home_server");
-  storage.removeItem("base_url");
-  storage.removeItem("user_id");
-  storage.removeItem("device_id");
-  storage.removeItem("access_token");
-  storage.removeItem("login_type");
+  storage.clear();
 }

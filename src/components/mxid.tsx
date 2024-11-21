@@ -1,4 +1,5 @@
 import { Identifier } from "ra-core";
+import { GetConfig } from "./config";
 
 /**
  * Check if a user is managed by an application service
@@ -6,11 +7,5 @@ import { Identifier } from "ra-core";
  * @returns Whether the user is managed by an application service
  */
 export const isASManaged = (id: string | Identifier): boolean => {
-  const managedUsersString = localStorage.getItem("as_managed_users") || '';
-  try {
-    const asManagedUsers = JSON.parse(managedUsersString).map(regex => new RegExp(regex));
-    return asManagedUsers.some(regex => regex.test(id));
-  } catch (e) {
-    return false;
-  }
+  return GetConfig().asManagedUsers.some(regex => regex.test(id as string));
 };

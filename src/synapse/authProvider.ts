@@ -3,7 +3,7 @@ import { AuthProvider, HttpError, Options, fetchUtils } from "react-admin";
 import storage from "../storage";
 import { MatrixError, displayError } from "../components/error";
 import { fetchAuthenticatedMedia } from "../utils/fetchMedia";
-import { ClearConfig } from "../components/config";
+import { FetchConfig, ClearConfig } from "../components/config";
 
 const authProvider: AuthProvider = {
   // called when the user attempts to log in
@@ -81,6 +81,11 @@ const authProvider: AuthProvider = {
       storage.setItem("access_token", accessToken ? accessToken : json.access_token);
       storage.setItem("device_id", json.device_id);
       storage.setItem("login_type", accessToken ? "accessToken" : "credentials");
+
+      // when doing access token auth, config is not fetched, so we need to do it here
+      if (accessToken) {
+        await FetchConfig();
+      }
 
       return Promise.resolve({redirectTo: "/"});
     } catch(err) {
