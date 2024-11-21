@@ -31,7 +31,23 @@ const AvatarField = ({ source, ...rest }: AvatarProps & FieldProps) => {
     };
   }, [mxcURL, fetchAvatar]);
 
-  return <Avatar alt={alt} classes={classes} sizes={sizes} src={src} sx={sx} variant={variant} />;
+  // a hacky way to handle both users and rooms,
+  // where users have an ID, may have a name, and may have a displayname
+  // and rooms have an ID and may have a name
+  let letter = "";
+  if (record?.id) {
+    letter = record.id[0].toUpperCase();
+  }
+  if (record?.name) {
+    letter = record.name[0].toUpperCase();
+  }
+  if (record?.displayname) {
+    letter = record.displayname[0].toUpperCase();
+  }
+
+  return (<Avatar alt={alt} classes={classes} sizes={sizes} src={src} sx={sx} variant={variant}>
+          {letter}
+          </Avatar>);
 };
 
 export default AvatarField;
