@@ -171,14 +171,14 @@ export const UserList = (props: ListProps) => (
       rowClick={(id: Identifier, resource: string) => `/${resource}/${id}`}
       bulkActionButtons={<UserBulkActionButtons />}
     >
-      <AvatarField source="avatar_src" sx={{ height: "40px", width: "40px" }} sortBy="avatar_url" />
-      <TextField source="id" sortBy="name" />
-      <TextField source="displayname" />
-      <BooleanField source="is_guest" />
-      <BooleanField source="admin" />
-      <BooleanField source="deactivated" />
-      <BooleanField source="locked" />
-      <BooleanField source="erased" sortable={false} />
+      <AvatarField source="avatar_src" sx={{ height: "40px", width: "40px" }} sortBy="avatar_url" label="resources.users.fields.avatar" />
+      <TextField source="id" sortBy="name" label="resources.users.fields.id" />
+      <TextField source="displayname" label="resources.users.fields.displayname" />
+      <BooleanField source="is_guest" label="resources.users.fields.is_guest" />
+      <BooleanField source="admin" label="resources.users.fields.admin" />
+      <BooleanField source="deactivated" label="resources.users.fields.deactivated" />
+      <BooleanField source="locked" label="resources.users.fields.locked" />
+      <BooleanField source="erased" sortable={false} label="resources.users.fields.erased" />
       <DateField source="creation_ts" label="resources.users.fields.creation_ts_ms" showTime options={DATE_FORMAT} />
     </DatagridConfigurable>
   </List>

@@ -41,11 +41,11 @@ export const RegistrationTokenList = (props: ListProps) => (
     perPage={500}
   >
     <DatagridConfigurable rowClick="edit">
-      <TextField source="token" sortable={false} />
-      <NumberField source="uses_allowed" sortable={false} />
-      <NumberField source="pending" sortable={false} />
-      <NumberField source="completed" sortable={false} />
-      <DateField source="expiry_time" showTime options={DATE_FORMAT} sortable={false} />
+      <TextField source="token" sortable={false} label="resources.registration_tokens.fields.token"/>
+      <NumberField source="uses_allowed" sortable={false} label="resources.registration_tokens.fields.uses_allowed" />
+      <NumberField source="pending" sortable={false} label="resources.registration_tokens.fields.pending" />
+      <NumberField source="completed" sortable={false} label="resources.registration_tokens.fields.completed" />
+      <DateField source="expiry_time" showTime options={DATE_FORMAT} sortable={false} label="resources.registration_tokens.fields.expiry_time" />
     </DatagridConfigurable>
   </List>
 );

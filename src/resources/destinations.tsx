@@ -125,11 +125,11 @@ export const DestinationList = (props: ListProps) => {
       sort={{ field: "destination", order: "ASC" }}
     >
       <DatagridConfigurable rowClick={id => `${id}/show/rooms`} bulkActionButtons={false}>
-        <FunctionField source="destination" render={destinationFieldRender} />
-        <DateField source="failure_ts" showTime options={DATE_FORMAT} />
-        <RetryDateField source="retry_last_ts" showTime options={DATE_FORMAT} />
-        <TextField source="retry_interval" />
-        <TextField source="last_successful_stream_ordering" />
+        <FunctionField source="destination" render={destinationFieldRender} label="resources.destinations.fields.destination" />
+        <DateField source="failure_ts" showTime options={DATE_FORMAT} label="resources.destinations.fields.failure_ts" />
+        <RetryDateField source="retry_last_ts" showTime options={DATE_FORMAT} label="resources.destinations.fields.retry_last_ts" />
+        <TextField source="retry_interval" label="resources.destinations.fields.retry_interval" />
+        <TextField source="last_successful_stream_ordering" label="resources.destinations.fields.last_successful_stream_ordering" />
         <DestinationReconnectButton />
       </DatagridConfigurable>
     </List>
