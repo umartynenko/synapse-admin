@@ -52,7 +52,7 @@ interface Action {
   body?: Record<string, any>;
 }
 
-interface Room {
+export interface Room {
   room_id: string;
   name?: string;
   canonical_alias?: string;
@@ -273,6 +273,7 @@ export interface SynapseDataProvider extends DataProvider {
   getRateLimits: (id: Identifier) => Promise<RateLimitsModel>;
   setRateLimits: (id: Identifier, rateLimits: RateLimitsModel) => Promise<void>;
   checkUsernameAvailability: (username: string) => Promise<UsernameAvailabilityResult>;
+  makeRoomAdmin: (room_id: string, user_id: string) => Promise<{ success: boolean; error?: string; errcode?: string }>;
 }
 
 const resourceMap = {
@@ -863,6 +864,20 @@ const baseDataProvider: SynapseDataProvider = {
     } catch (error) {
       if (error instanceof HttpError) {
         return { available: false, error: error.body.error, errcode: error.body.errcode } as UsernameAvailabilityResult;
+      }
+      throw error;
+    }
+  },
+  makeRoomAdmin: async (room_id: string, user_id: string) => {
+    const base_url = storage.getItem("base_url");
+
+    const endpoint_url = `${base_url}/_synapse/admin/v1/rooms/${encodeURIComponent(room_id)}/make_room_admin`;
+    try {
+      const { json } = await jsonClient(endpoint_url, { method: "POST", body: JSON.stringify({ user_id }) });
+      return { success: true };
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return { success: false, error: error.body.error, errcode: error.body.errcode };
       }
       throw error;
     }
