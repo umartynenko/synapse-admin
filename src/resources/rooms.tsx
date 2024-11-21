@@ -358,7 +358,7 @@ export const RoomList = (props: ListProps) => {
         bulkActionButtons={<RoomBulkActionButtons />}
         omit={["joined_local_members", "state_events", "version", "federatable"]}
       >
-        <ReferenceField reference="rooms" source="id" label={false} link={false} sortable={false}>
+        <ReferenceField reference="rooms" source="id" label="resources.users.fields.avatar" link={false} sortable={false}>
           <AvatarField source="avatar" sx={{ height: "40px", width: "40px" }} />
         </ReferenceField>
         <BooleanField
@@ -372,13 +372,13 @@ export const RoomList = (props: ListProps) => {
             [`& [data-testid="false"]`]: { color: theme.palette.error.main },
           }}
         />
-        <FunctionField source="name" render={record => record["name"] || record["canonical_alias"] || record["id"]} />
-        <RaTextField source="joined_members" />
-        <RaTextField source="joined_local_members" />
-        <RaTextField source="state_events" />
-        <RaTextField source="version" />
-        <BooleanField source="federatable" />
-        <BooleanField source="public" />
+        <FunctionField source="name" render={record => record["name"] || record["canonical_alias"] || record["id"]} label="resources.rooms.fields.name" />
+        <RaTextField source="joined_members" label="resources.rooms.fields.joined_members" />
+        <RaTextField source="joined_local_members" label="resources.rooms.fields.joined_local_members" />
+        <RaTextField source="state_events" label="resources.rooms.fields.state_events" />
+        <RaTextField source="version" label="resources.rooms.fields.version" />
+        <BooleanField source="federatable" label="resources.rooms.fields.federatable" />
+        <BooleanField source="public" label="resources.rooms.fields.public" />
         <MakeAdminBtn />
       </DatagridConfigurable>
     </List>
