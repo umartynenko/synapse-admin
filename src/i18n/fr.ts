@@ -146,6 +146,8 @@ const fr: SynapseTranslationMessages = {
         auth_provider: "Fournisseur d'identité",
       },
       helper: {
+        password: "Changer le mot de passe déconnectera l'utilisateur de toutes les sessions.",
+        create_password: "Générer un mot de passe fort et sécurisé en utilisant le bouton ci-dessous.",
         deactivate: "Vous devrez fournir un mot de passe pour réactiver le compte.",
         erase: "Marquer l'utilisateur comme effacé conformément au RGPD",
         erase_text: "Cela signifie que les messages envoyés par le(s) utilisateur(s) seront toujours visibles par toute personne qui se trouvait dans la salle au moment où ces messages ont été envoyés, mais qu'ils seront cachés aux utilisateurs qui rejoindront la salle par la suite.",

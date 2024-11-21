@@ -145,6 +145,7 @@ const it: SynapseTranslationMessages = {
       },
       helper: {
         password: "Cambiando la password l'utente verrà disconnesso da tutte le sessioni attive.",
+        create_password: "Genera una password forte e sicura utilizzando il pulsante sottostante.",
         deactivate: "Devi fornire una password per riattivare l'account.",
         erase: "Constrassegna l'utente come cancellato dal GDPR",
         erase_text: "Ciò significa che i messaggi inviati dall'utente (o dagli utenti) saranno ancora visibili da chiunque si trovasse nella stanza al momento dell'invio, ma saranno nascosti agli utenti che si uniranno alla stanza in seguito.",

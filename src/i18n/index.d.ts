@@ -143,7 +143,8 @@ interface SynapseTranslationMessages extends TranslationMessages {
         user_type?: string;
       };
       helper: {
-        password?: string;
+        password: string;
+        create_password: string;
         deactivate: string;
         erase: string;
         erase_text: string;

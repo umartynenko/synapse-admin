@@ -391,10 +391,10 @@ const UserPasswordInput = props => {
 
   return (
     <>
-      <PasswordInput {...props} helperText={asManagedUserIsSelected ? "resources.users.helper.modify_managed_user_error" : "resources.users.helper.password"} disabled={asManagedUserIsSelected} />
+      <PasswordInput {...props} helperText={asManagedUserIsSelected ? "resources.users.helper.modify_managed_user_error" : (record ? "resources.users.helper.password" : "resources.users.helper.create_password")} disabled={asManagedUserIsSelected} />
        <Button
         variant="outlined"
-        label="Generate Password"
+        label="resources.users.action.generate_password"
         onClick={generatePassword}
         sx={{ marginBottom: "10px" }}
         disabled={asManagedUserIsSelected}

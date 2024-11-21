@@ -152,6 +152,7 @@ const en: SynapseTranslationMessages = {
       },
       helper: {
         password: "Changing password will log user out of all sessions.",
+        create_password: "Generate a strong and secure password using the button below.",
         deactivate: "You must provide a password to re-activate an account.",
         erase: "Mark the user as GDPR-erased",
         erase_text: "This means messages sent by the user(-s) will still be visible by anyone who was in the room when these messages were sent, but hidden from users joining the room afterward.",

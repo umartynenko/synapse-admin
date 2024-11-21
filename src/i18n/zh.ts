@@ -169,6 +169,8 @@ const zh: SynapseTranslationMessages = {
         consent_version: "协议版本",
       },
       helper: {
+        password: "更改密码会使用户注销所有会话。",
+        create_password: "使用下面的按钮生成一个强大和安全的密码。",
         deactivate: "您必须提供一串密码来激活账户。",
         erase: "将用户标记为根据 GDPR 的要求抹除了",
         erase_text: "这意味着用户发送的信息对于发送信息时在房间内的任何人来说都是可见的，但对于之后加入房间的用户来说则是隐藏的。",
