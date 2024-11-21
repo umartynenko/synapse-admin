@@ -228,6 +228,7 @@ const ru: SynapseTranslationMessages = {
           history_visibility: "Видимость истории",
           topic: "Тема",
           avatar: "Аватар",
+          actions: "Действия",
         },
         helper: {
           forward_extremities:

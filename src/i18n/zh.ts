@@ -212,6 +212,9 @@ const zh: SynapseTranslationMessages = {
         join_rules: "加入规则",
         guest_access: "访客访问",
         history_visibility: "历史可见性",
+        topic: "主题",
+        avatar: "头像",
+        actions: "操作",
       },
       enums: {
         join_rules: {

@@ -361,17 +361,19 @@ export const RoomList = (props: ListProps) => {
         <ReferenceField reference="rooms" source="id" label="resources.users.fields.avatar" link={false} sortable={false}>
           <AvatarField source="avatar" sx={{ height: "40px", width: "40px" }} />
         </ReferenceField>
-        <BooleanField
-          source="is_encrypted"
-          sortBy="encryption"
-          TrueIcon={HttpsIcon}
-          FalseIcon={NoEncryptionIcon}
-          label={<HttpsIcon />}
-          sx={{
-            [`& [data-testid="true"]`]: { color: theme.palette.success.main },
-            [`& [data-testid="false"]`]: { color: theme.palette.error.main },
-          }}
-        />
+        <WrapperField source="encryption" sortBy="is_encrypted" label="resources.rooms.fields.encryption">
+          <BooleanField
+            source="is_encrypted"
+            sortBy="encryption"
+            TrueIcon={HttpsIcon}
+            FalseIcon={NoEncryptionIcon}
+            label={<HttpsIcon />}
+            sx={{
+              [`& [data-testid="true"]`]: { color: theme.palette.success.main },
+              [`& [data-testid="false"]`]: { color: theme.palette.error.main },
+            }}
+          />
+        </WrapperField>
         <FunctionField source="name" render={record => record["name"] || record["canonical_alias"] || record["id"]} label="resources.rooms.fields.name" />
         <RaTextField source="joined_members" label="resources.rooms.fields.joined_members" />
         <RaTextField source="joined_local_members" label="resources.rooms.fields.joined_local_members" />
@@ -379,7 +381,9 @@ export const RoomList = (props: ListProps) => {
         <RaTextField source="version" label="resources.rooms.fields.version" />
         <BooleanField source="federatable" label="resources.rooms.fields.federatable" />
         <BooleanField source="public" label="resources.rooms.fields.public" />
-        <MakeAdminBtn />
+        <WrapperField label="resources.rooms.fields.actions">
+          <MakeAdminBtn />
+        </WrapperField>
       </DatagridConfigurable>
     </List>
   );

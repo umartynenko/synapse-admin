@@ -190,6 +190,7 @@ interface SynapseTranslationMessages extends TranslationMessages {
         history_visibility: string;
         topic?: string;
         avatar?: string;
+        actions: string;
       };
       helper?: {
         forward_extremities: string;

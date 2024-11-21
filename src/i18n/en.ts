@@ -198,6 +198,7 @@ const en: SynapseTranslationMessages = {
         history_visibility: "History visibility",
         topic: "Topic",
         avatar: "Avatar",
+        actions: "Actions",
       },
       helper: {
         forward_extremities:

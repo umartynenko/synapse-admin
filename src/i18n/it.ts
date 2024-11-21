@@ -191,6 +191,7 @@ const it: SynapseTranslationMessages = {
         history_visibility: "Visibilità temporale",
         topic: "Topic",
         avatar: "Avatar",
+        actions: "Azioni",
       },
       helper: {
         /*        forward_extremities:

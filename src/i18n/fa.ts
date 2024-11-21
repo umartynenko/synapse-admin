@@ -190,6 +190,7 @@ const fa: SynapseTranslationMessages = {
         history_visibility: "مشاهده تاریخچه",
         topic: "موضوع",
         avatar: "آواتار",
+        actions: "عملیات",
       },
       helper: {
         forward_extremities:

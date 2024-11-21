@@ -225,6 +225,7 @@ const de: SynapseTranslationMessages = {
         history_visibility: "Historie-Sichtbarkeit",
         topic: "Thema",
         avatar: "Avatar",
+        actions: "Aktionen",
       },
       helper: {
         forward_extremities:
