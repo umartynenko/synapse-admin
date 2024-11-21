@@ -284,7 +284,7 @@ export const UserCreate = (props: CreateProps) => {
     >
       <TextInput source="id" autoComplete="off" validate={validateUser} onBlur={checkAvailability} helperText={userAvailabilityEl}/>
       <TextInput source="displayname" validate={maxLength(256)} />
-      <PasswordInput source="password" autoComplete="new-password" validate={maxLength(512)} />
+      <UserPasswordInput source="password" autoComplete="new-password" helperText="resources.users.helper.password" />
       <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable />
       <BooleanInput source="admin" />
       <ArrayInput source="threepids">
@@ -386,16 +386,12 @@ const UserPasswordInput = props => {
 
   const generatePassword = () => {
     const password = generateRandomPassword();
-    if (record) {
-      form.setValue("password", password, { shouldDirty: true });
-    }
+    form.setValue("password", password, { shouldDirty: true });
   };
 
   return (
     <>
-      <PasswordInput {...props} helperText="resources.users.helper.modify_managed_user_error"
-        {...(asManagedUserIsSelected ? { disabled: true } : {})}
-       />
+      <PasswordInput {...props} helperText={asManagedUserIsSelected ? "resources.users.helper.modify_managed_user_error" : "resources.users.helper.password"} disabled={asManagedUserIsSelected} />
        <Button
         variant="outlined"
         label="Generate Password"
