@@ -2,10 +2,8 @@ import React from "react";
 
 import { createRoot } from "react-dom/client";
 
-import App from "./App";
-import { FetchConfig, GetConfig } from "./components/config";
-import { AppContext } from "./AppContext";
-import storage from "./storage";
+import {App, AppContext } from "./App";
+import { FetchConfig, GetConfig } from "./utils/config";
 
 await FetchConfig();
 

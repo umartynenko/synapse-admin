@@ -1,8 +1,8 @@
 import { CheckForApplicationUpdate, AppBar, TitlePortal, InspectorButton, Confirm, Layout, Logout, Menu, useLogout, UserMenu } from "react-admin";
 import { LoginMethod } from "../pages/LoginPage";
 import { useEffect, useState, Suspense } from "react";
-import { Icons, DefaultIcon } from "./icons";
-import { MenuItem, GetConfig, ClearConfig } from "./config";
+import { Icons, DefaultIcon } from "../utils/icons";
+import { MenuItem, GetConfig, ClearConfig } from "../utils/config";
 import Footer from "./Footer";
 
 const AdminUserMenu = () => {
@@ -96,3 +96,5 @@ export const AdminLayout = ({ children }) => {
     <Footer />
   </>
 };
+
+export default AdminLayout;
