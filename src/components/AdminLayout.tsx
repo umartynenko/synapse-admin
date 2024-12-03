@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { Icons, DefaultIcon } from "../utils/icons";
 import { MenuItem, GetConfig, ClearConfig } from "../utils/config";
 import Footer from "./Footer";
+import ServerStatusBadge from "./etke.cc/ServerStatusBadge";
 
 const AdminUserMenu = () => {
   const [open, setOpen] = useState(false);
@@ -48,6 +49,7 @@ const AdminUserMenu = () => {
 const AdminAppBar = () => {
   return (<AppBar userMenu={<AdminUserMenu />}>
     <TitlePortal />
+    <ServerStatusBadge />
     <InspectorButton />
   </AppBar>);
 };

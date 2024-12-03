@@ -2,6 +2,7 @@ export interface Config {
   restrictBaseUrl: string | string[];
   asManagedUsers: RegExp[];
   menu: MenuItem[];
+  etkeccAdmin?: string;
 }
 
 export interface MenuItem {
@@ -17,6 +18,7 @@ let config: Config = {
   restrictBaseUrl: "",
   asManagedUsers: [],
   menu: [],
+  etkeccAdmin: ""
 };
 
 export const FetchConfig = async () => {
@@ -38,9 +40,9 @@ export const FetchConfig = async () => {
       if (!configWK[WellKnownKey]) {
         console.log(`Loaded https://${homeserver}.well-known/matrix/client, but it doesn't contain ${WellKnownKey} key, skipping`, configWK);
       } else {
-          console.log(`Loaded https://${homeserver}.well-known/matrix/client`, configWK);
-            LoadConfig(configWK[WellKnownKey]);
-        }
+        console.log(`Loaded https://${homeserver}.well-known/matrix/client`, configWK);
+        LoadConfig(configWK[WellKnownKey]);
+      }
     } catch (e) {
       console.log(`https://${homeserver}/.well-known/matrix/client not found, skipping`, e);
     }
@@ -49,6 +51,8 @@ export const FetchConfig = async () => {
 }
 
 // load config from context
+// we deliberately processing each key separately to avoid overwriting the whole config, loosing some keys, and messing
+// with typescript types
 export const LoadConfig = (context: any) => {
   if (context?.restrictBaseUrl) {
     config.restrictBaseUrl = context.restrictBaseUrl as string | string[];
@@ -64,6 +68,10 @@ export const LoadConfig = (context: any) => {
   }
   if (menu.length > 0) {
     config.menu = menu;
+  }
+
+  if (context?.etkeccAdmin) {
+    config.etkeccAdmin = context.etkeccAdmin;
   }
 }
 

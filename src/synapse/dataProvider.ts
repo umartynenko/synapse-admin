@@ -265,6 +265,31 @@ export interface UsernameAvailabilityResult {
   errcode?: string;
 }
 
+export interface ServerStatusComponent {
+  ok: boolean;
+  category: string;
+  reason: string;
+  url: string;
+  help: string;
+  label: {
+    url: string;
+    icon: string;
+    text: string;
+  }
+}
+
+export interface ServerStatusResponse {
+  success: boolean;
+  ok: boolean;
+  host: string;
+  results: ServerStatusComponent[];
+}
+
+export interface ServerProcessResponse {
+  locked_at?: string;
+  command?: string;
+}
+
 export interface SynapseDataProvider extends DataProvider {
   deleteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
   uploadMedia: (params: UploadMediaParams) => Promise<UploadMediaResult>;
@@ -273,6 +298,8 @@ export interface SynapseDataProvider extends DataProvider {
   setRateLimits: (id: Identifier, rateLimits: RateLimitsModel) => Promise<void>;
   checkUsernameAvailability: (username: string) => Promise<UsernameAvailabilityResult>;
   makeRoomAdmin: (room_id: string, user_id: string) => Promise<{ success: boolean; error?: string; errcode?: string }>;
+  getServerRunningProcess: (etkeAdminUrl: string) => Promise<ServerProcessResponse>;
+  getServerStatus: (etkeAdminUrl: string) => Promise<ServerStatusResponse>;
 }
 
 const resourceMap = {
@@ -880,6 +907,60 @@ const baseDataProvider: SynapseDataProvider = {
       }
       throw error;
     }
+  },
+  getServerRunningProcess: async (runningProcessUrl: string): Promise<ServerProcessResponse> => {
+    const locked_at = "";
+    const command = "";
+
+    try {
+      const response = await fetch(`${runningProcessUrl}/lock`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error(`Error getting server running process: ${response.status} ${response.statusText}`);
+        return { locked_at, command };
+      }
+      const status = response.status;
+
+      if (status === 200) {
+        const json = await response.json();
+        return json as { locked_at: string; command: string };
+      }
+      if (status === 204) {
+        return { locked_at, command };
+      }
+    } catch (error) {
+      console.error("Error getting server running process", error);
+    }
+
+    return { locked_at, command };
+  },
+  getServerStatus: async (serverStatusUrl: string): Promise<ServerStatusResponse> => {
+    try {
+      const response = await fetch(`${serverStatusUrl}/status`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+      });
+      if (!response.ok) {
+        console.error(`Error getting server status: ${response.status} ${response.statusText}`);
+        return { success: false, ok: false, host: "", results: [] };
+      }
+
+      const status = response.status;
+      if (status === 200) {
+        const json = await response.json();
+        const result = { success: true, ...json } as ServerStatusResponse;
+        return result;
+      }
+    } catch (error) {
+      console.error("Error getting server status", error);
+    }
+
+    return { success: false, ok: false, host: "", results: [] };
   }
 };
 
