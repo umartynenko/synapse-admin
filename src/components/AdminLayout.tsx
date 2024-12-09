@@ -61,7 +61,7 @@ const AdminMenu = (props) => {
   return (
     <Menu {...props}>
       <Menu.ResourceItems />
-      {menu.map((item, index) => {
+      {menu && menu.map((item, index) => {
         const { url, icon, label } = item;
         const IconComponent = Icons[icon] as React.ComponentType<any> | undefined;
 
