@@ -38,6 +38,7 @@ const en: SynapseTranslationMessages = {
         members: "Members",
         detail: "Details",
         permission: "Permissions",
+        media: "Media",
       }
     },
     reports: { tabs: { basic: "Basic", detail: "Details" } },
@@ -399,6 +400,18 @@ const en: SynapseTranslationMessages = {
         content: "Content",
         origin_server_ts: "time of send",
         sender: "Sender",
+      },
+    },
+    room_media: {
+      name: "Media",
+      fields: {
+        media_id: "Media ID",
+      },
+      helper: {
+        info: "This is a list of media that has been uploaded to the room. It is not possible to delete media that has been uploaded to external media repositories.",
+      },
+      action: {
+        error: "%{errcode} (%{errstatus}) %{error}",
       },
     },
     room_directory: {

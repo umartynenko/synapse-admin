@@ -59,6 +59,7 @@ const ru: SynapseTranslationMessages = {
         members: "Участники",
         detail: "Подробности",
         permission: "Права доступа",
+        media: "Медиа",
       },
     },
     reports: { tabs: { basic: "Основные", detail: "Подробности" } },
@@ -433,6 +434,18 @@ const ru: SynapseTranslationMessages = {
         origin_server_ts: "Дата отправки",
         sender: "Отправитель",
       },
+    },
+    room_media: {
+      name: "Медиа",
+      fields: {
+        media_id: "ID медиа",
+      },
+      helper: {
+        info: "Это список медиа, которые были загружены в комнату. Невозможно удалить медиа, которые были загружены в внешние медиа-репозитории.",
+      },
+      action: {
+        error: "%{errcode} (%{errstatus}) %{error}"
+      }
     },
     room_directory: {
       name: "Каталог комнат",

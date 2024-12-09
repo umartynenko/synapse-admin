@@ -31,6 +31,7 @@ interface SynapseTranslationMessages extends TranslationMessages {
         members: string;
         detail: string;
         permission: string;
+        media: string;
       };
     };
     reports: { tabs: { basic: string; detail: string } };
@@ -391,6 +392,18 @@ interface SynapseTranslationMessages extends TranslationMessages {
         content: string;
         origin_server_ts: string;
         sender: string;
+      };
+    };
+    room_media?: {
+      name: string;
+      fields: {
+        media_id: string;
+      };
+      helper: {
+        info: string;
+      };
+      action: {
+        error: string;
       };
     };
     room_directory?: {
