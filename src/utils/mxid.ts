@@ -41,7 +41,6 @@ export function returnMXID(input: string | Identifier): string {
   const homeserver = localStorage.getItem("home_server");
 
   // Check if the input already looks like a valid MXID (i.e., starts with "@" and contains ":")
-  const mxidPattern = /^@[^@:]+:[^@:]+$/;
   if (isMXID(input)) {
     return input as string; // Already a valid MXID
   }
