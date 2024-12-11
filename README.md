@@ -105,6 +105,7 @@ The following changes are already implemented:
 * 🤖 [User Badges](https://github.com/etkecc/synapse-admin/pull/160)
 * 🔑 [Allow prefilling any fields on the login form via GET params](https://github.com/etkecc/synapse-admin/pull/181)
 * 🖼️ [Add "Media" tab for rooms](https://github.com/etkecc/synapse-admin/pull/196)
+* ➕ [Support E.164-based Matrix IDs (MSC4009)](https://github.com/etkecc/synapse-admin/pull/214)
 
 #### exclusive for [etke.cc](https://etke.cc) customers
 
