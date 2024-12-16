@@ -112,6 +112,20 @@ interface SynapseTranslationMessages extends TranslationMessages {
       send: string;
     };
   };
+  purge_remote_media: {
+    name: string;
+    fields: {
+      before_ts: string;
+    };
+    action: {
+      send: string;
+      send_success: string;
+      send_failure: string;
+    };
+    helper: {
+      send: string;
+    };
+  };
   resources: {
     users: {
       name: string;

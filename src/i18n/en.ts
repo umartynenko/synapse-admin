@@ -120,6 +120,20 @@ const en: SynapseTranslationMessages = {
       send: "This API deletes the local media from the disk of your own server. This includes any local thumbnails and copies of media downloaded. This API will not affect media that has been uploaded to external media repositories.",
     },
   },
+  purge_remote_media: {
+    name: "Remote Media",
+    fields: {
+      before_ts: "last access before",
+    },
+    action: {
+      send: "Purge remote media",
+      send_success: "Purge remote media request has been sent.",
+      send_failure: "An error has occurred with the purge remote media request.",
+    },
+    helper: {
+      send: "This API purges the remote media cache from the disk of your own server. This includes any local thumbnails and copies of media downloaded. This API will not affect media that has been uploaded to the server's own media repository.",
+    },
+  },
   resources: {
     users: {
       name: "User |||| Users",

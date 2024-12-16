@@ -107,6 +107,7 @@ The following changes are already implemented:
 * 🎞️ [Add "Media" tab for rooms](https://github.com/etkecc/synapse-admin/pull/196)
 * 📞 [Support E.164-based Matrix IDs (MSC4009)](https://github.com/etkecc/synapse-admin/pull/214)
 * 🛑 [Add support for Account Suspension (MSC3823)](https://github.com/etkecc/synapse-admin/pull/195)
+* 🗑️ [Add "Purge Remote Media" button](https://github.com/etkecc/synapse-admin/pull/237)
 
 #### exclusive for [etke.cc](https://etke.cc) customers
 

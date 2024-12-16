@@ -114,6 +114,20 @@ const it: SynapseTranslationMessages = {
       send: "Questa API cancella i media locali dal disco del tuo server. Questo include anche ogni miniatura e copia del media scaricato. Questa API non inciderà sui media che sono stati caricati nei repository esterni.",
     },
   },
+  purge_remote_media: {
+    name: "Media Remoti",
+    fields: {
+      before_ts: "ultimo accesso prima di",
+    },
+    action: {
+      send: "Elimina media remoti",
+      send_success: "La richiesta per eliminare i media remoti è stata inviata.",
+      send_failure: "Si è verificato un errore con la richiesta di eliminazione dei media remoti.",
+    },
+    helper: {
+      send: "Questa API elimina la cache dei media remoti dal disco del tuo server. Questo include qualsiasi miniatura locale e copie di media scaricati. Questa API non influirà sui media che sono stati caricati nel repository multimediale del server.",
+    },
+  },
   resources: {
     users: {
       name: "Utente |||| Utenti",

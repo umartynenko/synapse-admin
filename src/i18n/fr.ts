@@ -117,6 +117,20 @@ const fr: SynapseTranslationMessages = {
       send: "Cette API supprime les médias locaux du disque de votre propre serveur. Cela inclut toutes les vignettes locales et les copies des médias téléchargés. Cette API n'affectera pas les médias qui ont été téléversés dans des dépôts de médias externes.",
     },
   },
+  purge_remote_media: {
+    name: "Médias distants",
+    fields: {
+      before_ts: "dernier accès avant",
+    },
+    action: {
+      send: "Purger les médias distants",
+      send_success: "La demande de purge des médias distants a été envoyée.",
+      send_failure: "Une erreur est survenue lors de la demande de purge des médias distants.",
+    },
+    helper: {
+      send: "Cette API purge le cache des médias distants du disque de votre propre serveur. Cela inclut toutes les vignettes locales et les copies des médias téléchargés. Cette API n'affectera pas les médias qui ont été téléchargés dans le dépôt de médias du serveur.",
+    },
+  },
   resources: {
     users: {
       name: "Utilisateur |||| Utilisateurs",

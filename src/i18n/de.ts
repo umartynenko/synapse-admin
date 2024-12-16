@@ -147,6 +147,20 @@ const de: SynapseTranslationMessages = {
       send: "Diese API löscht die lokalen Medien von der Festplatte des eigenen Servers. Dies umfasst alle lokalen Miniaturbilder und Kopien von Medien. Diese API wirkt sich nicht auf Medien aus, die sich in externen Medien-Repositories befinden.",
     },
   },
+  purge_remote_media: {
+    name: "Externe Medien",
+    fields: {
+      before_ts: "letzter Zugriff vor",
+    },
+    action: {
+      send: "Externe Medien löschen",
+      send_success: "Die Anfrage zum Löschen externer Medien wurde gesendet.",
+      send_failure: "Bei der Anfrage zum Löschen externer Medien ist ein Fehler aufgetreten.",
+    },
+    helper: {
+      send: "Diese API löscht den externen Medien-Cache von der Festplatte Ihres eigenen Servers. Dazu gehören alle lokalen Thumbnails und Kopien heruntergeladener Medien. Diese API beeinflusst nicht die Medien, die in das eigene Medienarchiv des Servers hochgeladen wurden.",
+    },
+  },
   resources: {
     users: {
       name: "Benutzer",
