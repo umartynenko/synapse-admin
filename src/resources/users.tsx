@@ -50,6 +50,7 @@ import {
   SaveButton,
   CreateButton,
   ExportButton,
+  BulkDeleteButton,
   TopToolbar,
   Toolbar,
   NumberField,
@@ -496,7 +497,7 @@ export const UserEdit = (props: EditProps) => {
             perPage={50}
             sort={{ field: "created_ts", order: "DESC" }}
           >
-            <Datagrid sx={{ width: "100%" }}>
+            <Datagrid sx={{ width: "100%" }} bulkActionButtons={<BulkDeleteButton/>}>
               <MediaIDField source="media_id" />
               <DateField source="created_ts" showTime options={DATE_FORMAT} />
               <DateField source="last_access_ts" showTime options={DATE_FORMAT} />
