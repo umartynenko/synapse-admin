@@ -16,7 +16,11 @@ export const isMXID = (id: string | Identifier): boolean => mxidPattern.test(id 
  * @returns Whether the user is managed by an application service
  */
 export const isASManaged = (id: string | Identifier): boolean => {
-  return GetConfig().asManagedUsers.some(regex => regex.test(id as string));
+  const managedUsers = GetConfig().asManagedUsers;
+  if (!managedUsers) {
+    return false;
+  }
+  return managedUsers.some(regex => regex.test(id as string));
 };
 
 /**

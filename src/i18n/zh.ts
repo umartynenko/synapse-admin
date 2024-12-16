@@ -142,6 +142,20 @@ const zh: SynapseTranslationMessages = {
       send: "这个API会删除您硬盘上的本地媒体。包含了任何的本地缓存和下载的媒体备份。这个API不会影响上传到外部媒体存储库上的媒体文件。",
     },
   },
+  purge_remote_media: {
+    name: "远程媒体",
+    fields: {
+      before_ts: "最后访问于之前",
+    },
+    action: {
+      send: "清除远程媒体",
+      send_success: "远程媒体清除请求已发送。",
+      send_failure: "发生错误，远程媒体清除请求未成功。",
+    },
+    helper: {
+      send: "此API清除您服务器磁盘上的远程媒体缓存。这包括任何本地缩略图和下载的媒体副本。此API不会影响已经上传到服务器媒体存储库的媒体。",
+    },
+  },
   resources: {
     users: {
       name: "用户",

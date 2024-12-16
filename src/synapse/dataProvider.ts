@@ -293,6 +293,7 @@ export interface ServerProcessResponse {
 
 export interface SynapseDataProvider extends DataProvider {
   deleteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
+  purgeRemoteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
   uploadMedia: (params: UploadMediaParams) => Promise<UploadMediaResult>;
   updateFeatures: (id: Identifier, features: ExperimentalFeaturesModel) => Promise<void>;
   getRateLimits: (id: Identifier) => Promise<RateLimitsModel>;
@@ -842,6 +843,23 @@ const baseDataProvider: SynapseDataProvider = {
   deleteMedia: async ({ before_ts, size_gt = 0, keep_profiles = true }) => {
     const homeserver = localStorage.getItem("home_server"); // TODO only required for synapse < 1.78.0
     const endpoint = `/_synapse/admin/v1/media/${homeserver}/delete?before_ts=${before_ts}&size_gt=${size_gt}&keep_profiles=${keep_profiles}`;
+
+    const base_url = localStorage.getItem("base_url");
+    const endpoint_url = base_url + endpoint;
+    const { json } = await jsonClient(endpoint_url, { method: "POST" });
+    return json as DeleteMediaResult;
+  },
+
+  /**
+   * Purge remote media by date
+   *
+   * @link https://element-hq.github.io/synapse/latest/admin_api/media_admin_api.html#purge-remote-media-api
+   *
+   * @param before_ts Unix timestamp in milliseconds. Files that were last used before this timestamp will be deleted. It is the timestamp of last access, not the timestamp when the file was created.
+   * @returns
+   */
+  purgeRemoteMedia: async ({ before_ts }) => {
+    const endpoint = `/_synapse/admin/v1/purge_media_cache?before_ts=${before_ts}`;
 
     const base_url = localStorage.getItem("base_url");
     const endpoint_url = base_url + endpoint;
