@@ -291,6 +291,17 @@ export interface ServerProcessResponse {
   command?: string;
 }
 
+export interface ServerNotification {
+  event_id: string;
+  output: string;
+  sent_at: string;
+}
+
+export interface ServerNotificationsResponse {
+  success: boolean;
+  notifications: ServerNotification[];
+}
+
 export interface SynapseDataProvider extends DataProvider {
   deleteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
   purgeRemoteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
@@ -302,6 +313,8 @@ export interface SynapseDataProvider extends DataProvider {
   makeRoomAdmin: (room_id: string, user_id: string) => Promise<{ success: boolean; error?: string; errcode?: string }>;
   getServerRunningProcess: (etkeAdminUrl: string) => Promise<ServerProcessResponse>;
   getServerStatus: (etkeAdminUrl: string) => Promise<ServerStatusResponse>;
+  getServerNotifications: (etkeAdminUrl: string) => Promise<ServerNotificationsResponse>;
+  deleteServerNotifications: (etkeAdminUrl: string) => Promise<{ success: boolean }>;
 }
 
 const resourceMap = {
@@ -995,6 +1008,60 @@ const baseDataProvider: SynapseDataProvider = {
     }
 
     return { success: false, ok: false, host: "", results: [] };
+  },
+  getServerNotifications: async (serverNotificationsUrl: string): Promise<ServerNotificationsResponse> => {
+    try {
+      const response = await fetch(`${serverNotificationsUrl}/notifications`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+      });
+      if (!response.ok) {
+        console.error(`Error getting server notifications: ${response.status} ${response.statusText}`);
+        return { success: false, notifications: [] };
+      }
+
+      const status = response.status;
+      if (status === 204) {
+        return { success: true, notifications: [] };
+      }
+
+      if (status === 200) {
+        const json = await response.json();
+        const result = { success: true, notifications: json } as ServerNotificationsResponse;
+        return result;
+      }
+
+      return { success: true, notifications: [] };
+    } catch (error) {
+      console.error("Error getting server notifications", error);
+    }
+
+    return { success: false, notifications: [] };
+  },
+  deleteServerNotifications: async (serverNotificationsUrl: string) => {
+    try {
+      const response = await fetch(`${serverNotificationsUrl}/notifications`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        },
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        console.error(`Error deleting server notifications: ${response.status} ${response.statusText}`);
+        return { success: false };
+      }
+
+      const status = response.status;
+      if (status === 204) {
+        const result = { success: true }
+        return result;
+      }
+    } catch (error) {
+      console.error("Error deleting server notifications", error);
+    }
+
+    return { success: false };
   }
 };
 
