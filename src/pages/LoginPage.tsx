@@ -59,7 +59,6 @@ const LoginPage = () => {
     // Prevent further requests
     const previousUrl = new URL(window.location.toString())
     previousUrl.searchParams.delete("loginToken")
-    previousUrl.hash = ""
     window.history.replaceState({}, "", previousUrl.toString());
     const baseUrl = localStorage.getItem("sso_base_url");
     localStorage.removeItem("sso_base_url");
