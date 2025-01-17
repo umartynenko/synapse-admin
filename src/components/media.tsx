@@ -504,7 +504,10 @@ export const ReportMediaContent = ({ source }) => {
     return null;
   }
 
-  const uploadName = decodeURIComponent(get(record, "event_json.content.body")?.toString());
+  let uploadName = "";
+  if (get(record, "event_json.content.body")) {
+    uploadName = decodeURIComponent(get(record, "event_json.content.body")?.toString());
+  }
 
   return <ViewMediaButton mxcURL={mxcURL} label={mxcURL} uploadName={uploadName} mimetype={record.media_type}/>;
 };

@@ -505,7 +505,7 @@ export const UserEdit = (props: EditProps) => {
               <DateField source="last_access_ts" showTime options={DATE_FORMAT} />
               <NumberField source="media_length" />
               <TextField source="media_type" sx={{ display: "block", width: 200, wordBreak: "break-word" }} />
-              <FunctionField source="upload_name" render={record => decodeURIComponent(record.upload_name)} />
+              <FunctionField source="upload_name" render={record => record.upload_name ? decodeURIComponent(record.upload_name) : ""} />
               <TextField source="quarantined_by" />
               <QuarantineMediaButton label="resources.quarantine_media.action.name" />
               <ProtectMediaButton label="resources.users_media.fields.safe_from_quarantine" />
