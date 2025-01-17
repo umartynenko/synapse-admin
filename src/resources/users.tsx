@@ -83,6 +83,7 @@ import UserRateLimits from "../components/UserRateLimits";
 import { User, UsernameAvailabilityResult } from "../synapse/dataProvider";
 import { MakeAdminBtn } from "./rooms";
 import UserAccountData from "../components/UserAccountData";
+import decodeURLComponent from "../utils/decodeURLComponent";
 
 const choices_medium = [
   { id: "email", name: "resources.users.email" },
@@ -505,7 +506,7 @@ export const UserEdit = (props: EditProps) => {
               <DateField source="last_access_ts" showTime options={DATE_FORMAT} />
               <NumberField source="media_length" />
               <TextField source="media_type" sx={{ display: "block", width: 200, wordBreak: "break-word" }} />
-              <FunctionField source="upload_name" render={record => record.upload_name ? decodeURIComponent(record.upload_name) : ""} />
+              <FunctionField source="upload_name" render={record => record.upload_name ? decodeURLComponent(record.upload_name) : ""} />
               <TextField source="quarantined_by" />
               <QuarantineMediaButton label="resources.quarantine_media.action.name" />
               <ProtectMediaButton label="resources.users_media.fields.safe_from_quarantine" />

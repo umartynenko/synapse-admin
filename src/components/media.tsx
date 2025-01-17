@@ -35,6 +35,7 @@ import { useMutation } from "@tanstack/react-query";
 import { dateParser } from "../utils/date";
 import { DeleteMediaParams, SynapseDataProvider } from "../synapse/dataProvider";
 import { fetchAuthenticatedMedia } from "../utils/fetchMedia";
+import decodeURLComponent from "../utils/decodeURLComponent";
 
 const DeleteMediaDialog = ({ open, onClose, onSubmit }) => {
   const translate = useTranslate();
@@ -481,7 +482,7 @@ export const MediaIDField = ({ source }) => {
 
   let uploadName = mediaID;
   if (get(record, "upload_name")) {
-    uploadName = decodeURIComponent(get(record, "upload_name")?.toString());
+    uploadName = decodeURLComponent(get(record, "upload_name")?.toString());
   }
 
   let mxcURL = mediaID;
@@ -506,7 +507,7 @@ export const ReportMediaContent = ({ source }) => {
 
   let uploadName = "";
   if (get(record, "event_json.content.body")) {
-    uploadName = decodeURIComponent(get(record, "event_json.content.body")?.toString());
+    uploadName = decodeURLComponent(get(record, "event_json.content.body")?.toString());
   }
 
   return <ViewMediaButton mxcURL={mxcURL} label={mxcURL} uploadName={uploadName} mimetype={record.media_type}/>;

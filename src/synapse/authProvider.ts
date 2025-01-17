@@ -3,6 +3,7 @@ import { AuthProvider, HttpError, Options, fetchUtils } from "react-admin";
 import { MatrixError, displayError } from "../utils/error";
 import { fetchAuthenticatedMedia } from "../utils/fetchMedia";
 import { FetchConfig, ClearConfig } from "../utils/config";
+import decodeURLComponent from "../utils/decodeURLComponent";
 
 const authProvider: AuthProvider = {
   // called when the user attempts to log in
@@ -57,7 +58,7 @@ const authProvider: AuthProvider = {
     base_url = base_url.replace(/\/+$/g, "");
     localStorage.setItem("base_url", base_url);
 
-    const decoded_base_url = window.decodeURIComponent(base_url);
+    const decoded_base_url = decodeURLComponent(base_url);
     let login_api_url = decoded_base_url + (accessToken ? "/_matrix/client/v3/account/whoami" : "/_matrix/client/v3/login");
 
     let response;
