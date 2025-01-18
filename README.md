@@ -261,6 +261,7 @@ You have three options:
       hostname: synapse-admin
       build:
         context: https://github.com/etkecc/synapse-admin.git
+        dockerfile: Dockerfile.build
         args:
           - BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
         #   - NODE_OPTIONS="--max_old_space_size=1024"

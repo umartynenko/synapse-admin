@@ -3,8 +3,10 @@ services:
     container_name: synapse-admin
     hostname: synapse-admin
     image: ghcr.io/etkecc/synapse-admin:latest
+    dockerfile: Dockerfile.build
     # build:
     #   context: .
+    #   dockerfile: Dockerfile.build
 
     # to use the docker-compose as standalone without a local repo clone,
     # replace the context definition with this:
