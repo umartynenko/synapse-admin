@@ -13,7 +13,8 @@ const fixedChineseMessages = {
     },
     action: {
       ...chineseMessages.ra.action,
-      update_application: "Anwendung aktualisieren",
+      update_application: "更新应用",
+      select_all_button: "全部选择",
     },
     page: {
       ...chineseMessages.ra.page,
@@ -26,6 +27,7 @@ const fixedChineseMessages = {
         "您没有访问此页面的权限。",
       authentication_error:
         "身份验证服务器返回错误，无法验证您的凭据。",
+      select_all_limit_reached: "选择的元素太多。只选择了前 %{max} 个元素。",
     },
   },
 }
