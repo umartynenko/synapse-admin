@@ -290,7 +290,7 @@ Example for Traefik:
 ```yml
 services:
   traefik:
-    image: traefik:mimolette
+    image: traefik:v3
     restart: unless-stopped
     ports:
       - 80:80
@@ -303,11 +303,12 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.synapse-admin.rule=Host(`example.com`)&&PathPrefix(`/admin`)"
-      - "traefik.http.routers.synapse-admin.middlewares=admin,admin_path"
-      - "traefik.http.middlewares.admin.redirectregex.regex=^(.*)/admin/?"
-      - "traefik.http.middlewares.admin.redirectregex.replacement=$${1}/admin/"
-      - "traefik.http.middlewares.admin_path.stripprefix.prefixes=/admin"
+      - "traefik.http.routers.admin.rule=Host(`example.com`) && PathPrefix(`/admin`)"
+      - "traefik.http.services.admin.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.admin-slashless-redirect.redirectregex.regex=(/admin)$$"
+      - "traefik.http.middlewares.admin-slashless-redirect.redirectregex.replacement=$${1}/"
+      - "traefik.http.middlewares.admin-strip-prefix.stripprefix.prefixes=/admin"
+      - "traefik.http.routers.admin.middlewares=admin-slashless-redirect,admin-strip-prefix"
 ```
 
 ## Development
