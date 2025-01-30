@@ -2,6 +2,7 @@ import polyglotI18nProvider from "ra-i18n-polyglot";
 
 import { render, screen } from "@testing-library/react";
 import { AdminContext } from "react-admin";
+import { BrowserRouter } from "react-router-dom";
 
 import LoginPage from "./LoginPage";
 import { AppContext } from "../Context";
@@ -14,9 +15,11 @@ describe("LoginForm", () => {
   it("renders with no restriction to homeserver", async () => {
     await act(async () => {
       render(
-        <AdminContext i18nProvider={i18nProvider}>
-          <LoginPage />
-        </AdminContext>
+        <BrowserRouter>
+          <AdminContext i18nProvider={i18nProvider}>
+            <LoginPage />
+          </AdminContext>
+        </BrowserRouter>
       );
     });
 
@@ -33,13 +36,15 @@ describe("LoginForm", () => {
 
   it("renders with single restricted homeserver", () => {
     render(
-      <AppContext.Provider
-        value={{ restrictBaseUrl: "https://matrix.example.com", asManagedUsers: [], menu: [] }}
-      >
+      <BrowserRouter>
+        <AppContext.Provider
+          value={{ restrictBaseUrl: "https://matrix.example.com", asManagedUsers: [], menu: [] }}
+        >
         <AdminContext i18nProvider={i18nProvider}>
           <LoginPage />
-        </AdminContext>
-      </AppContext.Provider>
+          </AdminContext>
+        </AppContext.Provider>
+      </BrowserRouter>
     );
 
     screen.getByText(englishMessages.synapseadmin.auth.welcome);
@@ -56,14 +61,16 @@ describe("LoginForm", () => {
   it("renders with multiple restricted homeservers", async () => {
     render(
       <AppContext.Provider
-        value={{
-          restrictBaseUrl: ["https://matrix.example.com", "https://matrix.example.org"],
-          asManagedUsers: [],
+          value={{
+            restrictBaseUrl: ["https://matrix.example.com", "https://matrix.example.org"],
+            asManagedUsers: [],
           menu: [],
         }}
       >
         <AdminContext i18nProvider={i18nProvider}>
-          <LoginPage />
+          <BrowserRouter>
+            <LoginPage />
+          </BrowserRouter>
         </AdminContext>
       </AppContext.Provider>
     );
