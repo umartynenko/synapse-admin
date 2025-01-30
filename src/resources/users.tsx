@@ -528,7 +528,9 @@ export const UserEdit = (props: EditProps) => {
                 <ReferenceField reference="rooms" source="id" label="resources.rooms.fields.joined_members" link={false} sortable={false}>
                   <TextField source="joined_members" sortable={false} />
                 </ReferenceField>
+                <ReferenceField reference="rooms" source="id" label={false} link={false} sortable={false}>
                   <MakeAdminBtn />
+                </ReferenceField>
               </Datagrid>
           </ReferenceManyField>
         </FormTab>
