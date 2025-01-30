@@ -11,6 +11,10 @@ const fixedRussianMessages = {
       no_filtered_results: "Нет результатов",
       clear_filters: "Все фильтры сбросить",
     },
+    action: {
+      ...russianMessages.ra.action,
+      select_all_button: "Выбрать все",
+    },
     page: {
       ...russianMessages.ra.page,
       empty: "Пусто",
@@ -23,6 +27,7 @@ const fixedRussianMessages = {
         "У вас нет прав доступа к этой странице.",
       authentication_error:
         "Сервер аутентификации вернул ошибку и не смог проверить ваши учетные данные.",
+      select_all_limit_reached: "Слишком много элементов для выбора. Были выбраны только первые %{max} элементов.",
     },
   },
 }

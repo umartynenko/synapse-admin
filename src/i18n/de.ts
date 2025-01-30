@@ -15,6 +15,7 @@ const fixedGermanMessages = {
     action: {
       ...formalGermanMessages.ra.action,
       update_application: "Anwendung aktualisieren",
+      select_all_button: "Alle auswählen",
     },
     page: {
       ...formalGermanMessages.ra.page,
@@ -28,6 +29,7 @@ const fixedGermanMessages = {
         "Sie haben nicht die erforderlichen Berechtigungen um auf diese Seite zuzugreifen.",
       authentication_error:
         "Der Authentifizierungsserver hat einen Fehler zurückgegeben und Ihre Anmeldedaten konnten nicht überprüft werden.",
+      select_all_limit_reached: "Es gibt zu viele Elemente, um sie alle auszuwählen. Es wurden nur die ersten %{max} Elemente ausgewählt.",
     },
   },
 }
