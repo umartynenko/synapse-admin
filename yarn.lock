@@ -4568,7 +4568,7 @@ ra-core@^4.11.2, ra-core@^4.16.2:
     react-is "^17.0.2"
     react-query "^3.32.1"
 
-ra-core@^5.4.4, ra-core@^5.5.2:
+ra-core@^5.4.3, ra-core@^5.4.4, ra-core@^5.5.2:
   version "5.5.2"
   resolved "https://registry.yarnpkg.com/ra-core/-/ra-core-5.5.2.tgz#70755fd1680f4c48d75e18f5548eab423a230f8d"
   integrity sha512-XH85pGHjDwuDkTWHKv3agrOxP9KWs1gx5KOnzVf9MTFqyOiA4rYIUSLakI/aovM+VYBJsU6Wku7qSOkoZeaZ8A==
@@ -4616,12 +4616,12 @@ ra-language-italian@^3.13.1:
   resolved "https://registry.yarnpkg.com/ra-language-italian/-/ra-language-italian-3.13.1.tgz#115f15c00f140ba319d5daf53c7bd477c73b9546"
   integrity sha512-iGgdkbnpA+5GD6OcAjOuOA95/jmJegC9txE8X+AmlA7vhsHdcnHam/D6goqv3sqfeqgCkPCPmJAMO/+slHXR1w==
 
-ra-language-russian@^4.14.2:
-  version "4.14.2"
-  resolved "https://registry.yarnpkg.com/ra-language-russian/-/ra-language-russian-4.14.2.tgz#eb90dc31b5990a05d246d3ee1d8acb79474ae137"
-  integrity sha512-Z9N6Ox5Py913SeW6bifMnpAf/2Y2qLH7umRFxNZNK+DhHLbdp8MBnYSkwqTVe9bAXP1xUV8O3s+PDS2n24WIgA==
+ra-language-russian@^5.4.3:
+  version "5.4.3"
+  resolved "https://registry.yarnpkg.com/ra-language-russian/-/ra-language-russian-5.4.3.tgz#f746f20514306eda835411dd3086a3e3ff786a41"
+  integrity sha512-Pe2meeU1k6UTr9LCxdtbpHIqfvTtZVdohi4GQInp9pOAAdoqmABnNsqQt1OBb8I9gSqZcKW5fIwvA4AXEsWmyA==
   dependencies:
-    ra-core "^4.16.2"
+    ra-core "^5.4.3"
 
 ra-ui-materialui@^5.5.2:
   version "5.5.2"
