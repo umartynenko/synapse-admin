@@ -497,7 +497,7 @@ export const UserEdit = (props: EditProps) => {
             target="user_id"
             label={false}
             pagination={<UserPagination />}
-            perPage={50}
+            perPage={10}
             sort={{ field: "created_ts", order: "DESC" }}
           >
             <Datagrid sx={{ width: "100%" }} bulkActionButtons={<BulkDeleteButton/>}>
@@ -516,7 +516,7 @@ export const UserEdit = (props: EditProps) => {
         </FormTab>
 
         <FormTab label={translate("resources.rooms.name", { smart_count: 2 })} icon={<ViewListIcon />} path="rooms">
-          <ReferenceManyField reference="joined_rooms" target="user_id" label={false}>
+          <ReferenceManyField reference="joined_rooms" target="user_id" label={false} perPage={25} pagination={<Pagination />}>
               <Datagrid sx={{ width: "100%" }} rowClick={id => "/rooms/" + id + "/show"} bulkActionButtons={false}>
                 <ReferenceField reference="rooms" source="id" label={false} link={false} sortable={false}>
                   <AvatarField source="avatar" sx={{ height: "40px", width: "40px" }} />

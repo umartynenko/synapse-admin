@@ -48,7 +48,7 @@ const StyledBadge = styled(Badge, { shouldForwardProp: (prop) => !['badgeColor',
 // every 5 minutes
 const SERVER_STATUS_INTERVAL_TIME = 5 * 60 * 1000;
 // every 5 seconds
-const SERVER_CURRENT_PROCCESS_INTERVAL_TIME = 5 * 1000;
+const SERVER_CURRENT_PROCCESS_INTERVAL_TIME = 35 * 1000;
 
 const useServerStatus = () => {
   const [serverStatus, setServerStatus] = useStore<ServerStatusResponse>("serverStatus", { ok: false, success: false, host: "", results: [] });

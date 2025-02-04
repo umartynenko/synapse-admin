@@ -16,6 +16,8 @@ import {
 import { returnMXID } from "../utils/mxid";
 import { MatrixError, displayError } from "../utils/error";
 
+const CACHED_MANY_REF: Record<string, any> = {};
+
 // Adds the access token to all requests
 const jsonClient = async (url: string, options: Options = {}) => {
   const token = localStorage.getItem("access_token");
@@ -706,18 +708,36 @@ const baseDataProvider: SynapseDataProvider = {
       dir: getSearchOrder(order),
     };
 
+
+
     const homeserver = localStorage.getItem("base_url");
     if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
 
     const res = resourceMap[resource];
 
     const ref = res.reference(params.id);
-    const endpoint_url = `${homeserver}${ref.endpoint}?${new URLSearchParams(filterUndefined(query)).toString()}`;
 
-    const { json } = await jsonClient(endpoint_url);
+    const endpoint_url = `${homeserver}${ref.endpoint}?${new URLSearchParams(filterUndefined(query)).toString()}`;
+    let jsonData = [];
+    let total = 0;
+
+    if (CACHED_MANY_REF[ref]) {
+        jsonData = CACHED_MANY_REF[ref]["data"].slice(from, from + perPage);
+        total = CACHED_MANY_REF[ref]["total"];
+    } else {
+      const { json } = await jsonClient(endpoint_url);
+      jsonData = json[res.data]
+      total = res.total(json, from, perPage);
+      if (resource === "joined_rooms") {
+        // cache will be applied only for joined_rooms
+        CACHED_MANY_REF[ref] = { data: jsonData, total: total };
+        jsonData = jsonData.slice(from, from + perPage);
+      }
+    }
+
     return {
-      data: json[res.data].map(res.map),
-      total: res.total(json, from, perPage),
+      data: jsonData.map(res.map),
+      total: total,
     };
   },
 
