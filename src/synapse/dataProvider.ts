@@ -718,19 +718,21 @@ const baseDataProvider: SynapseDataProvider = {
     const ref = res.reference(params.id);
 
     const endpoint_url = `${homeserver}${ref.endpoint}?${new URLSearchParams(filterUndefined(query)).toString()}`;
+    let CACHE_KEY = ref.endpoint;
     let jsonData = [];
     let total = 0;
 
-    if (CACHED_MANY_REF[ref.endpoint]) {
-        jsonData = CACHED_MANY_REF[ref]["data"].slice(from, from + perPage);
-        total = CACHED_MANY_REF[ref]["total"];
+    if (CACHED_MANY_REF[CACHE_KEY]) {
+      console.log("cached many ref", CACHED_MANY_REF[CACHE_KEY]);
+        jsonData = CACHED_MANY_REF[CACHE_KEY]["data"].slice(from, from + perPage);
+        total = CACHED_MANY_REF[CACHE_KEY]["total"];
     } else {
       const { json } = await jsonClient(endpoint_url);
       jsonData = json[res.data]
       total = res.total(json, from, perPage);
       if (resource === "joined_rooms") {
         // cache will be applied only for joined_rooms
-        CACHED_MANY_REF[ref.endpoint] = { data: jsonData, total: total };
+        CACHED_MANY_REF[CACHE_KEY] = { data: jsonData, total: total };
         jsonData = jsonData.slice(from, from + perPage);
       }
     }
