@@ -730,7 +730,6 @@ const baseDataProvider: SynapseDataProvider = {
       total = res.total(json, from, perPage);
       if (resource === "joined_rooms") {
         // cache will be applied only for joined_rooms
-        console.log("CACHING@@@@@@@", ref.endpoint);
         CACHED_MANY_REF[ref.endpoint] = { data: jsonData, total: total };
         jsonData = jsonData.slice(from, from + perPage);
       }
