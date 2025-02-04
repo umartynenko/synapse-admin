@@ -721,7 +721,7 @@ const baseDataProvider: SynapseDataProvider = {
     let jsonData = [];
     let total = 0;
 
-    if (CACHED_MANY_REF[ref]) {
+    if (CACHED_MANY_REF[ref.endpoint]) {
         jsonData = CACHED_MANY_REF[ref]["data"].slice(from, from + perPage);
         total = CACHED_MANY_REF[ref]["total"];
     } else {
@@ -730,7 +730,8 @@ const baseDataProvider: SynapseDataProvider = {
       total = res.total(json, from, perPage);
       if (resource === "joined_rooms") {
         // cache will be applied only for joined_rooms
-        CACHED_MANY_REF[ref] = { data: jsonData, total: total };
+        console.log("CACHING@@@@@@@", ref.endpoint);
+        CACHED_MANY_REF[ref.endpoint] = { data: jsonData, total: total };
         jsonData = jsonData.slice(from, from + perPage);
       }
     }
