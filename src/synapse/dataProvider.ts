@@ -723,7 +723,6 @@ const baseDataProvider: SynapseDataProvider = {
     let total = 0;
 
     if (CACHED_MANY_REF[CACHE_KEY]) {
-      console.log("cached many ref", CACHED_MANY_REF[CACHE_KEY]);
         jsonData = CACHED_MANY_REF[CACHE_KEY]["data"].slice(from, from + perPage);
         total = CACHED_MANY_REF[CACHE_KEY]["total"];
     } else {
