@@ -376,6 +376,7 @@ export const RoomList = (props: ListProps) => {
         <ReferenceField reference="rooms" source="id" label="resources.users.fields.avatar" link={false} sortable={false}>
           <AvatarField source="avatar" sx={{ height: "40px", width: "40px" }} />
         </ReferenceField>
+        <RaTextField source="id" label="resources.rooms.fields.room_id" sortable={false} />
         <WrapperField source="encryption" sortBy="is_encrypted" label="resources.rooms.fields.encryption">
           <BooleanField
             source="is_encrypted"
