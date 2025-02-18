@@ -27,7 +27,10 @@ const useServerNotifications = () => {
   const deleteServerNotifications = async () => {
     const deleteResponse = await dataProvider.deleteServerNotifications(etkeccAdmin);
     if (deleteResponse.success) {
-      await fetchNotifications();
+      setServerNotifications({
+        notifications: [],
+        success: true,
+      });
     }
   };
 
