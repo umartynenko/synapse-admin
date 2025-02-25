@@ -5,12 +5,16 @@ import { useDataProvider, useStore } from "react-admin";
 import { useNavigate } from "react-router";
 import { Fragment, useEffect, useState } from "react";
 import { useAppContext } from "../../Context";
-import { ServerNotificationsResponse } from "../../synapse/dataProvider";
+import { ServerNotificationsResponse, ServerProcessResponse } from "../../synapse/dataProvider";
 
+// 5 minutes
 const SERVER_NOTIFICATIONS_INTERVAL_TIME = 300000;
 
 const useServerNotifications = () => {
   const [serverNotifications, setServerNotifications] = useStore<ServerNotificationsResponse>("serverNotifications", { notifications: [], success: false });
+  const [ serverProcess, setServerProcess ] = useStore<ServerProcessResponse>("serverProcess", { command: "", locked_at: "" });
+  const { command, locked_at } = serverProcess;
+
   const { etkeccAdmin } = useAppContext();
   const dataProvider = useDataProvider();
   const { notifications, success } = serverNotifications;
@@ -19,7 +23,7 @@ const useServerNotifications = () => {
     const notificationsResponse: ServerNotificationsResponse = await dataProvider.getServerNotifications(etkeccAdmin);
     setServerNotifications({
       ...notificationsResponse,
-      notifications: notificationsResponse.notifications,
+      notifications: notificationsResponse.notifications.reverse(),
       success: notificationsResponse.success
     });
   };
@@ -35,21 +39,26 @@ const useServerNotifications = () => {
   };
 
   useEffect(() => {
-    let serverNotificationsInterval: NodeJS.Timeout;
+    let serverNotificationsInterval: NodeJS.Timeout | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
     if (etkeccAdmin) {
       fetchNotifications();
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         // start the interval after the SERVER_NOTIFICATIONS_INTERVAL_TIME to avoid too many requests
         serverNotificationsInterval = setInterval(fetchNotifications, SERVER_NOTIFICATIONS_INTERVAL_TIME);
       }, SERVER_NOTIFICATIONS_INTERVAL_TIME);
     }
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       if (serverNotificationsInterval) {
         clearInterval(serverNotificationsInterval);
       }
     }
-  }, [etkeccAdmin]);
+  }, [etkeccAdmin, command, locked_at]);
 
   return { success, notifications, deleteServerNotifications };
 };
@@ -108,6 +117,7 @@ export const ServerNotificationsBadge = () => {
             sx={{
               p: 1,
               maxHeight: "350px",
+              paddingTop: 0,
               overflowY: "auto",
               minWidth: "300px",
               maxWidth: {
@@ -126,7 +136,6 @@ export const ServerNotificationsBadge = () => {
                     justifyContent: "space-between",
                     alignItems: "center",
                     fontWeight: "bold",
-                    backgroundColor: "inherit",
                   }}
                 >
                     <Typography variant="h6">Notifications</Typography>
@@ -134,10 +143,14 @@ export const ServerNotificationsBadge = () => {
                   </ListSubheader>
                 <Divider />
                 {notifications.map((notification, index) => {
-                  return (<Fragment key={notification.event_id ? notification.event_id : index }>
+                  return (<Fragment key={notification.event_id ? notification.event_id + index : index }>
                     <ListItem
                       onClick={() => handleSeeAllNotifications()}
                       sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                        overflow: "hidden",
                         "&:hover": {
                           backgroundColor: "action.hover",
                           cursor: "pointer"
@@ -155,6 +168,11 @@ export const ServerNotificationsBadge = () => {
                             }}
                             dangerouslySetInnerHTML={{ __html: notification.output.split("\n")[0] }}
                           />
+                        }
+                      />
+                      <ListItemText
+                        primary={
+                          <Typography variant="body2">{notification.sent_at}</Typography>
                         }
                       />
                     </ListItem>

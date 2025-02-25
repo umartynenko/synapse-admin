@@ -4,6 +4,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from "@mui/icons-material/Close";
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import { ServerProcessResponse, ServerStatusComponent, ServerStatusResponse } from "../../synapse/dataProvider";
+import ServerCommandsPanel from "./ServerCommandsPanel";
 
 const getTimeSince = (date: string) => {
   const now = new Date();
@@ -101,6 +102,8 @@ const ServerStatusPage = () => {
         </Box>
       </Stack>
       )}
+
+      <ServerCommandsPanel />
 
       <Stack spacing={2} direction="row">
         {Object.keys(groupedResults).map((category, idx) => (

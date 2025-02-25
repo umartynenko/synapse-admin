@@ -68,10 +68,12 @@ const useServerStatus = () => {
   };
 
   useEffect(() => {
-    let serverStatusInterval: NodeJS.Timeout;
+    let serverStatusInterval: NodeJS.Timeout | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
     if (etkeccAdmin) {
       checkServerStatus();
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         // start the interval after 10 seconds to avoid too many requests
         serverStatusInterval = setInterval(checkServerStatus, SERVER_STATUS_INTERVAL_TIME);
       }, 10000);
@@ -80,6 +82,9 @@ const useServerStatus = () => {
     }
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       if (serverStatusInterval) {
         clearInterval(serverStatusInterval);
       }
@@ -105,10 +110,12 @@ const useCurrentServerProcess = () => {
   }
 
   useEffect(() => {
-    let serverCheckInterval: NodeJS.Timeout;
+    let serverCheckInterval: NodeJS.Timeout | null = null;
+    let timeoutId: NodeJS.Timeout | null = null;
+
     if (etkeccAdmin) {
       checkServerRunningProcess();
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         serverCheckInterval = setInterval(checkServerRunningProcess, SERVER_CURRENT_PROCCESS_INTERVAL_TIME);
       }, 5000);
     } else {
@@ -116,6 +123,9 @@ const useCurrentServerProcess = () => {
     }
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       if (serverCheckInterval) {
         clearInterval(serverCheckInterval);
       }
@@ -125,10 +135,32 @@ const useCurrentServerProcess = () => {
   return { command, locked_at };
 };
 
+export const ServerStatusStyledBadge = ({ command, locked_at, isOkay }: { command: string, locked_at: string, isOkay: boolean }) => {
+  const theme = useTheme();
+  let badgeBackgroundColor = isOkay ? theme.palette.success.light : theme.palette.error.main;
+  let badgeColor = isOkay ? theme.palette.success.light : theme.palette.error.main;
+
+  if (command && locked_at) {
+    badgeBackgroundColor = theme.palette.warning.main;
+    badgeColor = theme.palette.warning.main;
+  }
+
+  return <StyledBadge
+      overlap="circular"
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      variant="dot"
+      backgroundColor={badgeBackgroundColor}
+      badgeColor={badgeColor}
+    >
+      <Avatar sx={{ height: 24, width: 24, background: theme.palette.mode === "dark" ? theme.palette.background.default : "#2196f3" }}>
+        <MonitorHeartIcon sx={{ height: 22, width: 22, color: theme.palette.common.white }} />
+      </Avatar>
+  </StyledBadge>
+};
+
 const ServerStatusBadge = () => {
     const { isOkay, successCheck } = useServerStatus();
     const { command, locked_at } = useCurrentServerProcess();
-    const theme = useTheme();
     const navigate = useNavigate();
 
     if (!successCheck) {
@@ -140,28 +172,14 @@ const ServerStatusBadge = () => {
     };
 
     let tooltipText = "Click to view Server Status";
-    let badgeBackgroundColor = isOkay ? theme.palette.success.light : theme.palette.error.main;
-    let badgeColor = isOkay ? theme.palette.success.light : theme.palette.error.main;
 
     if (command && locked_at) {
-      badgeBackgroundColor = theme.palette.warning.main;
-      badgeColor = theme.palette.warning.main;
       tooltipText = `Running: ${command}; ${tooltipText}`;
     }
 
     return <Button onClick={handleServerStatusClick} size="medium" sx={{ minWidth: "auto", ".MuiButton-startIcon": { m: 0 }}}>
       <Tooltip title={tooltipText} sx={{ cursor: "pointer" }}>
-        <StyledBadge
-          overlap="circular"
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          variant="dot"
-          backgroundColor={badgeBackgroundColor}
-          badgeColor={badgeColor}
-        >
-          <Avatar sx={{ height: 24, width: 24, background: theme.palette.mode === "dark" ? theme.palette.background.default : "#2196f3" }}>
-            <MonitorHeartIcon sx={{ height: 22, width: 22, color: theme.palette.common.white }} />
-          </Avatar>
-        </StyledBadge>
+        <ServerStatusStyledBadge command={command || ""} locked_at={locked_at || ""} isOkay={isOkay} />
       </Tooltip>
     </Button>
 };
