@@ -1,4 +1,4 @@
-import { Avatar, Badge, Theme, Tooltip } from "@mui/material";
+import { Avatar, Badge, Box, Theme, Tooltip } from "@mui/material";
 import { useEffect } from "react";
 import { useAppContext } from "../../Context";
 import { Button, useDataProvider, useStore } from "react-admin";
@@ -179,7 +179,9 @@ const ServerStatusBadge = () => {
 
     return <Button onClick={handleServerStatusClick} size="medium" sx={{ minWidth: "auto", ".MuiButton-startIcon": { m: 0 }}}>
       <Tooltip title={tooltipText} sx={{ cursor: "pointer" }}>
-        <ServerStatusStyledBadge command={command || ""} locked_at={locked_at || ""} isOkay={isOkay} />
+          <Box>
+            <ServerStatusStyledBadge command={command || ""} locked_at={locked_at || ""} isOkay={isOkay} />
+          </Box>
       </Tooltip>
     </Button>
 };
