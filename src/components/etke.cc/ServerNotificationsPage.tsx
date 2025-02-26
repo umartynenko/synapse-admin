@@ -4,9 +4,12 @@ import { useStore } from "react-admin"
 import dataProvider, { ServerNotificationsResponse } from "../../synapse/dataProvider"
 import { useAppContext } from "../../Context";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { getTimeSince } from "../../utils/date";
+import { Tooltip } from "@mui/material";
+
 const DisplayTime = ({ date }: { date: string }) => {
-  const dateFromDateString = new Date(date);
-  return <>{dateFromDateString.toLocaleString()}</>;
+  const dateFromDateString = new Date(date.replace(" ", "T") + "Z");
+  return <Tooltip title={dateFromDateString.toLocaleString()}>{<span>{getTimeSince(date) + " ago"}</span>}</Tooltip>;
 };
 
 const ServerNotificationsPage = () => {

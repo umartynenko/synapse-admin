@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import { Fragment, useEffect, useState } from "react";
 import { useAppContext } from "../../Context";
 import { ServerNotificationsResponse, ServerProcessResponse } from "../../synapse/dataProvider";
+import { getTimeSince } from "../../utils/date";
 
 // 5 minutes
 const SERVER_NOTIFICATIONS_INTERVAL_TIME = 300000;
@@ -23,7 +24,7 @@ const useServerNotifications = () => {
     const notificationsResponse: ServerNotificationsResponse = await dataProvider.getServerNotifications(etkeccAdmin);
     setServerNotifications({
       ...notificationsResponse,
-      notifications: notificationsResponse.notifications.reverse(),
+      notifications: notificationsResponse.notifications,
       success: notificationsResponse.success
     });
   };
@@ -172,7 +173,7 @@ export const ServerNotificationsBadge = () => {
                       />
                       <ListItemText
                         primary={
-                          <Typography variant="body2">{notification.sent_at}</Typography>
+                          <Typography variant="body2">{getTimeSince(notification.sent_at) + " ago"}</Typography>
                         }
                       />
                     </ListItem>

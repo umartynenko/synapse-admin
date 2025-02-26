@@ -26,3 +26,29 @@ export const dateFormatter = (v: string | number | Date | undefined | null): str
   // target format yyyy-MM-ddThh:mm
   return `${year}-${month}-${day}T${hour}:${minute}`;
 };
+
+// assuming date is in format "2025-02-26 20:52:00" where no timezone is specified
+export const getTimeSince = (date: string) => {
+  const nowUTC = new Date().getTime();
+  const past = new Date(date.replace(" ", "T") + "Z");
+
+  const pastUTC = past.getTime();
+  const diffInMs = nowUTC - pastUTC;
+
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+  // Remove or comment out the console.log for production
+  console.log("FOR now, date", new Date(nowUTC).toISOString(), new Date(pastUTC).toISOString(), "diffInMinutes", diffInMinutes);
+
+  if (diffInMinutes < 1) return "a couple of seconds";
+  if (diffInMinutes === 1) return "1 minute";
+  if (diffInMinutes < 60) return `${diffInMinutes} minutes`;
+  if (diffInMinutes < 120) return "1 hour";
+  if (diffInMinutes < 24 * 60) return `${Math.floor(diffInMinutes / 60)} hours`;
+  if (diffInMinutes < 48 * 60) return "1 day";
+  if (diffInMinutes < 7 * 24 * 60) return `${Math.floor(diffInMinutes / (24 * 60))} days`;
+  if (diffInMinutes < 14 * 24 * 60) return "1 week";
+  if (diffInMinutes < 30 * 24 * 60) return `${Math.floor(diffInMinutes / (7 * 24 * 60))} weeks`;
+  if (diffInMinutes < 60 * 24 * 60) return "1 month";
+  return `${Math.floor(diffInMinutes / (30 * 24 * 60))} months`;
+};
