@@ -66,15 +66,16 @@ const AdminMenu = (props) => {
 
   return (
     <Menu {...props}>
-      <Menu.ResourceItems />
-      {menu && <Menu.Item to="/server_status" leftIcon={
+      {menu && menu.length > 0 && <Menu.Item to="/server_status" leftIcon={
         <ServerStatusStyledBadge
+          inSidebar={true}
           command={serverProcess.command}
           locked_at={serverProcess.locked_at}
           isOkay={serverStatus.ok} />
         }
         primaryText="Server Status" />
       }
+      <Menu.ResourceItems />
       {menu && menu.map((item, index) => {
         const { url, icon, label } = item;
         const IconComponent = Icons[icon] as React.ComponentType<any> | undefined;

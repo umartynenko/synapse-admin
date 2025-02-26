@@ -135,7 +135,7 @@ const useCurrentServerProcess = () => {
   return { command, locked_at };
 };
 
-export const ServerStatusStyledBadge = ({ command, locked_at, isOkay }: { command: string, locked_at: string, isOkay: boolean }) => {
+export const ServerStatusStyledBadge = ({ command, locked_at, isOkay, inSidebar = false }: { command: string, locked_at: string, isOkay: boolean, inSidebar: boolean }) => {
   const theme = useTheme();
   let badgeBackgroundColor = isOkay ? theme.palette.success.light : theme.palette.error.main;
   let badgeColor = isOkay ? theme.palette.success.light : theme.palette.error.main;
@@ -143,6 +143,10 @@ export const ServerStatusStyledBadge = ({ command, locked_at, isOkay }: { comman
   if (command && locked_at) {
     badgeBackgroundColor = theme.palette.warning.main;
     badgeColor = theme.palette.warning.main;
+  }
+  let avatarBackgroundColor = theme.palette.mode === "dark" ? theme.palette.background.default : "#2196f3";
+  if (inSidebar) {
+    avatarBackgroundColor = theme.palette.grey[600];
   }
 
   return <StyledBadge
@@ -152,7 +156,7 @@ export const ServerStatusStyledBadge = ({ command, locked_at, isOkay }: { comman
       backgroundColor={badgeBackgroundColor}
       badgeColor={badgeColor}
     >
-      <Avatar sx={{ height: 24, width: 24, background: theme.palette.mode === "dark" ? theme.palette.background.default : "#2196f3" }}>
+      <Avatar sx={{ height: 24, width: 24, background: avatarBackgroundColor }}>
         <MonitorHeartIcon sx={{ height: 22, width: 22, color: theme.palette.common.white }} />
       </Avatar>
   </StyledBadge>
@@ -180,7 +184,7 @@ const ServerStatusBadge = () => {
     return <Button onClick={handleServerStatusClick} size="medium" sx={{ minWidth: "auto", ".MuiButton-startIcon": { m: 0 }}}>
       <Tooltip title={tooltipText} sx={{ cursor: "pointer" }}>
           <Box>
-            <ServerStatusStyledBadge command={command || ""} locked_at={locked_at || ""} isOkay={isOkay} />
+            <ServerStatusStyledBadge inSidebar={false} command={command || ""} locked_at={locked_at || ""} isOkay={isOkay} />
           </Box>
       </Tooltip>
     </Button>
