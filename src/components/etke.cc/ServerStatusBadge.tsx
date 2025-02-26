@@ -52,13 +52,15 @@ const SERVER_CURRENT_PROCCESS_INTERVAL_TIME = 5 * 1000;
 
 const useServerStatus = () => {
   const [serverStatus, setServerStatus] = useStore<ServerStatusResponse>("serverStatus", { ok: false, success: false, host: "", results: [] });
+  const [serverProcess, setServerProcess] = useStore<ServerProcessResponse>("serverProcess", { command: "", locked_at: "" });
+  const { command, locked_at } = serverProcess;
   const { etkeccAdmin } = useAppContext();
   const dataProvider = useDataProvider();
   const isOkay = serverStatus.ok;
   const successCheck = serverStatus.success;
 
   const checkServerStatus = async () => {
-    const serverStatus: ServerStatusResponse = await dataProvider.getServerStatus(etkeccAdmin);
+    const serverStatus: ServerStatusResponse = await dataProvider.getServerStatus(etkeccAdmin, command !== "");
     setServerStatus({
       ok: serverStatus.ok,
       success: serverStatus.success,
@@ -89,7 +91,7 @@ const useServerStatus = () => {
         clearInterval(serverStatusInterval);
       }
     }
-  }, [etkeccAdmin]);
+  }, [etkeccAdmin, command]);
 
   return { isOkay, successCheck };
 };
@@ -101,7 +103,7 @@ const useCurrentServerProcess = () => {
   const { command, locked_at } = serverProcess;
 
   const checkServerRunningProcess = async () => {
-    const serverProcess: ServerProcessResponse = await dataProvider.getServerRunningProcess(etkeccAdmin);
+    const serverProcess: ServerProcessResponse = await dataProvider.getServerRunningProcess(etkeccAdmin, command !== "");
     setServerProcess({
       ...serverProcess,
       command: serverProcess.command,
@@ -130,7 +132,7 @@ const useCurrentServerProcess = () => {
         clearInterval(serverCheckInterval);
       }
     }
-  }, [etkeccAdmin]);
+  }, [etkeccAdmin, command]);
 
   return { command, locked_at };
 };

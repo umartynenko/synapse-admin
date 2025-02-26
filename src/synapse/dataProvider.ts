@@ -1042,9 +1042,14 @@ const baseDataProvider: SynapseDataProvider = {
 
     return { locked_at, command };
   },
-  getServerStatus: async (etkeAdminUrl: string): Promise<ServerStatusResponse> => {
+  getServerStatus: async (etkeAdminUrl: string, burstCache: boolean = false): Promise<ServerStatusResponse> => {
+    let serverURL = `${etkeAdminUrl}/status`;
+    if (burstCache) {
+      serverURL += `?time=${new Date().getTime()}`;
+    }
+
     try {
-      const response = await fetch(`${etkeAdminUrl}/status`, {
+      const response = await fetch(serverURL, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`
         }
@@ -1066,9 +1071,14 @@ const baseDataProvider: SynapseDataProvider = {
 
     return { success: false, ok: false, host: "", results: [] };
   },
-  getServerNotifications: async (serverNotificationsUrl: string): Promise<ServerNotificationsResponse> => {
+  getServerNotifications: async (serverNotificationsUrl: string, burstCache: boolean = false): Promise<ServerNotificationsResponse> => {
+    let serverURL = `${serverNotificationsUrl}/notifications`;
+    if (burstCache) {
+      serverURL += `?time=${new Date().getTime()}`;
+    }
+
     try {
-      const response = await fetch(`${serverNotificationsUrl}/notifications`, {
+      const response = await fetch(serverURL, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`
         }

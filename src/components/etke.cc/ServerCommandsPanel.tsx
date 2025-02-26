@@ -31,7 +31,6 @@ const ServerCommandsPanel = () => {
         if (serverCommandsResponse) {
           const serverCommands = serverCommandsResponse;
           Object.keys(serverCommandsResponse).forEach((command: string) => {
-            // serverCommands[command] = serverCommandsResponse[command];
             serverCommands[command].additionalArgs = "";
           });
           setServerCommands(serverCommands);
@@ -40,6 +39,12 @@ const ServerCommandsPanel = () => {
       }
       fetchIsAdmin();
     }, []);
+
+    useEffect(() => {
+      if (serverProcess.command === "") {
+        setCommandIsRunning(false);
+      }
+    }, [serverProcess]);
 
     const setCommandAdditionalArgs = (command: string, additionalArgs: string) => {
       const updatedServerCommands = {...serverCommands};
@@ -53,7 +58,6 @@ const ServerCommandsPanel = () => {
 
       const response = await dataProvider.runServerCommand(etkeccAdmin, command);
 
-      setCommandIsRunning(false);
       if (!response.success) {
         return;
       }
@@ -108,6 +112,7 @@ const ServerCommandsPanel = () => {
                 <TableCell>
                   {args && <TextField
                     size="small"
+                    variant="standard"
                     onChange={(e) => {
                       setCommandAdditionalArgs(command, e.target.value);
                     }}

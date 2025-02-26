@@ -21,7 +21,7 @@ const useServerNotifications = () => {
   const { notifications, success } = serverNotifications;
 
   const fetchNotifications = async () => {
-    const notificationsResponse: ServerNotificationsResponse = await dataProvider.getServerNotifications(etkeccAdmin);
+    const notificationsResponse: ServerNotificationsResponse = await dataProvider.getServerNotifications(etkeccAdmin, command !== "");
     setServerNotifications({
       ...notificationsResponse,
       notifications: notificationsResponse.notifications,
