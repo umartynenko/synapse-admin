@@ -28,17 +28,17 @@ export const dateFormatter = (v: string | number | Date | undefined | null): str
 };
 
 // assuming date is in format "2025-02-26 20:52:00" where no timezone is specified
-export const getTimeSince = (date: string) => {
+export const getTimeSince = (dateToCompare: string) => {
   const nowUTC = new Date().getTime();
-  const past = new Date(date.replace(" ", "T") + "Z");
+  if (!dateToCompare.includes("Z")) {
+    dateToCompare = dateToCompare + "Z";
+  }
+  const past = new Date(dateToCompare);
 
   const pastUTC = past.getTime();
   const diffInMs = nowUTC - pastUTC;
 
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-
-  // Remove or comment out the console.log for production
-  console.log("FOR now, date", new Date(nowUTC).toISOString(), new Date(pastUTC).toISOString(), "diffInMinutes", diffInMinutes);
 
   if (diffInMinutes < 1) return "a couple of seconds";
   if (diffInMinutes === 1) return "1 minute";
