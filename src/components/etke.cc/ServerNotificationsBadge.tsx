@@ -22,9 +22,11 @@ const useServerNotifications = () => {
 
   const fetchNotifications = async () => {
     const notificationsResponse: ServerNotificationsResponse = await dataProvider.getServerNotifications(etkeccAdmin, command !== "");
+    const serverNotifications = [...notificationsResponse.notifications];
+    serverNotifications.reverse();
     setServerNotifications({
       ...notificationsResponse,
-      notifications: notificationsResponse.notifications,
+      notifications: serverNotifications,
       success: notificationsResponse.success
     });
   };
