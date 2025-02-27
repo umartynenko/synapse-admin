@@ -56,7 +56,8 @@ const ServerCommandsPanel = () => {
       setCommandResult([]);
       setCommandIsRunning(true);
 
-      const response = await dataProvider.runServerCommand(etkeccAdmin, command);
+      const additionalArgs = serverCommands[command].additionalArgs;
+      const response = await dataProvider.runServerCommand(etkeccAdmin, command, { ...(additionalArgs && { args: additionalArgs }) });
 
       if (!response.success) {
         return;
