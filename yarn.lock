@@ -4562,7 +4562,7 @@ ra-core@^4.11.2, ra-core@^4.16.2:
     react-is "^17.0.2"
     react-query "^3.32.1"
 
-ra-core@^5.4.3, ra-core@^5.4.4, ra-core@^5.6.1, ra-core@^5.6.2:
+ra-core@^5.4.3, ra-core@^5.4.4, ra-core@^5.6.2:
   version "5.6.2"
   resolved "https://registry.yarnpkg.com/ra-core/-/ra-core-5.6.2.tgz#f4c73f72348c80112f41d4f54d7bf72c7f2d607d"
   integrity sha512-B3RZB7rjE7o/3BzAmk94rvYTSgx/zGsL1c0VIDwCwImLzzeibBDLMSvFesbUFp0mLwlQjKiRMUVyeW94wWkMBQ==
