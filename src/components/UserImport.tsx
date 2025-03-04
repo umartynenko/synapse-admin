@@ -558,7 +558,7 @@ const FilePicker = () => {
       </CardActions>
     );
 
-  const allCards: JSX.Element[] = [];
+  const allCards: React.JSX.Element[] = [];
   if (uploadCard) allCards.push(uploadCard);
   if (errorCards) allCards.push(errorCards);
   if (conflictCards) allCards.push(conflictCards);

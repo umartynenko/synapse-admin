@@ -11,6 +11,10 @@ const fixedChineseMessages = {
       no_filtered_results: "没有结果",
       clear_filters: "清除所有过滤器",
     },
+    auth: {
+      ...chineseMessages.ra.auth,
+      email: "邮箱",
+    },
     action: {
       ...chineseMessages.ra.action,
       update_application: "更新应用",

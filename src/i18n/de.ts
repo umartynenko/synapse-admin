@@ -12,6 +12,10 @@ const fixedGermanMessages = {
       clear_filters: "Alle Filter entfernen",
       add_filter: "Filter hinzufügen",
     },
+    auth: {
+      ...formalGermanMessages.ra.auth,
+      email: "E-Mail",
+    },
     action: {
       ...formalGermanMessages.ra.action,
       update_application: "Anwendung aktualisieren",
