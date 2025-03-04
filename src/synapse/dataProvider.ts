@@ -320,6 +320,7 @@ export interface ServerCommand {
   name: string;
   description: string;
   args: boolean;
+  with_lock: boolean;
   additionalArgs?: string;
 }
 

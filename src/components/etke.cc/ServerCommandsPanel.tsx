@@ -20,7 +20,7 @@ const ServerCommandsPanel = () => {
   const [ isLoading, setLoading ] = useState(true);
     const [serverCommands, setServerCommands] = useState<{ [key: string]: ServerCommand }>({});
     const [serverProcess, setServerProcess] = useStore<ServerProcessResponse>("serverProcess", { command: "", locked_at: "" });
-    const [commandIsRunning, setCommandIsRunning] = useState<boolean>(false);
+    const [commandIsRunning, setCommandIsRunning] = useState<boolean>(serverProcess.command !== "");
     const [commandResult, setCommandResult] = useState<any[]>([]);
 
     const dataProvider = useDataProvider();
@@ -56,30 +56,66 @@ const ServerCommandsPanel = () => {
       setCommandResult([]);
       setCommandIsRunning(true);
 
-      const additionalArgs = serverCommands[command].additionalArgs;
-      const response = await dataProvider.runServerCommand(etkeccAdmin, command, { ...(additionalArgs && { args: additionalArgs }) });
+      try {
+        const additionalArgs = serverCommands[command].additionalArgs || "";
+        const requestParams = additionalArgs ? { args: additionalArgs } : {};
 
-      if (!response.success) {
-        return;
+        const response = await dataProvider.runServerCommand(etkeccAdmin, command, requestParams);
+
+        if (!response.success) {
+          setCommandIsRunning(false);
+          return;
+        }
+
+        // Update UI with success message
+        const commandResults = buildCommandResultMessages(command, additionalArgs);
+        setCommandResult(commandResults);
+
+        // Reset the additional args field
+        resetCommandArgs(command);
+
+        // Update server process status
+        await updateServerProcessStatus(serverCommands[command]);
+      } catch (error) {
+        setCommandIsRunning(false);
       }
+    };
 
-      const updatedServerCommands = {...serverCommands};
-      const commandResult: React.ReactNode[] = [];
+    const buildCommandResultMessages = (command: string, additionalArgs: string): React.ReactNode[] => {
+      const results: React.ReactNode[] = [];
 
       let commandScheduledText = `Command scheduled: ${command}`;
-      if (serverCommands[command].additionalArgs) {
-        commandScheduledText += `, with additional args: ${serverCommands[command].additionalArgs}`;
+      if (additionalArgs) {
+        commandScheduledText += `, with additional args: ${additionalArgs}`;
       }
-      commandResult.push(<Box>{commandScheduledText}</Box>);
-      commandResult.push(<Box>Expect your result in the <Link to={createPath({ resource: "server_notifications", type: "list" })}>Notifications</Link> page soon.</Box>);
 
+      results.push(<Box>{commandScheduledText}</Box>);
+      results.push(
+        <Box>
+          Expect your result in the <Link to={createPath({ resource: "server_notifications", type: "list" })}>Notifications</Link> page soon.
+        </Box>
+      );
+
+      return results;
+    };
+
+    const resetCommandArgs = (command: string) => {
+      const updatedServerCommands = {...serverCommands};
       updatedServerCommands[command].additionalArgs = "";
       setServerCommands(updatedServerCommands);
+    };
 
-      setCommandResult(commandResult);
+    const updateServerProcessStatus = async (command: ServerCommand) => {
+      const commandIsLocking = command.with_lock;
+      const serverProcess = await dataProvider.getServerRunningProcess(etkeccAdmin, true);
+      if (!commandIsLocking && serverProcess.command === "") {
+        // if command is not locking, we simulate the "lock" mechanism so notifications will be refetched
+        serverProcess["command"] = command.name;
+        serverProcess["locked_at"] = new Date().toISOString();
+      }
 
-      const serverProcess: ServerProcessResponse = await dataProvider.getServerRunningProcess(etkeccAdmin, true);
       setServerProcess({...serverProcess});
+      console.log("serverProcess fecht notifications");
     };
 
     if (isLoading) {
