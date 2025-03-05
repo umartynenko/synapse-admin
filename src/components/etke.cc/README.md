@@ -11,13 +11,16 @@ Due to the specifics mentioned above, these components are documented here rathe
 ### Server Status icon
 
 ![Server Status icon](../../../screenshots/etke.cc/server-status/indicator.webp)
-![Server Status icon in sidebar](../../../screenshots/etke.cc/server-status/indicator-sidebar.webp)
 
 In the application bar the new monitoring icon is displayed that shows the current server status, and has the following color dot (and tooltip indicators):
 
 * 🟢 (green) - the server is up and running, everything is fine, no issues detected
 * 🟡 (yellow) - the server is up and running, but there is a command in progress (likely [maintenance](https://etke.cc/help/extras/scheduler/#maintenance)), so some temporary issues may occur - that's totally fine
 * 🔴 (red) - there is at least 1 issue with one of the server's components
+
+![Server Status icon in sidebar](../../../screenshots/etke.cc/server-status/indicator-sidebar.webp)
+
+The same icon (and link to the [Server Status page](#server-status-page)) is displayed in the sidebar.
 
 ### Server Status page
 
