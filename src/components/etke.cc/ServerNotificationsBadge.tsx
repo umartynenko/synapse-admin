@@ -167,7 +167,6 @@ export const ServerNotificationsBadge = () => {
                             sx={{
                               overflow: "hidden",
                               textOverflow: "ellipsis",
-                              whiteSpace: "nowrap"
                             }}
                             dangerouslySetInnerHTML={{ __html: notification.output.split("\n")[0] }}
                           />
@@ -175,7 +174,7 @@ export const ServerNotificationsBadge = () => {
                       />
                       <ListItemText
                         primary={
-                          <Typography variant="body2">{getTimeSince(notification.sent_at) + " ago"}</Typography>
+                          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>{getTimeSince(notification.sent_at) + " ago"}</Typography>
                         }
                       />
                     </ListItem>

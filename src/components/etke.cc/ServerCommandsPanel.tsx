@@ -115,7 +115,6 @@ const ServerCommandsPanel = () => {
       }
 
       setServerProcess({...serverProcess});
-      console.log("serverProcess fecht notifications");
     };
 
     if (isLoading) {
