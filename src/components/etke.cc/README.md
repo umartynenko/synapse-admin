@@ -18,6 +18,10 @@ In the application bar the new monitoring icon is displayed that shows the curre
 * 🟡 (yellow) - the server is up and running, but there is a command in progress (likely [maintenance](https://etke.cc/help/extras/scheduler/#maintenance)), so some temporary issues may occur - that's totally fine
 * 🔴 (red) - there is at least 1 issue with one of the server's components
 
+![Server Status icon in sidebar](../../../screenshots/etke.cc/server-status/indicator-sidebar.webp)
+
+The same icon (and link to the [Server Status page](#server-status-page)) is displayed in the sidebar.
+
 ### Server Status page
 
 ![Server Status Page](../../../screenshots/etke.cc/server-status/page.webp)
@@ -28,6 +32,8 @@ Server Status page. This page contains the following information:
 * Overall server status (up/updating/has issues)
 * Details about the currently running command (if any)
 * Details about the server's components statuses (up/down with error details and suggested actions) by categories
+
+This is [a Monitoring report](https://etke.cc/services/monitoring/)
 
 ### Server Notifications icon
 
@@ -40,3 +46,11 @@ In the application bar the new notifications icon is displayed that shows the nu
 ![Server Notifications Page](../../../screenshots/etke.cc/server-notifications/page.webp)
 
 When you click on a notification from the [Server Notifications icon](#server-notifications-icon)'s list in the application bar, you will be redirected to the Server Notifications page. This page contains the full text of all the notifications you have about your server.
+
+### Server Commands Panel
+
+![Server Commands Panel](../../../screenshots/etke.cc/server-commands/panel.webp)
+
+When you open [Server Status page](#server-status-page), you will see the Server Commands panel. This panel contains all
+[the commands](https://etke.cc/help/extras/scheduler/#commands) you can run on your server in 1 click. Once command is finished, you will get a notification about the
+result.

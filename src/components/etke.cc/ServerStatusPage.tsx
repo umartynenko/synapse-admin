@@ -4,16 +4,8 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from "@mui/icons-material/Close";
 import EngineeringIcon from '@mui/icons-material/Engineering';
 import { ServerProcessResponse, ServerStatusComponent, ServerStatusResponse } from "../../synapse/dataProvider";
-
-const getTimeSince = (date: string) => {
-  const now = new Date();
-  const past = new Date(date);
-  const diffInMinutes = Math.floor((now.getTime() - past.getTime()) / (1000 * 60));
-
-  if (diffInMinutes < 1) return "a couple of seconds";
-  if (diffInMinutes === 1) return "1 minute";
-  return `${diffInMinutes} minutes`;
-};
+import ServerCommandsPanel from "./ServerCommandsPanel";
+import { getTimeSince } from "../../utils/date";
 
 const StatusChip = ({ isOkay, size = "medium", command }: { isOkay: boolean, size?: "small" | "medium", command?: string   }) => {
   let label = "OK";
@@ -101,6 +93,8 @@ const ServerStatusPage = () => {
         </Box>
       </Stack>
       )}
+
+      <ServerCommandsPanel />
 
       <Stack spacing={2} direction="row">
         {Object.keys(groupedResults).map((category, idx) => (

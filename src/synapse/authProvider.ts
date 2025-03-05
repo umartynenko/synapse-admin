@@ -2,7 +2,7 @@ import { AuthProvider, HttpError, Options, fetchUtils } from "react-admin";
 
 import { MatrixError, displayError } from "../utils/error";
 import { fetchAuthenticatedMedia } from "../utils/fetchMedia";
-import { FetchConfig, ClearConfig } from "../utils/config";
+import { FetchConfig, ClearConfig, GetConfig } from "../utils/config";
 import decodeURLComponent from "../utils/decodeURLComponent";
 
 const authProvider: AuthProvider = {
@@ -81,9 +81,16 @@ const authProvider: AuthProvider = {
       localStorage.setItem("access_token", accessToken ? accessToken : json.access_token);
       localStorage.setItem("device_id", json.device_id);
       localStorage.setItem("login_type", accessToken ? "accessToken" : "credentials");
-      await FetchConfig();
 
-      return Promise.resolve({redirectTo: "/"});
+      await FetchConfig();
+      const config = GetConfig();
+      let pageToRedirectTo = "/";
+
+      if (config && config.etkeccAdmin) {
+        pageToRedirectTo = "/server_status";
+      }
+
+      return Promise.resolve({redirectTo: pageToRedirectTo});
     } catch(err) {
       const error = err as HttpError;
       const errorStatus = error.status;

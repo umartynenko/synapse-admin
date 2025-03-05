@@ -300,8 +300,8 @@ export interface ServerStatusResponse {
 }
 
 export interface ServerProcessResponse {
-  locked_at?: string;
-  command?: string;
+  locked_at: string;
+  command: string;
 }
 
 export interface ServerNotification {
@@ -313,6 +313,19 @@ export interface ServerNotification {
 export interface ServerNotificationsResponse {
   success: boolean;
   notifications: ServerNotification[];
+}
+
+export interface ServerCommand {
+  icon: string;
+  name: string;
+  description: string;
+  args: boolean;
+  with_lock: boolean;
+  additionalArgs?: string;
+}
+
+export interface ServerCommandsResponse {
+  [command: string]: ServerCommand;
 }
 
 export interface SynapseDataProvider extends DataProvider {
@@ -329,6 +342,7 @@ export interface SynapseDataProvider extends DataProvider {
   getServerStatus: (etkeAdminUrl: string) => Promise<ServerStatusResponse>;
   getServerNotifications: (etkeAdminUrl: string) => Promise<ServerNotificationsResponse>;
   deleteServerNotifications: (etkeAdminUrl: string) => Promise<{ success: boolean }>;
+  getServerCommands: (etkeAdminUrl: string) => Promise<ServerCommandsResponse>;
 }
 
 const resourceMap = {
@@ -994,12 +1008,17 @@ const baseDataProvider: SynapseDataProvider = {
       throw error;
     }
   },
-  getServerRunningProcess: async (runningProcessUrl: string): Promise<ServerProcessResponse> => {
+  getServerRunningProcess: async (etkeAdminUrl: string, burstCache: boolean = false): Promise<ServerProcessResponse> => {
     const locked_at = "";
     const command = "";
 
+    let serverURL = `${etkeAdminUrl}/lock`;
+    if (burstCache) {
+      serverURL += `?time=${new Date().getTime()}`;
+    }
+
     try {
-      const response = await fetch(`${runningProcessUrl}/lock`, {
+      const response = await fetch(serverURL, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`
         }
@@ -1024,9 +1043,14 @@ const baseDataProvider: SynapseDataProvider = {
 
     return { locked_at, command };
   },
-  getServerStatus: async (serverStatusUrl: string): Promise<ServerStatusResponse> => {
+  getServerStatus: async (etkeAdminUrl: string, burstCache: boolean = false): Promise<ServerStatusResponse> => {
+    let serverURL = `${etkeAdminUrl}/status`;
+    if (burstCache) {
+      serverURL += `?time=${new Date().getTime()}`;
+    }
+
     try {
-      const response = await fetch(`${serverStatusUrl}/status`, {
+      const response = await fetch(serverURL, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`
         }
@@ -1048,9 +1072,14 @@ const baseDataProvider: SynapseDataProvider = {
 
     return { success: false, ok: false, host: "", results: [] };
   },
-  getServerNotifications: async (serverNotificationsUrl: string): Promise<ServerNotificationsResponse> => {
+  getServerNotifications: async (serverNotificationsUrl: string, burstCache: boolean = false): Promise<ServerNotificationsResponse> => {
+    let serverURL = `${serverNotificationsUrl}/notifications`;
+    if (burstCache) {
+      serverURL += `?time=${new Date().getTime()}`;
+    }
+
     try {
-      const response = await fetch(`${serverNotificationsUrl}/notifications`, {
+      const response = await fetch(serverURL, {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`
         }
@@ -1101,6 +1130,66 @@ const baseDataProvider: SynapseDataProvider = {
     }
 
     return { success: false };
+  },
+  getServerCommands: async (serverCommandsUrl: string) => {
+    try {
+      const response = await fetch(`${serverCommandsUrl}/commands`, {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+      });
+      if (!response.ok) {
+        console.error(`Error fetching server commands: ${response.status} ${response.statusText}`);
+        return {};
+      }
+
+      const status = response.status;
+
+      if (status === 200) {
+        const json = await response.json();
+        return json as ServerCommandsResponse;
+      }
+
+      return {};
+    } catch (error) {
+      console.error("Error fetching server commands, error");
+    }
+
+    return {};
+  },
+  runServerCommand: async (serverCommandsUrl: string, command: string, additionalArgs: Record<string, any> = {}) => {
+    const endpoint_url = `${serverCommandsUrl}/commands`;
+    const body = {
+      command: command,
+      ...additionalArgs
+    }
+    const response = await fetch(endpoint_url, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+        }
+    });
+
+    if (!response.ok) {
+      console.error(`Error running server command: ${response.status} ${response.statusText}`);
+      return {
+        success: false,
+      };
+    }
+
+    const status = response.status;
+
+    if (status === 204) {
+      return {
+        success: true,
+      }
+    }
+
+    return {
+      success: false,
+    }
   }
 };
 
