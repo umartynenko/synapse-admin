@@ -32,6 +32,7 @@ const fixedChineseMessages = {
       authentication_error:
         "身份验证服务器返回错误，无法验证您的凭据。",
       select_all_limit_reached: "选择的元素太多。只选择了前 %{max} 个元素。",
+      placeholder_data_warning: "网络问题：数据刷新失败。",
     },
   },
 }

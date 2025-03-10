@@ -34,6 +34,7 @@ const fixedGermanMessages = {
       authentication_error:
         "Der Authentifizierungsserver hat einen Fehler zurückgegeben und Ihre Anmeldedaten konnten nicht überprüft werden.",
       select_all_limit_reached: "Es gibt zu viele Elemente, um sie alle auszuwählen. Es wurden nur die ersten %{max} Elemente ausgewählt.",
+      placeholder_data_warning: "Netzwerkproblem: Datenaktualisierung fehlgeschlagen.",
     },
   },
 }
