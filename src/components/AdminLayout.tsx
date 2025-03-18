@@ -60,13 +60,19 @@ const AdminAppBar = () => {
 
 const AdminMenu = (props) => {
   const [menu, setMenu] = useState([] as MenuItem[]);
-  useEffect(() => setMenu(GetConfig().menu), []);
+  const [serverStatusEnabled, setServerStatusEnabled] = useState(false);
+  useEffect(() => {
+    setMenu(GetConfig().menu);
+    if (GetConfig().etkeccAdmin) {
+      setServerStatusEnabled(true);
+    }
+  }, []);
   const [serverProcess, setServerProcess] = useStore<ServerProcessResponse>("serverProcess", { command: "", locked_at: "" });
   const [serverStatus, setServerStatus] = useStore<ServerStatusResponse>("serverStatus", { success: false, ok: false, host: "", results: [] });
 
   return (
     <Menu {...props}>
-      {menu && menu.length > 0 && <Menu.Item to="/server_status" leftIcon={
+      {serverStatusEnabled && <Menu.Item to="/server_status" leftIcon={
         <ServerStatusStyledBadge
           inSidebar={true}
           command={serverProcess.command}
