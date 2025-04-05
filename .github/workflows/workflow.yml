@@ -24,6 +24,8 @@ jobs:
           node-version: lts/*
           cache: yarn
       - name: Install dependencies
+        env:
+          NODE_OPTIONS: --max-old-space-size=2048
         run: yarn install --immutable --network-timeout=300000
       - name: Build
         run: yarn build --base=${{ env.base_path }}
