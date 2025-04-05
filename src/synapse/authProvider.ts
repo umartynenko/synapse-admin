@@ -1,9 +1,9 @@
 import { AuthProvider, HttpError, Options, fetchUtils } from "react-admin";
 
-import { MatrixError, displayError } from "../utils/error";
-import { fetchAuthenticatedMedia } from "../utils/fetchMedia";
 import { FetchConfig, ClearConfig, GetConfig } from "../utils/config";
 import decodeURLComponent from "../utils/decodeURLComponent";
+import { MatrixError, displayError } from "../utils/error";
+import { fetchAuthenticatedMedia } from "../utils/fetchMedia";
 
 const authProvider: AuthProvider = {
   // called when the user attempts to log in
@@ -53,14 +53,15 @@ const authProvider: AuthProvider = {
     if (!base_url) {
       // there is some kind of bug with base_url being present in the form, but not submitted
       // ref: https://github.com/etkecc/synapse-admin/issues/14
-      localStorage.removeItem("base_url")
+      localStorage.removeItem("base_url");
       throw new Error("Homeserver URL is required.");
     }
     base_url = base_url.replace(/\/+$/g, "");
     localStorage.setItem("base_url", base_url);
 
     const decoded_base_url = decodeURLComponent(base_url);
-    let login_api_url = decoded_base_url + (accessToken ? "/_matrix/client/v3/account/whoami" : "/_matrix/client/v3/login");
+    const login_api_url =
+      decoded_base_url + (accessToken ? "/_matrix/client/v3/account/whoami" : "/_matrix/client/v3/login");
 
     let response;
 
@@ -69,7 +70,7 @@ const authProvider: AuthProvider = {
         // this a login with an already obtained access token, let's just validate it
         options = {
           headers: new Headers({
-            Accept: 'application/json',
+            Accept: "application/json",
             Authorization: `Bearer ${accessToken}`,
           }),
         };
@@ -91,19 +92,16 @@ const authProvider: AuthProvider = {
         pageToRedirectTo = "/server_status";
       }
 
-      return Promise.resolve({redirectTo: pageToRedirectTo});
-    } catch(err) {
+      return Promise.resolve({ redirectTo: pageToRedirectTo });
+    } catch (err) {
       const error = err as HttpError;
       const errorStatus = error.status;
       const errorBody = error.body as MatrixError;
-      const errMsg = !!errorBody?.errcode ? displayError(errorBody.errcode, errorStatus, errorBody.error) : displayError("M_INVALID", errorStatus, error.message);
+      const errMsg = errorBody?.errcode
+        ? displayError(errorBody.errcode, errorStatus, errorBody.error)
+        : displayError("M_INVALID", errorStatus, error.message);
 
-      return Promise.reject(
-        new HttpError(
-          errMsg,
-          errorStatus,
-        )
-      );
+      return Promise.reject(new HttpError(errMsg, errorStatus));
     }
   },
   getIdentity: async () => {
@@ -175,7 +173,7 @@ const authProvider: AuthProvider = {
     const status = err.status;
 
     if (status === 401 || status === 403) {
-      return Promise.reject({message: displayError(errorBody.errcode, status, errorBody.error)});
+      return Promise.reject({ message: displayError(errorBody.errcode, status, errorBody.error) });
     }
     return Promise.resolve();
   },

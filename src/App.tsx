@@ -1,11 +1,12 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { merge } from "lodash";
 import polyglotI18nProvider from "ra-i18n-polyglot";
-
 import { Admin, CustomRoutes, Resource, resolveBrowserLocale } from "react-admin";
-
 import { Route } from "react-router-dom";
 
 import AdminLayout from "./components/AdminLayout";
+import ServerNotificationsPage from "./components/etke.cc/ServerNotificationsPage";
+import ServerStatusPage from "./components/etke.cc/ServerStatusPage";
 import UserImport from "./components/user-import/UserImport";
 import germanMessages from "./i18n/de";
 import englishMessages from "./i18n/en";
@@ -23,9 +24,6 @@ import userMediaStats from "./resources/user_media_statistics";
 import users from "./resources/users";
 import authProvider from "./synapse/authProvider";
 import dataProvider from "./synapse/dataProvider";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import ServerStatusPage from "./components/etke.cc/ServerStatusPage";
-import ServerNotificationsPage from "./components/etke.cc/ServerNotificationsPage";
 
 // TODO: Can we use lazy loading together with browser locale?
 const messages = {

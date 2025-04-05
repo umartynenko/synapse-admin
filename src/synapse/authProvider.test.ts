@@ -1,7 +1,7 @@
 import fetchMock from "jest-fetch-mock";
+import { HttpError } from "ra-core";
 
 import authProvider from "./authProvider";
-import { HttpError } from "ra-core";
 
 fetchMock.enableMocks();
 
@@ -28,7 +28,7 @@ describe("authProvider", () => {
         password: "secret",
       });
 
-      expect(ret).toEqual({redirectTo: "/"});
+      expect(ret).toEqual({ redirectTo: "/" });
       expect(fetch).toHaveBeenCalledWith("http://example.com/_matrix/client/v3/login", {
         body: '{"device_id":null,"initial_device_display_name":"Synapse Admin","type":"m.login.password","identifier":{"type":"m.id.user","user":"@user:example.com"},"password":"secret"}',
         headers: new Headers({
@@ -60,7 +60,7 @@ describe("authProvider", () => {
       loginToken: "login_token",
     });
 
-    expect(ret).toEqual({redirectTo: "/"});
+    expect(ret).toEqual({ redirectTo: "/" });
     expect(fetch).toHaveBeenCalledWith("https://example.com/_matrix/client/v3/login", {
       body: '{"device_id":null,"initial_device_display_name":"Synapse Admin","type":"m.login.token","token":"login_token"}',
       headers: new Headers({
@@ -103,11 +103,15 @@ describe("authProvider", () => {
     });
 
     it("should reject if error.status is 401", async () => {
-      await expect(authProvider.checkError(new HttpError("test-error", 401, {errcode: "test-errcode", error: "test-error"}))).rejects.toBeDefined();
+      await expect(
+        authProvider.checkError(new HttpError("test-error", 401, { errcode: "test-errcode", error: "test-error" }))
+      ).rejects.toBeDefined();
     });
 
     it("should reject if error.status is 403", async () => {
-      await expect(authProvider.checkError(new HttpError("test-error", 403, {errcode: "test-errcode", error: "test-error"}))).rejects.toBeDefined();
+      await expect(
+        authProvider.checkError(new HttpError("test-error", 403, { errcode: "test-errcode", error: "test-error" }))
+      ).rejects.toBeDefined();
     });
   });
 
