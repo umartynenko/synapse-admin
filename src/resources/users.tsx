@@ -178,7 +178,7 @@ export const UserList = (props: ListProps) => (
     perPage={50}
   >
     <DatagridConfigurable
-      rowClick={(id: Identifier, resource: string) => `/${resource}/${id}`}
+      rowClick={(id: Identifier, resource: string) => `/${resource}/${encodeURIComponent(id)}`}
       bulkActionButtons={<UserBulkActionButtons />}
     >
       <AvatarField
@@ -283,7 +283,7 @@ export const UserCreate = (props: CreateProps) => {
         onSuccess: (resource: User) => {
           notify("ra.notification.created", { messageArgs: { smart_count: 1 } });
           redirect(() => {
-            return `users/${resource.id}`;
+            return `users/${encodeURIComponent(resource.id)}`;
           });
         },
       }
@@ -307,7 +307,7 @@ export const UserCreate = (props: CreateProps) => {
         onSuccess: (resource: User) => {
           notify("ra.notification.updated", { messageArgs: { smart_count: 1 } });
           redirect(() => {
-            return `users/${resource.id}`;
+            return `users/${encodeURIComponent(resource.id)}`;
           });
         },
       }
