@@ -1,10 +1,10 @@
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import EngineeringIcon from "@mui/icons-material/Engineering";
-import { Box, Stack, Typography, Paper, Link, Chip, Divider, Tooltip, ChipProps } from "@mui/material";
+import { Alert, Box, Stack, Typography, Paper, Link, Chip, Divider, Tooltip, ChipProps } from "@mui/material";
 import { useStore } from "ra-core";
 
-import ServerCommandsPanel from "./ServerCommandsPanel";
+import CurrentlyRunningCommand from "./CurrentlyRunningCommand";
 import { ServerProcessResponse, ServerStatusComponent, ServerStatusResponse } from "../../synapse/dataProvider";
 import { getTimeSince } from "../../utils/date";
 
@@ -68,8 +68,7 @@ const ServerStatusPage = () => {
     return (
       <Paper elevation={3} sx={{ p: 3, mt: 3 }}>
         <Stack direction="row" spacing={2} alignItems="center">
-          <CloseIcon color="error" />
-          <Typography color="error">Unable to fetch server status. Please try again later.</Typography>
+          <Typography color="info">Fetching real-time server health... Just a moment!</Typography>
         </Stack>
       </Paper>
     );
@@ -86,25 +85,23 @@ const ServerStatusPage = () => {
           {host}
         </Typography>
       </Stack>
-      {command && locked_at && (
-        <Stack spacing={1} direction="row" alignItems="center">
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="h5">Currently running:</Typography>
-            <Typography variant="h5" color="text.secondary">
-              <Link href={"https://etke.cc/help/extras/scheduler/#" + command} target="_blank">
-                {command}
-              </Link>
-              <Tooltip title={locked_at.toString()}>
-                <Typography component="span" color="text.secondary" sx={{ display: "inline-block", ml: 1 }}>
-                  (started {getTimeSince(locked_at)} ago)
-                </Typography>
-              </Tooltip>
-            </Typography>
-          </Box>
-        </Stack>
-      )}
 
-      <ServerCommandsPanel />
+      <CurrentlyRunningCommand />
+
+      <Typography variant="body1">
+        This is a{" "}
+        <Link href="https://etke.cc/services/monitoring/" target="_blank">
+          monitoring report
+        </Link>{" "}
+        of the server. If any of the checks below concern you, please check the{" "}
+        <Link
+          href="https://etke.cc/services/monitoring/#what-to-do-if-the-monitoring-report-shows-issues"
+          target="_blank"
+        >
+          suggested actions
+        </Link>
+        .
+      </Typography>
 
       <Stack spacing={2} direction="row">
         {Object.keys(groupedResults).map((category, idx) => (

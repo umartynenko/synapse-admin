@@ -5,8 +5,12 @@ import { Admin, CustomRoutes, Resource, resolveBrowserLocale } from "react-admin
 import { Route } from "react-router-dom";
 
 import AdminLayout from "./components/AdminLayout";
+import ServerActionsPage from "./components/etke.cc/ServerActionsPage";
 import ServerNotificationsPage from "./components/etke.cc/ServerNotificationsPage";
 import ServerStatusPage from "./components/etke.cc/ServerStatusPage";
+import RecurringCommandEdit from "./components/etke.cc/schedules/components/recurring/RecurringCommandEdit";
+import ScheduledCommandEdit from "./components/etke.cc/schedules/components/scheduled/ScheduledCommandEdit";
+import ScheduledCommandShow from "./components/etke.cc/schedules/components/scheduled/ScheduledCommandShow";
 import UserImport from "./components/user-import/UserImport";
 import germanMessages from "./i18n/de";
 import englishMessages from "./i18n/en";
@@ -64,6 +68,12 @@ export const App = () => (
       <CustomRoutes>
         <Route path="/import_users" element={<UserImport />} />
         <Route path="/server_status" element={<ServerStatusPage />} />
+        <Route path="/server_actions" element={<ServerActionsPage />} />
+        <Route path="/server_actions/scheduled/:id/show" element={<ScheduledCommandShow />} />
+        <Route path="/server_actions/scheduled/:id" element={<ScheduledCommandEdit />} />
+        <Route path="/server_actions/scheduled/create" element={<ScheduledCommandEdit />} />
+        <Route path="/server_actions/recurring/:id" element={<RecurringCommandEdit />} />
+        <Route path="/server_actions/recurring/create" element={<RecurringCommandEdit />} />
         <Route path="/server_notifications" element={<ServerNotificationsPage />} />
       </CustomRoutes>
       <Resource {...users} />

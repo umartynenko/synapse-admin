@@ -1,3 +1,4 @@
+import ManageHistoryIcon from "@mui/icons-material/ManageHistory";
 import { useEffect, useState, Suspense } from "react";
 import {
   CheckForApplicationUpdate,
@@ -75,11 +76,11 @@ const AdminAppBar = () => {
 
 const AdminMenu = props => {
   const [menu, setMenu] = useState([] as MenuItem[]);
-  const [serverStatusEnabled, setServerStatusEnabled] = useState(false);
+  const [etkeRoutesEnabled, setEtkeRoutesEnabled] = useState(false);
   useEffect(() => {
     setMenu(GetConfig().menu);
     if (GetConfig().etkeccAdmin) {
-      setServerStatusEnabled(true);
+      setEtkeRoutesEnabled(true);
     }
   }, []);
   const [serverProcess, setServerProcess] = useStore<ServerProcessResponse>("serverProcess", {
@@ -95,8 +96,9 @@ const AdminMenu = props => {
 
   return (
     <Menu {...props}>
-      {serverStatusEnabled && (
+      {etkeRoutesEnabled && (
         <Menu.Item
+          key="server_status"
           to="/server_status"
           leftIcon={
             <ServerStatusStyledBadge
@@ -104,9 +106,18 @@ const AdminMenu = props => {
               command={serverProcess.command}
               locked_at={serverProcess.locked_at}
               isOkay={serverStatus.ok}
+              isLoaded={serverStatus.success}
             />
           }
           primaryText="Server Status"
+        />
+      )}
+      {etkeRoutesEnabled && (
+        <Menu.Item
+          key="server_actions"
+          to="/server_actions"
+          leftIcon={<ManageHistoryIcon />}
+          primaryText="Server Actions"
         />
       )}
       <Menu.ResourceItems />

@@ -1,4 +1,4 @@
-import { PlayArrow, CheckCircle } from "@mui/icons-material";
+import { PlayArrow, CheckCircle, HelpCenter, Construction } from "@mui/icons-material";
 import {
   Table,
   TableBody,
@@ -10,12 +10,15 @@ import {
   Alert,
   TextField,
   Box,
+  Link,
+  Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Button, Loading, useDataProvider, useCreatePath, useStore } from "react-admin";
-import { Link } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 
 import { useAppContext } from "../../Context";
+import { useServerCommands } from "./hooks/useServerCommands";
 import { ServerCommand, ServerProcessResponse } from "../../synapse/dataProvider";
 import { Icons } from "../../utils/icons";
 
@@ -26,33 +29,19 @@ const renderIcon = (icon: string) => {
 
 const ServerCommandsPanel = () => {
   const { etkeccAdmin } = useAppContext();
-  const createPath = useCreatePath();
+  if (!etkeccAdmin) {
+    return null;
+  }
 
-  const [isLoading, setLoading] = useState(true);
-  const [serverCommands, setServerCommands] = useState<Record<string, ServerCommand>>({});
+  const createPath = useCreatePath();
+  const { isLoading, serverCommands, setServerCommands } = useServerCommands();
   const [serverProcess, setServerProcess] = useStore<ServerProcessResponse>("serverProcess", {
     command: "",
     locked_at: "",
   });
   const [commandIsRunning, setCommandIsRunning] = useState<boolean>(serverProcess.command !== "");
-  const [commandResult, setCommandResult] = useState<any[]>([]);
-
+  const [commandResult, setCommandResult] = useState<React.ReactNode[]>([]);
   const dataProvider = useDataProvider();
-
-  useEffect(() => {
-    const fetchIsAdmin = async () => {
-      const serverCommandsResponse = await dataProvider.getServerCommands(etkeccAdmin);
-      if (serverCommandsResponse) {
-        const serverCommands = serverCommandsResponse;
-        Object.keys(serverCommandsResponse).forEach((command: string) => {
-          serverCommands[command].additionalArgs = "";
-        });
-        setServerCommands(serverCommands);
-      }
-      setLoading(false);
-    };
-    fetchIsAdmin();
-  }, []);
 
   useEffect(() => {
     if (serverProcess.command === "") {
@@ -103,11 +92,12 @@ const ServerCommandsPanel = () => {
       commandScheduledText += `, with additional args: ${additionalArgs}`;
     }
 
-    results.push(<Box>{commandScheduledText}</Box>);
+    results.push(<Box key="command-text">{commandScheduledText}</Box>);
     results.push(
-      <Box>
+      <Box key="notification-link">
         Expect your result in the{" "}
-        <Link to={createPath({ resource: "server_notifications", type: "list" })}>Notifications</Link> page soon.
+        <RouterLink to={createPath({ resource: "server_notifications", type: "list" })}>Notifications</RouterLink> page
+        soon.
       </Box>
     );
 
@@ -138,24 +128,39 @@ const ServerCommandsPanel = () => {
 
   return (
     <>
-      <h2>Server Commands</h2>
-      <TableContainer component={Paper}>
+      <Typography variant="h5">
+        <Construction sx={{ verticalAlign: "middle", mr: 1 }} /> Available Commands
+      </Typography>
+      <Typography variant="body1" sx={{ mt: 0 }}>
+        The following commands are available to run. More details about each of them can be found{" "}
+        <Link href="https://etke.cc/help/extras/scheduler/#commands" target="_blank">
+          here
+        </Link>
+        .
+      </Typography>
+      <TableContainer component={Paper} sx={{ mt: 2 }}>
         <Table sx={{ minWidth: 450 }} size="small" aria-label="simple table">
           <TableHead>
             <TableRow>
               <TableCell>Command</TableCell>
+              <TableCell></TableCell>
               <TableCell>Description</TableCell>
               <TableCell></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {Object.entries(serverCommands).map(([command, { icon, args, description, additionalArgs }]) => (
-              <TableRow key={command} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+              <TableRow key={command}>
                 <TableCell scope="row">
                   <Box>
                     {renderIcon(icon)}
                     {command}
                   </Box>
+                </TableCell>
+                <TableCell>
+                  <Link href={"https://etke.cc/help/extras/scheduler/#" + command} target="_blank">
+                    <Button size="small" startIcon={<HelpCenter />} title={command + " help"} />
+                  </Link>
                 </TableCell>
                 <TableCell>{description}</TableCell>
                 <TableCell>

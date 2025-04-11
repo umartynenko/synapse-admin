@@ -87,6 +87,7 @@ describe("authProvider", () => {
       expect(fetch).toHaveBeenCalledWith("example.com/_matrix/client/v3/logout", {
         headers: new Headers({
           Accept: "application/json",
+          "Content-Type": "application/json",
           Authorization: "Bearer foo",
         }),
         method: "POST",

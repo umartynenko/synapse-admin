@@ -23,7 +23,7 @@ const CACHED_MANY_REF: Record<string, any> = {};
 const jsonClient = async (url: string, options: Options = {}) => {
   const token = localStorage.getItem("access_token");
   console.log("httpClient " + url);
-  options.credentials = GetConfig().corsCredentials;
+  options.credentials = GetConfig().corsCredentials as RequestCredentials;
   if (token !== null) {
     options.user = {
       authenticated: true,
@@ -322,6 +322,22 @@ export interface ServerCommand {
 
 export type ServerCommandsResponse = Record<string, ServerCommand>;
 
+export interface ScheduledCommand {
+  args: string;
+  command: string;
+  id: string;
+  is_recurring: boolean;
+  scheduled_at: string;
+}
+
+export interface RecurringCommand {
+  args: string;
+  command: string;
+  id: string;
+  scheduled_at: string;
+  time: string;
+}
+
 export interface SynapseDataProvider extends DataProvider {
   deleteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
   purgeRemoteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
@@ -337,6 +353,14 @@ export interface SynapseDataProvider extends DataProvider {
   getServerNotifications: (etkeAdminUrl: string) => Promise<ServerNotificationsResponse>;
   deleteServerNotifications: (etkeAdminUrl: string) => Promise<{ success: boolean }>;
   getServerCommands: (etkeAdminUrl: string) => Promise<ServerCommandsResponse>;
+  getScheduledCommands: (etkeAdminUrl: string) => Promise<ScheduledCommand[]>;
+  getRecurringCommands: (etkeAdminUrl: string) => Promise<RecurringCommand[]>;
+  createScheduledCommand: (etkeAdminUrl: string, command: Partial<ScheduledCommand>) => Promise<ScheduledCommand>;
+  updateScheduledCommand: (etkeAdminUrl: string, command: ScheduledCommand) => Promise<ScheduledCommand>;
+  deleteScheduledCommand: (etkeAdminUrl: string, id: string) => Promise<{ success: boolean }>;
+  createRecurringCommand: (etkeAdminUrl: string, command: Partial<RecurringCommand>) => Promise<RecurringCommand>;
+  updateRecurringCommand: (etkeAdminUrl: string, command: RecurringCommand) => Promise<RecurringCommand>;
+  deleteRecurringCommand: (etkeAdminUrl: string, id: string) => Promise<{ success: boolean }>;
 }
 
 const resourceMap = {
@@ -1187,6 +1211,212 @@ const baseDataProvider: SynapseDataProvider = {
     return {
       success: false,
     };
+  },
+  getScheduledCommands: async (scheduledCommandsUrl: string) => {
+    try {
+      const response = await fetch(`${scheduledCommandsUrl}/schedules`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      if (!response.ok) {
+        console.error(`Error fetching scheduled commands: ${response.status} ${response.statusText}`);
+        return [];
+      }
+
+      const status = response.status;
+
+      if (status === 200) {
+        const json = await response.json();
+        return json as ScheduledCommand[];
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Error fetching scheduled commands, error");
+    }
+    return [];
+  },
+  getRecurringCommands: async (recurringCommandsUrl: string) => {
+    try {
+      const response = await fetch(`${recurringCommandsUrl}/recurrings`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      if (!response.ok) {
+        console.error(`Error fetching recurring commands: ${response.status} ${response.statusText}`);
+        return [];
+      }
+
+      const status = response.status;
+
+      if (status === 200) {
+        const json = await response.json();
+        return json as RecurringCommand[];
+      }
+
+      return [];
+    } catch (error) {
+      console.error("Error fetching recurring commands, error");
+    }
+    return [];
+  },
+  createScheduledCommand: async (scheduledCommandsUrl: string, command: Partial<ScheduledCommand>) => {
+    try {
+      const response = await fetch(`${scheduledCommandsUrl}/schedules`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify(command),
+      });
+
+      if (!response.ok) {
+        console.error(`Error creating scheduled command: ${response.status} ${response.statusText}`);
+        throw new Error("Failed to create scheduled command");
+      }
+
+      if (response.status === 204) {
+        return command as ScheduledCommand;
+      }
+
+      const json = await response.json();
+      return json as ScheduledCommand;
+    } catch (error) {
+      console.error("Error creating scheduled command", error);
+      throw error;
+    }
+  },
+  updateScheduledCommand: async (scheduledCommandsUrl: string, command: ScheduledCommand) => {
+    try {
+      // Use the base endpoint without ID and use PUT for upsert
+      const response = await fetch(`${scheduledCommandsUrl}/schedules`, {
+        method: "PUT", // Using PUT on the base endpoint
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify(command),
+      });
+
+      if (!response.ok) {
+        const jsonErr = JSON.parse(await response.text());
+        console.error(`Error updating scheduled command: ${response.status} ${response.statusText}`);
+        throw new Error(jsonErr.error);
+      }
+
+      // According to docs, successful response is 204 No Content
+      if (response.status === 204) {
+        // Return the command object we sent since the server doesn't return data
+        return command;
+      }
+
+      // If server does return data (though docs suggest it returns 204)
+      const json = await response.json();
+      console.log("JSON", json);
+      return json as ScheduledCommand;
+    } catch (error) {
+      console.error("Error updating scheduled command", error);
+      throw error;
+    }
+  },
+  deleteScheduledCommand: async (scheduledCommandsUrl: string, id: string) => {
+    try {
+      const response = await fetch(`${scheduledCommandsUrl}/schedules/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error(`Error deleting scheduled command: ${response.status} ${response.statusText}`);
+        return { success: false };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting scheduled command", error);
+      return { success: false };
+    }
+  },
+  createRecurringCommand: async (recurringCommandsUrl: string, command: Partial<RecurringCommand>) => {
+    try {
+      const response = await fetch(`${recurringCommandsUrl}/recurrings`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify(command),
+      });
+
+      if (!response.ok) {
+        console.error(`Error creating recurring command: ${response.status} ${response.statusText}`);
+        throw new Error("Failed to create recurring command");
+      }
+
+      if (response.status === 204) {
+        // Return the command object we sent since the server doesn't return data
+        return command as RecurringCommand;
+      }
+
+      const json = await response.json();
+      return json as RecurringCommand;
+    } catch (error) {
+      console.error("Error creating recurring command", error);
+      throw error;
+    }
+  },
+  updateRecurringCommand: async (recurringCommandsUrl: string, command: RecurringCommand) => {
+    try {
+      const response = await fetch(`${recurringCommandsUrl}/recurrings`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+        body: JSON.stringify(command),
+      });
+
+      if (!response.ok) {
+        console.error(`Error updating recurring command: ${response.status} ${response.statusText}`);
+        throw new Error("Failed to update recurring command");
+      }
+
+      if (response.status === 204) {
+        // Return the command object we sent since the server doesn't return data
+        return command as RecurringCommand;
+      }
+
+      const json = await response.json();
+      return json as RecurringCommand;
+    } catch (error) {
+      console.error("Error updating recurring command", error);
+      throw error;
+    }
+  },
+  deleteRecurringCommand: async (recurringCommandsUrl: string, id: string) => {
+    try {
+      const response = await fetch(`${recurringCommandsUrl}/recurrings/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error(`Error deleting recurring command: ${response.status} ${response.statusText}`);
+        return { success: false };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting recurring command", error);
+      return { success: false };
+    }
   },
 };
 
