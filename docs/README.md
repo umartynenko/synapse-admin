@@ -17,6 +17,7 @@ Table of contents:
 
 Specific configuration options:
 
+* [Customizing CORS credentials](./cors-credentials.md)
 * [Restricting available homeserver](./restrict-hs.md)
 * [System / Appservice-managed Users](./system-users.md)
 * [Custom Menu Items](./custom-menu.md)
@@ -33,6 +34,10 @@ they are not available for any other Synapse Admin deployments.
 
 * [Server Status icon](../src/components/etke.cc/README.md#server-status-icon)
 * [Server Status page](../src/components/etke.cc/README.md#server-status-page)
+* [Server Actions page](../src/components/etke.cc/README.md#server-actions-page)
+* [Server Commands Panel](../src/components/etke.cc/README.md#server-commands-panel)
+* [Server Notifications icon](../src/components/etke.cc/README.md#server-notifications-icon)
+* [Server Notifications page](../src/components/etke.cc/README.md#server-notifications-page)
 
 ## Deployment
 
