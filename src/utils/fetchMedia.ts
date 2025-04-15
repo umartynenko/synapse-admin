@@ -1,5 +1,5 @@
 export const getServerAndMediaIdFromMxcUrl = (mxcUrl: string): { serverName: string; mediaId: string } => {
-  const re = /^mxc:\/\/([^/]+)\/(\w+)/;
+  const re = /^mxc:\/\/([^/]+)\/([\w-]+)$/;
   const ret = re.exec(mxcUrl);
   if (ret == null) {
     throw new Error("Invalid mxcUrl");
