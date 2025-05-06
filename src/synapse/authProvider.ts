@@ -189,7 +189,7 @@ const authProvider: AuthProvider = {
   checkAuth: () => {
     const access_token = localStorage.getItem("access_token");
     return typeof access_token === "string" ? Promise.resolve() : Promise.reject();
-  }
+  },
 };
 
 export default authProvider;
