@@ -109,10 +109,10 @@ The following changes are already implemented:
 * 📞 [Support E.164-based Matrix IDs (MSC4009)](https://github.com/etkecc/synapse-admin/pull/214)
 * 🛑 [Add support for Account Suspension (MSC3823)](https://github.com/etkecc/synapse-admin/pull/195)
 * 🗑️ [Add "Purge Remote Media" button](https://github.com/etkecc/synapse-admin/pull/237)
-* [Respect base url (`BASE_PATH` / `vite build --base`) when loading `config.json`](https://github.com/etkecc/synapse-admin/pull/274)
-* [Add Users' Account Data tab](https://github.com/etkecc/synapse-admin/pull/276)
-* [Make bulk registration CSV import more user-friendly](https://github.com/etkecc/synapse-admin/pull/411)
-* [Configurable CORS Credentials](https://github.com/etkecc/synapse-admin/pull/456)
+* 📁 [Respect base url (`BASE_PATH` / `vite build --base`) when loading `config.json`](https://github.com/etkecc/synapse-admin/pull/274)
+* 🗂️ [Add Users' Account Data tab](https://github.com/etkecc/synapse-admin/pull/276)
+* 🧾 [Make bulk registration CSV import more user-friendly](https://github.com/etkecc/synapse-admin/pull/411)
+* 🌐 [Configurable CORS Credentials](https://github.com/etkecc/synapse-admin/pull/456)
 
 #### exclusive for [etke.cc](https://etke.cc) customers
 
