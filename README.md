@@ -55,7 +55,7 @@ The full list is described below in the [Changes](#changes) section.
 * As a core/default component on [etke.cc](https://etke.cc/?utm_source=github&utm_medium=readme&utm_campaign=synapse-admin)
 * As a standalone app on [admin.etke.cc](https://admin.etke.cc)
 * As a prebuilt distribution on [GitHub Releases](https://github.com/etkecc/synapse-admin/releases)
-* As a Docker container on [GitHub Container Registry](https://github.com/etkecc/synapse-admin/pkgs/container/synapse-admin)
+* As a Docker container on [Docker Hub](https://hub.docker.com/r/etkecc/synapse-admin) and [GitHub Container Registry](https://github.com/etkecc/synapse-admin/pkgs/container/synapse-admin)
 * As a component in [Matrix-Docker-Ansible-Deploy Playbook](https://github.com/spantaleev/matrix-docker-ansible-deploy/blob/master/docs/configuring-playbook-synapse-admin.md)
 
 ### Changes
