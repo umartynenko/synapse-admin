@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import polyglotI18nProvider from "ra-i18n-polyglot";
 import { AdminContext } from "react-admin";
-import { BrowserRouter } from "react-router-dom";
 
 import LoginPage from "./LoginPage";
 import { AppContext } from "../Context";
@@ -14,11 +13,9 @@ describe("LoginForm", () => {
   it("renders with no restriction to homeserver", async () => {
     await act(async () => {
       render(
-        <BrowserRouter>
-          <AdminContext i18nProvider={i18nProvider}>
-            <LoginPage />
-          </AdminContext>
-        </BrowserRouter>
+        <AdminContext i18nProvider={i18nProvider}>
+          <LoginPage />
+        </AdminContext>
       );
     });
 
@@ -35,20 +32,18 @@ describe("LoginForm", () => {
 
   it("renders with single restricted homeserver", () => {
     render(
-      <BrowserRouter>
-        <AppContext.Provider
-          value={{
-            restrictBaseUrl: "https://matrix.example.com",
-            asManagedUsers: [],
-            menu: [],
-            corsCredentials: "include",
-          }}
-        >
-          <AdminContext i18nProvider={i18nProvider}>
-            <LoginPage />
-          </AdminContext>
-        </AppContext.Provider>
-      </BrowserRouter>
+      <AppContext.Provider
+        value={{
+          restrictBaseUrl: "https://matrix.example.com",
+          asManagedUsers: [],
+          menu: [],
+          corsCredentials: "include",
+        }}
+      >
+        <AdminContext i18nProvider={i18nProvider}>
+          <LoginPage />
+        </AdminContext>
+      </AppContext.Provider>
     );
 
     screen.getByText(englishMessages.synapseadmin.auth.welcome);
@@ -73,9 +68,7 @@ describe("LoginForm", () => {
         }}
       >
         <AdminContext i18nProvider={i18nProvider}>
-          <BrowserRouter>
-            <LoginPage />
-          </BrowserRouter>
+          <LoginPage />
         </AdminContext>
       </AppContext.Provider>
     );
