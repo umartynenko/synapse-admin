@@ -138,6 +138,25 @@ const LoginPage = () => {
     const [serverVersion, setServerVersion] = useState("");
     const [matrixVersions, setMatrixVersions] = useState("");
 
+    const handleUsernameChange = () => {
+      if (formData.base_url || allowSingleBaseUrl) {
+        return;
+      }
+      // check if username is a full qualified userId then set base_url accordingly
+      const domain = splitMxid(formData.username)?.domain;
+      if (domain) {
+        getWellKnownUrl(domain).then(url => {
+          if (allowAnyBaseUrl || (allowMultipleBaseUrls && restrictBaseUrl.includes(url))) {
+            form.setValue("base_url", url, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+            checkServerInfo(url);
+          }
+        });
+      }
+    };
+
     const checkServerInfo = (url: string) => {
       if (!isValidBaseUrl(url)) return;
 
@@ -231,7 +250,7 @@ const LoginPage = () => {
                 source="username"
                 label="ra.auth.username"
                 autoComplete="username"
-                onBlur={handleBaseUrlBlur}
+                onBlur={handleUsernameChange}
                 resettable
                 validate={required()}
                 {...(loading || !supportPassAuth ? { disabled: true } : {})}
