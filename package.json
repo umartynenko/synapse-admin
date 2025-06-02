@@ -1,6 +1,6 @@
 {
   "name": "synapse-admin",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Admin GUI for the Matrix.org server Synapse",
   "type": "module",
   "author": "etke.cc (originally by Awesome Technologies Innovationslabor GmbH)",
