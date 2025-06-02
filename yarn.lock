@@ -4516,12 +4516,12 @@ ra-language-farsi@^5.1.0:
   resolved "https://registry.yarnpkg.com/ra-language-farsi/-/ra-language-farsi-5.1.0.tgz#27d2cc50e4074a0e2565e05da153da0d213729f8"
   integrity sha512-U4swqsijT6foRP9v/fqLGEXV1TjuyjpQcmoDJfsN2kPyR9QiKlLGNrbv/sfpt7LT0om3egIXIRp/iQG1u44GXQ==
 
-ra-language-french@^5.8.2:
-  version "5.8.2"
-  resolved "https://registry.yarnpkg.com/ra-language-french/-/ra-language-french-5.8.2.tgz#b45e1b6d24d33e26fd9beb0d64de290e5f297bce"
-  integrity sha512-3PI/j33fKONXHIScXxg5JT57cuwTK25C9Lu4qIbFeDwUbJqIxQhhKWzOGYOUi8IYzE56W0lojGxnV1NOqA790g==
+ra-language-french@^5.8.3:
+  version "5.8.3"
+  resolved "https://registry.yarnpkg.com/ra-language-french/-/ra-language-french-5.8.3.tgz#aed41d7b75f32788c662c1ff26d0e0d34b01c23b"
+  integrity sha512-dtgopRO21Bt6Fuu+V4OC7UeV/PrXhyhqnEeMc9pnaC6AQAJKr+2piFdO6ED/L3VWLudz5a1yQfwW4cscUWzXoA==
   dependencies:
-    ra-core "^5.8.2"
+    ra-core "^5.8.3"
 
 ra-language-italian@^3.13.1:
   version "3.13.1"
