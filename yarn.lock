@@ -4528,10 +4528,10 @@ ra-language-italian@^3.13.1:
   resolved "https://registry.yarnpkg.com/ra-language-italian/-/ra-language-italian-3.13.1.tgz#115f15c00f140ba319d5daf53c7bd477c73b9546"
   integrity sha512-iGgdkbnpA+5GD6OcAjOuOA95/jmJegC9txE8X+AmlA7vhsHdcnHam/D6goqv3sqfeqgCkPCPmJAMO/+slHXR1w==
 
-ra-language-russian@^5.4.3:
-  version "5.4.3"
-  resolved "https://registry.yarnpkg.com/ra-language-russian/-/ra-language-russian-5.4.3.tgz#f746f20514306eda835411dd3086a3e3ff786a41"
-  integrity sha512-Pe2meeU1k6UTr9LCxdtbpHIqfvTtZVdohi4GQInp9pOAAdoqmABnNsqQt1OBb8I9gSqZcKW5fIwvA4AXEsWmyA==
+ra-language-russian@^5.4.4:
+  version "5.4.4"
+  resolved "https://registry.yarnpkg.com/ra-language-russian/-/ra-language-russian-5.4.4.tgz#96160cc5624e7f0d078d4f5a69d79d46f8a3297c"
+  integrity sha512-a3zPOBZWan3pWW70Oj7MA0xnOlll//5iY3cwURUnzH4lkzChmYY9nUvMugErDy5n6PWY/GzpVkFyXLPFtD5whg==
   dependencies:
     ra-core "^5.4.3"
 
