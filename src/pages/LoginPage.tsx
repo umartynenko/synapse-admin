@@ -273,7 +273,6 @@ const LoginPage = () => {
           <>
             <Box>
               <TextInput
-                autoFocus
                 source="username"
                 label="ra.auth.username"
                 autoComplete="username"

@@ -113,6 +113,7 @@ The following changes are already implemented:
 * 🗂️ [Add Users' Account Data tab](https://github.com/etkecc/synapse-admin/pull/276)
 * 🧾 [Make bulk registration CSV import more user-friendly](https://github.com/etkecc/synapse-admin/pull/411)
 * 🌐 [Configurable CORS Credentials](https://github.com/etkecc/synapse-admin/pull/456)
+* [Do not check homeserver URL during typing in the login form](https://github.com/etkecc/synapse-admin/pull/585)
 
 #### exclusive for [etke.cc](https://etke.cc) customers
 
