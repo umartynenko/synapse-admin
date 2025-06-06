@@ -167,6 +167,7 @@ const UserBulkActionButtons = () => {
   );
 };
 
+// --- НАЧАЛО ИЗМЕНЕНИЙ В ЭТОМ БЛОКЕ ---
 export const UserList = (props: ListProps) => (
   <List
     {...props}
@@ -206,6 +207,10 @@ export const UserList = (props: ListProps) => (
       />
       <BooleanField source="is_guest" label="resources.users.fields.is_guest" />
       <BooleanField source="admin" label="resources.users.fields.admin" />
+
+      {/* ++ ВАША НОВАЯ КОЛОНКА ++ */}
+      <TextField source="custom_role" label="Custom Role" sortable={false} />
+
       <BooleanField source="deactivated" label="resources.users.fields.deactivated" />
       <BooleanField source="locked" label="resources.users.fields.locked" />
       <BooleanField source="suspended" label="resources.users.fields.suspended" />
@@ -214,6 +219,7 @@ export const UserList = (props: ListProps) => (
     </DatagridConfigurable>
   </List>
 );
+// --- КОНЕЦ ИЗМЕНЕНИЙ В ЭТОМ БЛОКЕ ---
 
 // https://matrix.org/docs/spec/appendices#user-identifiers
 // here only local part of user_id
