@@ -189,9 +189,9 @@ const ru: SynapseTranslationMessages = {
         choices_custom_role: {
           admin: "Администратор",
           org_admin: "Администратор организации",
-          space_leader: "Руководитель пространства",
-          space_admin: "Администратор пространства",
-          vip: "VIP",
+          space_leader: "Абонент руководитель",
+          space_admin: "Абонент администратор",
+          vip: "Абонент VIP",
           moderator: "Модератор",
           user: "Пользователь",
           subscriber: "Абонент",

@@ -182,7 +182,7 @@ const en: SynapseTranslationMessages = {
           org_admin: "Organization Admin",
           space_leader: "Space Leader",
           space_admin: "Space Admin",
-          vip: "VIP",
+          vip: "VIP Subscriber",
           moderator: "Moderator",
           user: "User",
           subscriber: "Subscriber",
