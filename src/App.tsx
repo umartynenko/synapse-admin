@@ -43,12 +43,12 @@ const i18nProvider = polyglotI18nProvider(
   resolveBrowserLocale(),
   [
     { locale: "en", name: "English" },
-    { locale: "de", name: "Deutsch" },
-    { locale: "fr", name: "Français" },
-    { locale: "it", name: "Italiano" },
-    { locale: "fa", name: "Persian(فارسی)" },
+    // { locale: "de", name: "Deutsch" },
+    // { locale: "fr", name: "Français" },
+    // { locale: "it", name: "Italiano" },
+    // { locale: "fa", name: "Persian(فارسی)" },
     { locale: "ru", name: "Russian(Русский)" },
-    { locale: "zh", name: "简体中文" },
+    // { locale: "zh", name: "简体中文" },
   ]
 );
 
