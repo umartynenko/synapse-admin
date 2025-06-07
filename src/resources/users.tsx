@@ -360,6 +360,12 @@ export const UserCreate = (props: CreateProps) => {
         <UserPasswordInput source="password" autoComplete="new-password" helperText="resources.users.helper.password" />
         <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable />
         <BooleanInput source="admin" />
+        <SelectInput
+          source="custom_role"
+          label="Custom Role"
+          choices={choices_custom_role}
+          defaultValue="subscriber" // Устанавливаем значение по умолчанию. 'subscriber' - хорошй выбор.
+        />
         <ArrayInput source="threepids">
           <SimpleFormIterator disableReordering>
             <SelectInput source="medium" choices={choices_medium} validate={required()} />
