@@ -95,6 +95,17 @@ const choices_type = [
   { id: "support", name: "support" },
 ];
 
+const choices_custom_role = [
+  { id: "admin", name: "admin" },
+  { id: "org_admin", name: "org_admin" },
+  { id: "space_leader", name: "space_leader" },
+  { id: "space_admin", name: "space_admin" },
+  { id: "vip", name: "vip" },
+  { id: "moderator", name: "moderator" },
+  { id: "user", name: "user" },
+  { id: "subscriber", name: "subscriber" },
+];
+
 const UserListActions = () => {
   const { isLoading, total } = useListContext();
   return (
@@ -521,6 +532,12 @@ export const UserEdit = (props: EditProps) => {
             helperText="resources.users.helper.password"
           />
           <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable />
+           <SelectInput
+            source="custom_role"
+            label="Custom Role"
+            choices={choices_custom_role}
+            validate={required()} // Делаем поле обязательным
+          />
           <BooleanInput source="admin" />
           <UserBooleanInput source="locked" />
           <UserBooleanInput source="deactivated" helperText="resources.users.helper.deactivate" />
