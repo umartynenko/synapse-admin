@@ -138,6 +138,8 @@ interface SynapseTranslationMessages extends TranslationMessages {
         name: string;
         is_guest: string;
         admin: string;
+        custom_role?: string; // <--- ДОБАВЬТЕ ЭТУ СТРОКУ
+        choices_custom_role?: Record<string, string>; // <--- И ЭТУ ТОЖЕ
         locked?: string; // TODO: fa, zh
         suspended: string;
         deactivated: string;

@@ -66,6 +66,7 @@ import {
   Confirm,
   useCreate,
   useRedirect,
+  SelectField,
 } from "react-admin";
 import { useFormContext } from "react-hook-form";
 import { Link } from "react-router-dom";
@@ -96,14 +97,14 @@ const choices_type = [
 ];
 
 const choices_custom_role = [
-  { id: "admin", name: "admin" },
-  { id: "org_admin", name: "org_admin" },
-  { id: "space_leader", name: "space_leader" },
-  { id: "space_admin", name: "space_admin" },
-  { id: "vip", name: "vip" },
-  { id: "moderator", name: "moderator" },
-  { id: "user", name: "user" },
-  { id: "subscriber", name: "subscriber" },
+  { id: "admin", name: "resources.users.fields.choices_custom_role.admin" },
+  { id: "org_admin", name: "resources.users.fields.choices_custom_role.org_admin" },
+  { id: "space_leader", name: "resources.users.fields.choices_custom_role.space_leader" },
+  { id: "space_admin", name: "resources.users.fields.choices_custom_role.space_admin" },
+  { id: "vip", name: "resources.users.fields.choices_custom_role.vip" },
+  { id: "moderator", name: "resources.users.fields.choices_custom_role.moderator" },
+  { id: "user", name: "resources.users.fields.choices_custom_role.user" },
+  { id: "subscriber", name: "resources.users.fields.choices_custom_role.subscriber" },
 ];
 
 const UserListActions = () => {
@@ -220,8 +221,14 @@ export const UserList = (props: ListProps) => (
       <BooleanField source="admin" label="resources.users.fields.admin" />
 
       {/* ++ ВАША НОВАЯ КОЛОНКА ++ */}
-      <TextField source="custom_role" label="Custom Role" sortable={false} />
+      {/*<TextField source="custom_role" label="resources.users.fields.custom_role" sortable={false} />*/}
 
+      <SelectField
+        source="custom_role"
+        label="resources.users.fields.custom_role"
+        choices={choices_custom_role}
+        sortable={false}
+      />
       <BooleanField source="deactivated" label="resources.users.fields.deactivated" />
       <BooleanField source="locked" label="resources.users.fields.locked" />
       <BooleanField source="suspended" label="resources.users.fields.suspended" />
@@ -362,9 +369,10 @@ export const UserCreate = (props: CreateProps) => {
         <BooleanInput source="admin" />
         <SelectInput
           source="custom_role"
-          label="Custom Role"
           choices={choices_custom_role}
-          defaultValue="subscriber" // Устанавливаем значение по умолчанию. 'subscriber' - хорошй выбор.
+          optionText="name" // Указываем использовать поле "name" для текста
+          translateChoice // Включаем автоматический перевод
+          defaultValue={"subscriber"} // Устанавливаем значение по умолчанию
         />
         <ArrayInput source="threepids">
           <SimpleFormIterator disableReordering>
@@ -538,11 +546,11 @@ export const UserEdit = (props: EditProps) => {
             helperText="resources.users.helper.password"
           />
           <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable />
-           <SelectInput
+          <SelectInput
             source="custom_role"
-            label="Custom Role"
             choices={choices_custom_role}
-            validate={required()} // Делаем поле обязательным
+            optionText="name" // Указываем использовать поле "name" для текста
+            translateChoice // Включаем автоматический перевод
           />
           <BooleanInput source="admin" />
           <UserBooleanInput source="locked" />

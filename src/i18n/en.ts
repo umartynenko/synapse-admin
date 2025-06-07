@@ -2,8 +2,36 @@ import englishMessages from "ra-language-english";
 
 import { SynapseTranslationMessages } from ".";
 
-const en: SynapseTranslationMessages = {
+const fixedEnglishMessages = {
   ...englishMessages,
+  ra: {
+    ...englishMessages.ra,
+    navigation: {
+      ...englishMessages.ra.navigation,
+      no_filtered_results: "No results",
+      clear_filters: "Clear filters",
+    },
+    action: {
+      ...englishMessages.ra.action,
+      select_all_button: "Select all",
+    },
+    page: {
+      ...englishMessages.ra.page,
+      empty: "Empty",
+      access_denied: "Access denied",
+      authentication_error: "Authentication error",
+    },
+    message: {
+      ...englishMessages.ra.message,
+      access_denied: "You don't have permission to access this page.",
+      authentication_error: "The authentication server returned an error and could not verify your credentials.",
+      select_all_limit_reached: "Too many items to select. Only the first %{max} items have been selected.",
+    },
+  },
+};
+
+const en: SynapseTranslationMessages = {
+  ...fixedEnglishMessages,
   synapseadmin: {
     auth: {
       base_url: "Homeserver URL",
@@ -148,6 +176,17 @@ const en: SynapseTranslationMessages = {
         name: "Name",
         is_guest: "Guest",
         admin: "Server Administrator",
+        custom_role: "Custom role",
+        choices_custom_role: {
+          admin: "Admin",
+          org_admin: "Organization Admin",
+          space_leader: "Space Leader",
+          space_admin: "Space Admin",
+          vip: "VIP",
+          moderator: "Moderator",
+          user: "User",
+          subscriber: "Subscriber",
+        },
         locked: "Locked",
         suspended: "Suspended",
         deactivated: "Deactivated",
@@ -173,7 +212,8 @@ const en: SynapseTranslationMessages = {
         password: "Changing password will log user out of all sessions.",
         create_password: "Generate a strong and secure password using the button below.",
         deactivate: "You must provide a password to re-activate an account.",
-        suspend: "Suspending user means they are put into a read-only mode.",
+        suspend:
+          "Suspending an account means the user will not be able to log in to their account until it is reactivated.",
         erase: "Mark the user as GDPR-erased",
         erase_text:
           "This means messages sent by the user(-s) will still be visible by anyone who was in the room when these messages were sent, but hidden from users joining the room afterward.",
@@ -395,7 +435,7 @@ const en: SynapseTranslationMessages = {
         body: "Message",
       },
       action: {
-        send: "Send note",
+        send: "Send",
         send_success: "Server notice successfully sent.",
         send_failure: "An error has occurred.",
       },
