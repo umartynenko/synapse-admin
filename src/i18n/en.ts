@@ -299,6 +299,7 @@ const en: SynapseTranslationMessages = {
         unencrypted: "Unencrypted",
       },
       action: {
+        create_room: "Create space",
         erase: {
           title: "Delete room",
           content:

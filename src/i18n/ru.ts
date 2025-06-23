@@ -312,6 +312,7 @@ const ru: SynapseTranslationMessages = {
         unencrypted: "Без шифрования",
       },
       action: {
+        create_room: "Создать пространство",
         erase: {
           title: "Удалить комнату",
           content:

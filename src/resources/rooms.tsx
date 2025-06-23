@@ -1,3 +1,4 @@
+import AddIcon from "@mui/icons-material/Add";
 import EventIcon from "@mui/icons-material/Event";
 import FastForwardIcon from "@mui/icons-material/FastForward";
 import UserIcon from "@mui/icons-material/Group";
@@ -46,6 +47,7 @@ import {
   useListContext,
   useNotify,
   DeleteButton,
+  CreateButton,
 } from "react-admin";
 import { useDataProvider } from "react-admin";
 import { Confirm } from "react-admin";
@@ -365,6 +367,10 @@ const roomFilters = [<SearchInput source="search_term" alwaysOn />];
 
 const RoomListActions = () => (
   <TopToolbar>
+    {/*<Button label="resources.rooms.action.create_room">*/}
+    {/*<AddIcon />*/}
+    <CreateButton label="resources.rooms.action.create_room" />
+    {/*</Button>*/}
     <SelectColumnsButton />
     <ExportButton />
   </TopToolbar>
