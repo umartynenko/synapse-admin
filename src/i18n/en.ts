@@ -274,6 +274,8 @@ const en: SynapseTranslationMessages = {
         topic: "Topic",
         avatar: "Avatar",
         actions: "Actions",
+        preset: "Preset",
+        alias_localpart: "Alias (localpart)",
       },
       helper: {
         forward_extremities:
@@ -297,9 +299,14 @@ const en: SynapseTranslationMessages = {
           world_readable: "Anyone",
         },
         unencrypted: "Unencrypted",
+        presets: {
+          private_chat: "Private Chat",
+          public_chat: "Public Chat",
+        },
       },
       action: {
         create_room: "Create space",
+        create_room_title: "Create a Space",
         erase: {
           title: "Delete room",
           content:

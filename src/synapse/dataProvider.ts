@@ -402,6 +402,14 @@ const resourceMap = {
     }),
     data: "rooms",
     total: json => json.total_rooms,
+    create: (params: RaRecord) => ({
+      // API эндпоинт для создания комнаты
+      endpoint: "/_matrix/client/v3/createRoom",
+      // Тело запроса - это данные из нашей будущей формы
+      body: params,
+      // Метод - POST, как требует спецификация Matrix
+      method: "POST",
+    }),
     delete: (params: DeleteParams) => ({
       endpoint: `/_synapse/admin/v2/rooms/${params.id}`,
       body: { block: params.meta?.block ?? false },
