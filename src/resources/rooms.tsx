@@ -53,8 +53,14 @@ import {
   TextInput,
   SelectInput,
   required,
+  ReferenceInput,
+  AutocompleteInput,
+  useGetList,
+  Loading,
+  ArrayInput,
+  SimpleFormIterator,
 } from "react-admin";
-import { useDataProvider } from "react-admin";
+import { useDataProvider, useRedirect } from "react-admin";
 import { Confirm } from "react-admin";
 
 import {
@@ -382,15 +388,104 @@ const RoomListActions = () => (
 );
 
 export const RoomCreate = (props: any) => {
-  const transform = (data: any) => ({
-    ...data,
-    // Эта строка гарантирует, что создаваться будет именно Пространство (Space)
-    creation_content: { type: "m.space" },
+  const currentAdminId = localStorage.getItem("user_id");
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const redirect = useRedirect();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const {
+    data: users,
+    isLoading,
+    error,
+  } = useGetList("users", {
+    pagination: { page: 1, perPage: 1000 },
+    sort: { field: "name", order: "ASC" },
   });
 
+  const handleSave = async (values: any) => {
+    setIsSaving(true);
+    const creatorId = values.creator_id || currentAdminId;
+
+    // Отделяем данные для подпространств от данных для главного пространства
+    const { subspaces, ...mainSpaceData } = values;
+
+    const mainSpacePayload = {
+      ...mainSpaceData,
+      creation_content: { type: "m.space" },
+      meta: { impersonate: creatorId },
+    };
+
+    try {
+      const { data: parentSpace } = await dataProvider.create("rooms", { data: mainSpacePayload });
+      notify("Главное пространство создано", { type: "info" });
+
+      if (subspaces && subspaces.length > 0) {
+        for (const subspace of subspaces) {
+          if (!subspace.name) continue;
+
+          const subspacePayload = {
+            name: subspace.name,
+            preset: mainSpaceData.preset,
+            creation_content: { type: "m.space" },
+            meta: { impersonate: creatorId },
+          };
+          const { data: childSpace } = await dataProvider.create("rooms", { data: subspacePayload });
+
+          // @ts-ignore
+          await dataProvider.sendStateEvent(
+            parentSpace.id,
+            "m.space.child",
+            childSpace.id,
+            {
+              via: [localStorage.getItem("home_server")],
+              suggested: true,
+            },
+            creatorId
+          );
+
+          notify(`Подпространство "${subspace.name}" создано и привязано`, { type: "info" });
+        }
+      }
+
+      notify("Создание пространства и подпространств успешно завершено!", { type: "success" });
+      redirect("/rooms");
+    } catch (error: any) {
+      notify(`Ошибка: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) return <Loading />;
+  if (error) return <p>Ошибка загрузки пользователей: {error.message}</p>;
+
+  // --- НАЧАЛО ИСПРАВЛЕНИЙ В JSX ---
   return (
-    <Create {...props} transform={transform} title="resources.rooms.action.create_room_title">
-      <SimpleForm>
+    // Мы передаем isSaving в Create, чтобы кнопка "Сохранить" была неактивна во время процесса
+    <Create
+      {...props}
+      title="resources.rooms.action.create_room_title"
+      mutationOptions={{
+        onSuccess: () => {
+          /* Пусто, т.к. мы обрабатываем все сами в handleSave */
+        },
+      }}
+    >
+      {/* Передаем нашу кастомную функцию сохранения и isSaving */}
+      <SimpleForm onSubmit={handleSave} saving={isSaving}>
+        {/* ВОТ ВОЗВРАЩЕННЫЕ ПОЛЯ */}
+        <AutocompleteInput
+          source="creator_id"
+          label="resources.rooms.fields.creator"
+          choices={users}
+          optionValue="id"
+          optionText="id"
+          filterToQuery={searchText => ({ name: searchText })}
+          helperText="resources.rooms.helper.creator"
+          defaultValue={currentAdminId}
+          fullWidth
+        />
         <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
         <TextInput source="room_alias_name" label="resources.rooms.fields.alias_localpart" fullWidth />
         <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth />
@@ -404,9 +499,17 @@ export const RoomCreate = (props: any) => {
           defaultValue="private_chat"
           validate={required()}
         />
+        {/* КОНЕЦ ВОЗВРАЩЕННЫХ ПОЛЕЙ */}
+
+        <ArrayInput source="subspaces" label="resources.rooms.fields.subspaces.label">
+          <SimpleFormIterator>
+            <TextInput source="name" label="resources.rooms.fields.subspaces.name" helperText={false} />
+          </SimpleFormIterator>
+        </ArrayInput>
       </SimpleForm>
     </Create>
   );
+  // --- КОНЕЦ ИСПРАВЛЕНИЙ В JSX ---
 };
 
 export const RoomList = (props: ListProps) => {

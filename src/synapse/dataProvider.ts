@@ -30,6 +30,21 @@ const jsonClient = async (url: string, options: Options = {}) => {
       token: `Bearer ${token}`,
     };
   }
+
+  // // Проверяем, есть ли в опциях meta.impersonate
+  // if (options.body) {
+  //   const body = JSON.parse(options.body as string);
+  //   if (body.meta?.impersonate) {
+  //     // Добавляем параметр _user_id к URL для олицетворения
+  //     const impersonateId = encodeURIComponent(body.meta.impersonate);
+  //     url += (url.includes("?") ? "&" : "?") + `_user_id=${impersonateId}`;
+  //
+  //     // Удаляем meta из тела запроса, чтобы не отправлять его на сервер
+  //     delete body.meta;
+  //     options.body = JSON.stringify(body);
+  //   }
+  // }
+
   try {
     const response = await fetchUtils.fetchJson(url, options);
     return response;
@@ -361,6 +376,13 @@ export interface SynapseDataProvider extends DataProvider {
   createRecurringCommand: (etkeAdminUrl: string, command: Partial<RecurringCommand>) => Promise<RecurringCommand>;
   updateRecurringCommand: (etkeAdminUrl: string, command: RecurringCommand) => Promise<RecurringCommand>;
   deleteRecurringCommand: (etkeAdminUrl: string, id: string) => Promise<{ success: boolean }>;
+  sendStateEvent: (
+    roomId: string,
+    eventType: string,
+    stateKey: string,
+    content: object,
+    impersonateId?: string
+  ) => Promise<any>;
 }
 
 const resourceMap = {
@@ -814,20 +836,66 @@ const baseDataProvider: SynapseDataProvider = {
     return { data: responses.map(({ json }) => json) };
   },
 
+  // create: async (resource, params) => {
+  //   console.log("create " + resource);
+  //   const homeserver = localStorage.getItem("base_url");
+  //   if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
+  //
+  //   const res = resourceMap[resource];
+  //   if (!("create" in res)) return Promise.reject();
+  //
+  //   const create = res.create(params.data);
+  //   const endpoint_url = homeserver + create.endpoint;
+  //   const { json } = await jsonClient(endpoint_url, {
+  //     method: create.method,
+  //     body: JSON.stringify(create.body, filterNullValues),
+  //   });
+  //   return { data: res.map(json) };
+  // },
+
   create: async (resource, params) => {
-    console.log("create " + resource);
+    console.log("create " + resource, params);
     const homeserver = localStorage.getItem("base_url");
     if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
 
     const res = resourceMap[resource];
     if (!("create" in res)) return Promise.reject();
 
-    const create = res.create(params.data);
-    const endpoint_url = homeserver + create.endpoint;
+    // --- НАЧАЛО ФИНАЛЬНОГО ИСПРАВЛЕНИЯ ---
+
+    // 1. Извлекаем ID для олицетворения и остальные данные
+    const { creator_id, ...dataForBody } = params.data;
+
+    // 2. Получаем конфигурацию для создания ресурса
+    const createConfig = res.create(dataForBody);
+
+    let endpoint_url = homeserver + createConfig.endpoint;
+
+    // 3. Если creator_id передан, используем его для олицетворения
+    if (creator_id) {
+      const impersonateId = encodeURIComponent(creator_id);
+      endpoint_url += (endpoint_url.includes("?") ? "&" : "?") + `_user_id=${impersonateId}`;
+      console.log(`Impersonating user: ${impersonateId}. New URL: ${endpoint_url}`);
+    } else {
+      // Если creator_id не выбран, выполняем действие от имени текущего админа
+      console.log("No creator_id provided, performing action as current admin.");
+    }
+
+    // 4. Отправляем запрос с правильным URL и телом
     const { json } = await jsonClient(endpoint_url, {
-      method: create.method,
-      body: JSON.stringify(create.body, filterNullValues),
+      method: createConfig.method,
+      // В теле запроса теперь только чистые данные комнаты
+      body: JSON.stringify(createConfig.body, filterNullValues),
     });
+
+    // --- КОНЕЦ ФИНАЛЬНОГО ИСПРАВЛЕНИЯ ---
+
+    if (resource === "rooms" && json.room_id) {
+      return {
+        data: { id: json.room_id, ...dataForBody },
+      };
+    }
+
     return { data: res.map(json) };
   },
 
@@ -1425,6 +1493,19 @@ const baseDataProvider: SynapseDataProvider = {
       console.error("Error deleting recurring command", error);
       return { success: false };
     }
+  },
+  sendStateEvent: async (roomId, eventType, stateKey, content, impersonateId) => {
+    const base_url = localStorage.getItem("base_url");
+    let endpoint_url = `${base_url}/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`;
+
+    if (impersonateId) {
+      endpoint_url += `?_user_id=${encodeURIComponent(impersonateId)}`;
+    }
+
+    return jsonClient(endpoint_url, {
+      method: "PUT",
+      body: JSON.stringify(content),
+    });
   },
 };
 

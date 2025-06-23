@@ -265,6 +265,7 @@ const ru: SynapseTranslationMessages = {
     rooms: {
       name: "Комната |||| Комнаты",
       fields: {
+        creator: "Создатель",
         room_id: "ID комнаты",
         name: "Название",
         canonical_alias: "Псевдоним",
@@ -277,7 +278,6 @@ const ru: SynapseTranslationMessages = {
         encryption: "Шифрование",
         federatable: "Федерация",
         public: "Отображается в каталоге комнат",
-        creator: "Создатель",
         join_rules: "Правила входа",
         guest_access: "Гостевой доступ",
         history_visibility: "Видимость истории",
@@ -286,8 +286,13 @@ const ru: SynapseTranslationMessages = {
         actions: "Действия",
         preset: "Предустановка",
         alias_localpart: "Псевдоним (локальная часть)",
+        subspaces: {
+          label: "Подпространства",
+          name: "Название подпространства",
+        },
       },
       helper: {
+        creator: "Выберите пользователя, который будет создателем. По умолчанию - текущий администратор.",
         forward_extremities:
           "Оконечности — это события-листья в конце ориентированного ациклического графа (DAG) в комнате, т.е. события без дочерних элементов. \
         Чем больше их в комнате, тем больше Synapse работает над разрешением состояния (это дорогостоящая операция). \
