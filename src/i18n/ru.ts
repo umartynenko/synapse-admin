@@ -284,6 +284,8 @@ const ru: SynapseTranslationMessages = {
         topic: "Тема",
         avatar: "Аватар",
         actions: "Действия",
+        preset: "Предустановка",
+        alias_localpart: "Псевдоним (локальная часть)",
       },
       helper: {
         forward_extremities:
@@ -310,9 +312,14 @@ const ru: SynapseTranslationMessages = {
           world_readable: "Для всех",
         },
         unencrypted: "Без шифрования",
+        presets: {
+          private_chat: "Приватный чат",
+          public_chat: "Публичный чат",
+        },
       },
       action: {
         create_room: "Создать пространство",
+        create_room_title: "Создание пространства",
         erase: {
           title: "Удалить комнату",
           content:

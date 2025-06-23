@@ -48,6 +48,11 @@ import {
   useNotify,
   DeleteButton,
   CreateButton,
+  Create,
+  SimpleForm,
+  TextInput,
+  SelectInput,
+  required,
 } from "react-admin";
 import { useDataProvider } from "react-admin";
 import { Confirm } from "react-admin";
@@ -376,6 +381,34 @@ const RoomListActions = () => (
   </TopToolbar>
 );
 
+export const RoomCreate = (props: any) => {
+  const transform = (data: any) => ({
+    ...data,
+    // Эта строка гарантирует, что создаваться будет именно Пространство (Space)
+    creation_content: { type: "m.space" },
+  });
+
+  return (
+    <Create {...props} transform={transform} title="resources.rooms.action.create_room_title">
+      <SimpleForm>
+        <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
+        <TextInput source="room_alias_name" label="resources.rooms.fields.alias_localpart" fullWidth />
+        <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth />
+        <SelectInput
+          source="preset"
+          label="resources.rooms.fields.preset"
+          choices={[
+            { id: "private_chat", name: "resources.rooms.enums.presets.private_chat" },
+            { id: "public_chat", name: "resources.rooms.enums.presets.public_chat" },
+          ]}
+          defaultValue="private_chat"
+          validate={required()}
+        />
+      </SimpleForm>
+    </Create>
+  );
+};
+
 export const RoomList = (props: ListProps) => {
   const theme = useTheme();
 
@@ -444,6 +477,7 @@ const resource: ResourceProps = {
   icon: RoomIcon,
   list: RoomList,
   show: RoomShow,
+  create: RoomCreate,
 };
 
 export default resource;
