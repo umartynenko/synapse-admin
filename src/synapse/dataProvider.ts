@@ -379,6 +379,7 @@ export interface SynapseDataProvider extends DataProvider {
   makeRoomAdmin: (roomId: string, userId: string, impersonateId?: string) => Promise<any>; // Обновим его, чтобы принимал impersonateId
   inviteUser: (roomId: string, userId: string, impersonateId?: string) => Promise<any>; // <-- Добавьте
   joinRoom: (roomId: string, impersonateId: string) => Promise<any>; // <-- Добавьте
+  getRoomChildren: (roomId: string) => Promise<string[]>;
   sendStateEvent: (
     roomId: string,
     eventType: string,
@@ -681,6 +682,23 @@ function getSearchOrder(order: "ASC" | "DESC") {
 }
 
 const baseDataProvider: SynapseDataProvider = {
+  getRoomChildren: async roomId => {
+    const base_url = localStorage.getItem("base_url");
+    const endpoint_url = `${base_url}/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}/state`;
+
+    try {
+      const { json } = await jsonClient(endpoint_url);
+      const children = json.state
+        .filter(event => event.type === "m.space.child" && event.state_key)
+        .map(event => event.state_key);
+      console.log(`Найдены дочерние комнаты для ${roomId}:`, children);
+      return children;
+    } catch (error) {
+      console.error(`Ошибка при получении дочерних комнат для ${roomId}:`, error);
+      return [];
+    }
+  },
+
   getList: async (resource, params) => {
     console.log("getList " + resource);
     const { user_id, name, guests, deactivated, locked, suspended, search_term, destination, valid } = params.filter;

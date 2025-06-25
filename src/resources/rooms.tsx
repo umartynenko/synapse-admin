@@ -407,17 +407,248 @@ export const RoomCreate = (props: any) => {
     sort: { field: "name", order: "ASC" },
   });
 
+  // const handleSave = async (values: any) => {
+  //   setIsSaving(true);
+  //   const adminCreatorId = currentAdminId;
+  //   const delegatedUserId = values.creator_id || adminCreatorId;
+  //
+  //   const { subspaces, ...mainSpaceData } = values;
+  //
+  //   // Рекурсивная функция для полного цикла создания и настройки
+  //   const createAndSetupRecursive = async (spaceNode: any, parentId: string | null, preset: string) => {
+  //     if (!spaceNode.name) return null;
+  //
+  //     const payload = {
+  //       name: spaceNode.name,
+  //       preset: preset,
+  //       creation_content: { type: "m.space" },
+  //       meta: { impersonate: adminCreatorId },
+  //     };
+  //     const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
+  //     notify(`Пространство "${spaceNode.name}" создано`, { type: "info" });
+  //
+  //     if (delegatedUserId !== adminCreatorId) {
+  //       // Присоединяем и делаем админом в самом пространстве
+  //       // @ts-ignore
+  //       await dataProvider.inviteUser(createdSpace.id, delegatedUserId, adminCreatorId);
+  //       // @ts-ignore
+  //       await dataProvider.joinRoom(createdSpace.id, delegatedUserId);
+  //       // @ts-ignore
+  //       await dataProvider.makeRoomAdmin(createdSpace.id, delegatedUserId, adminCreatorId);
+  //       notify(`Права на пространство "${spaceNode.name}" делегированы.`, { type: "info" });
+  //
+  //       // Присоединяем к его дочерним чатам
+  //       if (createdSpace.public_chat_id) {
+  //         // @ts-ignore
+  //         await dataProvider.joinRoom(createdSpace.public_chat_id, delegatedUserId);
+  //         notify(`Пользователь присоединен к чату "${spaceNode.name} - Общий".`, { type: "info" });
+  //       }
+  //       if (createdSpace.private_chat_id) {
+  //         // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+  //         // Для приватного чата сначала НУЖНО пригласить, потом присоединить
+  //         // @ts-ignore
+  //         await dataProvider.inviteUser(createdSpace.private_chat_id, delegatedUserId, adminCreatorId);
+  //         // @ts-ignore
+  //         await dataProvider.joinRoom(createdSpace.private_chat_id, delegatedUserId);
+  //         notify(`Пользователь присоединен к чату "${spaceNode.name} - Приватный".`, { type: "info" });
+  //         // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+  //       }
+  //     }
+  //
+  //     if (parentId) {
+  //       // @ts-ignore
+  //       await dataProvider.sendStateEvent(
+  //         parentId,
+  //         "m.space.child",
+  //         createdSpace.id,
+  //         {
+  //           via: [localStorage.getItem("home_server")],
+  //           suggested: true,
+  //         },
+  //         adminCreatorId
+  //       );
+  //       notify(`"${spaceNode.name}" привязано к родительскому пространству.`, { type: "info" });
+  //     }
+  //
+  //     if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
+  //       for (const childNode of spaceNode.subspaces) {
+  //         await createAndSetupRecursive(childNode, createdSpace.id, preset);
+  //       }
+  //     }
+  //
+  //     return createdSpace.id;
+  //   };
+  //
+  //   try {
+  //     // --- ЗАПУСК ПРОЦЕССА для главного пространства ---
+  //     const mainSpacePayload = {
+  //       ...mainSpaceData,
+  //       creation_content: { type: "m.space" },
+  //       meta: { impersonate: adminCreatorId },
+  //     };
+  //     const { data: parentSpace } = await dataProvider.create("rooms", { data: mainSpacePayload });
+  //     notify(`Главное пространство "${mainSpaceData.name}" создано`, { type: "info" });
+  //
+  //     if (delegatedUserId !== adminCreatorId) {
+  //       // Присоединяем к самому главному пространству
+  //       // @ts-ignore
+  //       await dataProvider.inviteUser(parentSpace.id, delegatedUserId, adminCreatorId);
+  //       // @ts-ignore
+  //       await dataProvider.joinRoom(parentSpace.id, delegatedUserId);
+  //       // @ts-ignore
+  //       await dataProvider.makeRoomAdmin(parentSpace.id, delegatedUserId, adminCreatorId);
+  //       notify(`Права на главное пространство делегированы.`, { type: "info" });
+  //
+  //       // Присоединяем к его дочерним чатам
+  //       if (parentSpace.public_chat_id) {
+  //         // @ts-ignore
+  //         await dataProvider.joinRoom(parentSpace.public_chat_id, delegatedUserId);
+  //         notify(`Пользователь присоединен к главному чату "Общий".`, { type: "info" });
+  //       }
+  //       if (parentSpace.private_chat_id) {
+  //         // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+  //         // @ts-ignore
+  //         await dataProvider.inviteUser(parentSpace.private_chat_id, delegatedUserId, adminCreatorId);
+  //         // @ts-ignore
+  //         await dataProvider.joinRoom(parentSpace.private_chat_id, delegatedUserId);
+  //         notify(`Пользователь присоединен к главному чату "Приватный".`, { type: "info" });
+  //         // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+  //       }
+  //     }
+  //
+  //     // Запускаем рекурсию для подпространств
+  //     if (subspaces && subspaces.length > 0) {
+  //       for (const topLevelSubspace of subspaces) {
+  //         await createAndSetupRecursive(topLevelSubspace, parentSpace.id, mainSpaceData.preset);
+  //       }
+  //     }
+  //
+  //     notify("Вся структура успешно создана!", { type: "success" });
+  //     redirect("/rooms");
+  //   } catch (error: any) {
+  //     notify(`Критическая ошибка: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
+  //   } finally {
+  //     setIsSaving(false);
+  //   }
+  // };
+
+  // ./resources/rooms.tsx -> внутри компонента RoomCreate
+
+  // const handleSave = async (values: any) => {
+  //   setIsSaving(true);
+  //   const adminCreatorId = currentAdminId;
+  //   const delegatedUserId = values.creator_id || adminCreatorId;
+  //
+  //   const { subspaces, ...mainSpaceData } = values;
+  //
+  //   // --- Вспомогательная функция для делегирования прав ---
+  //   const delegatePermissions = async (roomId: string, roomName: string) => {
+  //     if (delegatedUserId !== adminCreatorId) {
+  //       try {
+  //         // @ts-ignore
+  //         await dataProvider.inviteUser(roomId, delegatedUserId, adminCreatorId);
+  //         // @ts-ignore
+  //         await dataProvider.joinRoom(roomId, delegatedUserId);
+  //         // @ts-ignore
+  //         await dataProvider.makeRoomAdmin(roomId, delegatedUserId, adminCreatorId);
+  //         notify(`Права на "${roomName}" делегированы пользователю ${delegatedUserId}.`, { type: "info" });
+  //       } catch (e: any) {
+  //         notify(`Не удалось делегировать права на "${roomName}": ${e.message}`, { type: "warning" });
+  //       }
+  //     }
+  //   };
+  //
+  //   // --- Рекурсивная функция создания ---
+  //   const createAndSetupRecursive = async (spaceNode: any, parentId: string | null, preset: string) => {
+  //     if (!spaceNode.name) return null;
+  //
+  //     const payload = {
+  //       name: spaceNode.name,
+  //       preset: preset,
+  //       creation_content: { type: "m.space" },
+  //       meta: { impersonate: adminCreatorId },
+  //     };
+  //
+  //     // `createdSpace` будет содержать ID самого пространства и его дочерних чатов
+  //     const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
+  //     notify(`Пространство "${spaceNode.name}" создано.`, { type: "info" });
+  //
+  //     // Делегируем права на само пространство
+  //     await delegatePermissions(createdSpace.id, createdSpace.name);
+  //
+  //     // Делегируем права на автоматически созданные чаты
+  //     if (createdSpace.public_chat_id) {
+  //       await delegatePermissions(createdSpace.public_chat_id, `${createdSpace.name} - Общий`);
+  //     }
+  //     if (createdSpace.private_chat_id) {
+  //       await delegatePermissions(createdSpace.private_chat_id, `${createdSpace.name} - Приватный`);
+  //     }
+  //
+  //     // Привязываем к родителю
+  //     if (parentId) {
+  //       // @ts-ignore
+  //       await dataProvider.sendStateEvent(
+  //         parentId,
+  //         "m.space.child",
+  //         createdSpace.id,
+  //         {
+  //           via: [localStorage.getItem("home_server")],
+  //           suggested: true,
+  //         },
+  //         adminCreatorId
+  //       );
+  //     }
+  //
+  //     // Рекурсия для дочерних пространств
+  //     if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
+  //       for (const childNode of spaceNode.subspaces) {
+  //         await createAndSetupRecursive(childNode, createdSpace.id, preset);
+  //       }
+  //     }
+  //     return createdSpace.id;
+  //   };
+  //
+  //   try {
+  //     // Запускаем процесс с главного пространства
+  //     await createAndSetupRecursive({ ...mainSpaceData, subspaces: subspaces }, null, mainSpaceData.preset);
+  //
+  //     notify("Вся структура пространств успешно создана!", { type: "success" });
+  //     redirect("/rooms");
+  //   } catch (error: any) {
+  //     notify(`Критическая ошибка при создании: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
+  //   } finally {
+  //     setIsSaving(false);
+  //   }
+  // };
+
   const handleSave = async (values: any) => {
     setIsSaving(true);
     const adminCreatorId = currentAdminId;
     const delegatedUserId = values.creator_id || adminCreatorId;
-
     const { subspaces, ...mainSpaceData } = values;
 
-    // Рекурсивная функция для полного цикла создания и настройки
+    // --- Вспомогательная функция для делегирования прав ---
+    const delegatePermissions = async (roomId: string, roomName: string) => {
+      if (delegatedUserId !== adminCreatorId) {
+        try {
+          // @ts-ignore
+          await dataProvider.inviteUser(roomId, delegatedUserId, adminCreatorId);
+          // @ts-ignore
+          await dataProvider.joinRoom(roomId, delegatedUserId);
+          // @ts-ignore
+          await dataProvider.makeRoomAdmin(roomId, delegatedUserId, adminCreatorId);
+          notify(`Права на "${roomName}" делегированы.`, { type: "info" });
+        } catch (e: any) {
+          notify(`Не удалось делегировать права на "${roomName}": ${e.message}`, { type: "warning" });
+        }
+      }
+    };
+
+    // --- Рекурсивная функция создания ---
     const createAndSetupRecursive = async (spaceNode: any, parentId: string | null, preset: string) => {
       if (!spaceNode.name) return null;
 
+      // 1. Админ создает пространство
       const payload = {
         name: spaceNode.name,
         preset: preset,
@@ -425,36 +656,25 @@ export const RoomCreate = (props: any) => {
         meta: { impersonate: adminCreatorId },
       };
       const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
-      notify(`Пространство "${spaceNode.name}" создано`, { type: "info" });
+      notify(`Пространство "${spaceNode.name}" создано.`, { type: "info" });
 
-      if (delegatedUserId !== adminCreatorId) {
-        // Присоединяем и делаем админом в самом пространстве
-        // @ts-ignore
-        await dataProvider.inviteUser(createdSpace.id, delegatedUserId, adminCreatorId);
-        // @ts-ignore
-        await dataProvider.joinRoom(createdSpace.id, delegatedUserId);
-        // @ts-ignore
-        await dataProvider.makeRoomAdmin(createdSpace.id, delegatedUserId, adminCreatorId);
-        notify(`Права на пространство "${spaceNode.name}" делегированы.`, { type: "info" });
+      // 2. Делегируем права на само пространство
+      await delegatePermissions(createdSpace.id, createdSpace.name);
 
-        // Присоединяем к его дочерним чатам
-        if (createdSpace.public_chat_id) {
-          // @ts-ignore
-          await dataProvider.joinRoom(createdSpace.public_chat_id, delegatedUserId);
-          notify(`Пользователь присоединен к чату "${spaceNode.name} - Общий".`, { type: "info" });
+      // --- КЛЮЧЕВОЙ БЛОК: Получаем дочерние чаты и делегируем права на них ---
+      try {
+        // @ts-ignore
+        const childRoomIds = await dataProvider.getRoomChildren(createdSpace.id);
+        for (const childId of childRoomIds) {
+          // Мы не знаем имя чата, поэтому используем его ID в уведомлении
+          await delegatePermissions(childId, `чат ${childId}`);
         }
-        if (createdSpace.private_chat_id) {
-          // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
-          // Для приватного чата сначала НУЖНО пригласить, потом присоединить
-          // @ts-ignore
-          await dataProvider.inviteUser(createdSpace.private_chat_id, delegatedUserId, adminCreatorId);
-          // @ts-ignore
-          await dataProvider.joinRoom(createdSpace.private_chat_id, delegatedUserId);
-          notify(`Пользователь присоединен к чату "${spaceNode.name} - Приватный".`, { type: "info" });
-          // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
-        }
+      } catch (e) {
+        notify(`Не удалось получить или обработать дочерние чаты для "${spaceNode.name}"`, { type: "error" });
       }
+      // --- КОНЕЦ КЛЮЧЕВОГО БЛОКА ---
 
+      // Привязываем к родителю
       if (parentId) {
         // @ts-ignore
         await dataProvider.sendStateEvent(
@@ -467,66 +687,25 @@ export const RoomCreate = (props: any) => {
           },
           adminCreatorId
         );
-        notify(`"${spaceNode.name}" привязано к родительскому пространству.`, { type: "info" });
       }
 
+      // Рекурсия для дочерних пространств
       if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
         for (const childNode of spaceNode.subspaces) {
           await createAndSetupRecursive(childNode, createdSpace.id, preset);
         }
       }
-
       return createdSpace.id;
     };
 
     try {
-      // --- ЗАПУСК ПРОЦЕССА для главного пространства ---
-      const mainSpacePayload = {
-        ...mainSpaceData,
-        creation_content: { type: "m.space" },
-        meta: { impersonate: adminCreatorId },
-      };
-      const { data: parentSpace } = await dataProvider.create("rooms", { data: mainSpacePayload });
-      notify(`Главное пространство "${mainSpaceData.name}" создано`, { type: "info" });
-
-      if (delegatedUserId !== adminCreatorId) {
-        // Присоединяем к самому главному пространству
-        // @ts-ignore
-        await dataProvider.inviteUser(parentSpace.id, delegatedUserId, adminCreatorId);
-        // @ts-ignore
-        await dataProvider.joinRoom(parentSpace.id, delegatedUserId);
-        // @ts-ignore
-        await dataProvider.makeRoomAdmin(parentSpace.id, delegatedUserId, adminCreatorId);
-        notify(`Права на главное пространство делегированы.`, { type: "info" });
-
-        // Присоединяем к его дочерним чатам
-        if (parentSpace.public_chat_id) {
-          // @ts-ignore
-          await dataProvider.joinRoom(parentSpace.public_chat_id, delegatedUserId);
-          notify(`Пользователь присоединен к главному чату "Общий".`, { type: "info" });
-        }
-        if (parentSpace.private_chat_id) {
-          // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
-          // @ts-ignore
-          await dataProvider.inviteUser(parentSpace.private_chat_id, delegatedUserId, adminCreatorId);
-          // @ts-ignore
-          await dataProvider.joinRoom(parentSpace.private_chat_id, delegatedUserId);
-          notify(`Пользователь присоединен к главному чату "Приватный".`, { type: "info" });
-          // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
-        }
-      }
-
-      // Запускаем рекурсию для подпространств
-      if (subspaces && subspaces.length > 0) {
-        for (const topLevelSubspace of subspaces) {
-          await createAndSetupRecursive(topLevelSubspace, parentSpace.id, mainSpaceData.preset);
-        }
-      }
+      // Запускаем процесс с главного пространства.
+      await createAndSetupRecursive({ ...mainSpaceData, subspaces: subspaces }, null, mainSpaceData.preset);
 
       notify("Вся структура успешно создана!", { type: "success" });
       redirect("/rooms");
     } catch (error: any) {
-      notify(`Критическая ошибка: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
+      notify(`Критическая ошибка при создании: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
     } finally {
       setIsSaving(false);
     }
