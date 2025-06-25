@@ -407,89 +407,42 @@ export const RoomCreate = (props: any) => {
     sort: { field: "name", order: "ASC" },
   });
 
-  // const handleSave = async (values: any) => {
-  //   setIsSaving(true);
-  //   const creatorId = values.creator_id || currentAdminId;
-  //
-  //   // Отделяем данные для подпространств от данных для главного пространства
-  //   const { subspaces, ...mainSpaceData } = values;
-  //
-  //   const mainSpacePayload = {
-  //     ...mainSpaceData,
-  //     creation_content: { type: "m.space" },
-  //     meta: { impersonate: creatorId },
-  //   };
-  //
-  //   try {
-  //     const { data: parentSpace } = await dataProvider.create("rooms", { data: mainSpacePayload });
-  //     notify("Главное пространство создано", { type: "info" });
-  //
-  //     if (subspaces && subspaces.length > 0) {
-  //       for (const subspace of subspaces) {
-  //         if (!subspace.name) continue;
-  //
-  //         const subspacePayload = {
-  //           name: subspace.name,
-  //           preset: mainSpaceData.preset,
-  //           creation_content: { type: "m.space" },
-  //           meta: { impersonate: creatorId },
-  //         };
-  //         const { data: childSpace } = await dataProvider.create("rooms", { data: subspacePayload });
-  //
-  //         // @ts-ignore
-  //         await dataProvider.sendStateEvent(
-  //           parentSpace.id,
-  //           "m.space.child",
-  //           childSpace.id,
-  //           {
-  //             via: [localStorage.getItem("home_server")],
-  //             suggested: true,
-  //           },
-  //           creatorId
-  //         );
-  //
-  //         notify(`Подпространство "${subspace.name}" создано и привязано`, { type: "info" });
-  //       }
-  //     }
-  //
-  //     notify("Создание пространства и подпространств успешно завершено!", { type: "success" });
-  //     redirect("/rooms");
-  //   } catch (error: any) {
-  //     notify(`Ошибка: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
-  //   } finally {
-  //     setIsSaving(false);
-  //   }
-  // };
   const handleSave = async (values: any) => {
     setIsSaving(true);
-    const adminCreatorId = localStorage.getItem("user_id");
+    const adminCreatorId = currentAdminId;
     const delegatedUserId = values.creator_id || adminCreatorId;
+
     const { subspaces, ...mainSpaceData } = values;
 
+    // Рекурсивная функция для создания и делегирования
     const createAndDelegateRecursive = async (spaceNode: any, parentId: string | null, preset: string) => {
-      if (!spaceNode.name || spaceNode.name.trim() === "") return null;
+      if (!spaceNode.name) return;
 
       // 1. Создаем пространство
       const payload = {
         name: spaceNode.name,
-        preset,
+        preset: preset,
         creation_content: { type: "m.space" },
         meta: { impersonate: adminCreatorId },
       };
       const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
       notify(`Пространство "${spaceNode.name}" создано`, { type: "info" });
 
-      // 2. Делегируем права и присоединяем пользователя
+      // 2. Делегируем права, если нужно
       if (delegatedUserId !== adminCreatorId) {
-        await (dataProvider as any).makeRoomAdmin(createdSpace.id, delegatedUserId, adminCreatorId);
-        await (dataProvider as any).inviteUser(createdSpace.id, delegatedUserId, adminCreatorId);
-        await (dataProvider as any).joinRoom(createdSpace.id, delegatedUserId);
+        // @ts-ignore
+        await dataProvider.makeRoomAdmin(createdSpace.id, delegatedUserId, adminCreatorId);
+        // @ts-ignore
+        await dataProvider.inviteUser(createdSpace.id, delegatedUserId, adminCreatorId);
+        // @ts-ignore
+        await dataProvider.joinRoom(createdSpace.id, delegatedUserId);
         notify(`Права на "${spaceNode.name}" делегированы и пользователь присоединен`, { type: "info" });
       }
 
       // 3. Привязываем к родителю
       if (parentId) {
-        await (dataProvider as any).sendStateEvent(
+        // @ts-ignore
+        await dataProvider.sendStateEvent(
           parentId,
           "m.space.child",
           createdSpace.id,
@@ -502,11 +455,9 @@ export const RoomCreate = (props: any) => {
         notify(`"${spaceNode.name}" привязано к родительскому пространству`, { type: "info" });
       }
 
-      // 4. Рекурсивно вызываем для дочерних элементов
+      // 4. Рекурсия для дочерних
       if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
         for (const childNode of spaceNode.subspaces) {
-          // --- ДОБАВЛЕНА ПАУЗА ВНУТРИ РЕКУРСИИ ---
-          await sleep(500); // Пауза в 500 мс
           await createAndDelegateRecursive(childNode, createdSpace.id, preset);
         }
       }
@@ -515,7 +466,7 @@ export const RoomCreate = (props: any) => {
     };
 
     try {
-      // --- ЗАПУСК ПРОЦЕССА ---
+      // Запускаем процесс с главного пространства
       const mainSpacePayload = {
         ...mainSpaceData,
         creation_content: { type: "m.space" },
@@ -524,22 +475,25 @@ export const RoomCreate = (props: any) => {
       const { data: parentSpace } = await dataProvider.create("rooms", { data: mainSpacePayload });
       notify("Главное пространство создано", { type: "info" });
 
+      // Делегируем права на главное пространство
       if (delegatedUserId !== adminCreatorId) {
-        await (dataProvider as any).makeRoomAdmin(parentSpace.id, delegatedUserId, adminCreatorId);
-        await (dataProvider as any).inviteUser(parentSpace.id, delegatedUserId, adminCreatorId);
-        await (dataProvider as any).joinRoom(parentSpace.id, delegatedUserId);
+        // @ts-ignore
+        await dataProvider.makeRoomAdmin(parentSpace.id, delegatedUserId, adminCreatorId);
+        // @ts-ignore
+        await dataProvider.inviteUser(parentSpace.id, delegatedUserId, adminCreatorId);
+        // @ts-ignore
+        await dataProvider.joinRoom(parentSpace.id, delegatedUserId);
         notify(`Права на главное пространство делегированы и пользователь присоединен`, { type: "info" });
       }
 
+      // Запускаем рекурсию для подпространств
       if (subspaces && subspaces.length > 0) {
         for (const topLevelSubspace of subspaces) {
-          // --- ДОБАВЛЕНА ПАУЗА В ГЛАВНОМ ЦИКЛЕ ---
-          await sleep(500); // Пауза в 500 мс
           await createAndDelegateRecursive(topLevelSubspace, parentSpace.id, mainSpaceData.preset);
         }
       }
 
-      notify("Вся структура пространств успешно создана!", { type: "success" });
+      notify("Вся структура пространств успешно создана и делегирована!", { type: "success" });
       redirect("/rooms");
     } catch (error: any) {
       notify(`Ошибка: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
@@ -552,17 +506,13 @@ export const RoomCreate = (props: any) => {
   if (error) return <p>Ошибка загрузки пользователей: {error.message}</p>;
 
   return (
-    // Мы передаем isSaving в Create, чтобы кнопка "Сохранить" была неактивна во время процесса
     <Create
       {...props}
       title="resources.rooms.action.create_room_title"
       mutationOptions={{
-        onSuccess: () => {
-          /* Пусто, т.к. мы обрабатываем все сами в handleSave */
-        },
+        onSuccess: () => {},
       }}
     >
-      {/* Передаем нашу кастомную функцию сохранения и isSaving */}
       <SimpleForm onSubmit={handleSave} saving={isSaving}>
         <AutocompleteInput
           source="creator_id"
@@ -588,12 +538,9 @@ export const RoomCreate = (props: any) => {
           defaultValue="private_chat"
           validate={required()}
         />
-        {/*<ArrayInput source="subspaces" label="resources.rooms.fields.subspaces.label">*/}
-        {/*  <SimpleFormIterator>*/}
-        {/*    <TextInput source="name" label="resources.rooms.fields.subspaces.name" helperText={false} />*/}
-        {/*  </SimpleFormIterator>*/}
-        {/*</ArrayInput>*/}
-        <SubspaceTreeInput source={"subspaces"} />
+
+        {/* Используем наш новый кастомный компонент */}
+        <SubspaceTreeInput source="subspaces" />
       </SimpleForm>
     </Create>
   );
