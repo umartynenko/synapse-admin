@@ -31,20 +31,6 @@ const jsonClient = async (url: string, options: Options = {}) => {
     };
   }
 
-  // // Проверяем, есть ли в опциях meta.impersonate
-  // if (options.body) {
-  //   const body = JSON.parse(options.body as string);
-  //   if (body.meta?.impersonate) {
-  //     // Добавляем параметр _user_id к URL для олицетворения
-  //     const impersonateId = encodeURIComponent(body.meta.impersonate);
-  //     url += (url.includes("?") ? "&" : "?") + `_user_id=${impersonateId}`;
-  //
-  //     // Удаляем meta из тела запроса, чтобы не отправлять его на сервер
-  //     delete body.meta;
-  //     options.body = JSON.stringify(body);
-  //   }
-  // }
-
   try {
     const response = await fetchUtils.fetchJson(url, options);
     return response;
@@ -362,7 +348,6 @@ export interface SynapseDataProvider extends DataProvider {
   setRateLimits: (id: Identifier, rateLimits: RateLimitsModel) => Promise<void>;
   getAccountData: (id: Identifier) => Promise<AccountDataModel>;
   checkUsernameAvailability: (username: string) => Promise<UsernameAvailabilityResult>;
-  makeRoomAdmin: (room_id: string, user_id: string) => Promise<{ success: boolean; error?: string; errcode?: string }>;
   getServerRunningProcess: (etkeAdminUrl: string) => Promise<ServerProcessResponse>;
   getServerStatus: (etkeAdminUrl: string) => Promise<ServerStatusResponse>;
   getServerNotifications: (etkeAdminUrl: string) => Promise<ServerNotificationsResponse>;
@@ -376,6 +361,10 @@ export interface SynapseDataProvider extends DataProvider {
   createRecurringCommand: (etkeAdminUrl: string, command: Partial<RecurringCommand>) => Promise<RecurringCommand>;
   updateRecurringCommand: (etkeAdminUrl: string, command: RecurringCommand) => Promise<RecurringCommand>;
   deleteRecurringCommand: (etkeAdminUrl: string, id: string) => Promise<{ success: boolean }>;
+  makeRoomAdmin: (roomId: string, userId: string, impersonateId?: string) => Promise<any>; // Обновим его, чтобы принимал impersonateId
+  inviteUser: (roomId: string, userId: string, impersonateId?: string) => Promise<any>; // <-- Добавьте
+  joinRoom: (roomId: string, impersonateId: string) => Promise<any>; // <-- Добавьте
+  getRoomChildren: (roomId: string) => Promise<string[]>;
   sendStateEvent: (
     roomId: string,
     eventType: string,
@@ -678,6 +667,28 @@ function getSearchOrder(order: "ASC" | "DESC") {
 }
 
 const baseDataProvider: SynapseDataProvider = {
+  /**
+   * Получает список дочерних комнат для данного пространства.
+   * @param roomId - ID пространства.
+   * @returns - Массив ID дочерних комнат.
+   */
+  getRoomChildren: async roomId => {
+    const base_url = localStorage.getItem("base_url");
+    const endpoint_url = `${base_url}/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}/state`;
+
+    try {
+      const { json } = await jsonClient(endpoint_url);
+      const children = json.state
+        .filter(event => event.type === "m.space.child" && event.state_key)
+        .map(event => event.state_key);
+      console.log(`Найдены дочерние комнаты для ${roomId}:`, children);
+      return children;
+    } catch (error) {
+      console.error(`Ошибка при получении дочерних комнат для ${roomId}:`, error);
+      return [];
+    }
+  },
+
   getList: async (resource, params) => {
     console.log("getList " + resource);
     const { user_id, name, guests, deactivated, locked, suspended, search_term, destination, valid } = params.filter;
@@ -836,23 +847,6 @@ const baseDataProvider: SynapseDataProvider = {
     return { data: responses.map(({ json }) => json) };
   },
 
-  // create: async (resource, params) => {
-  //   console.log("create " + resource);
-  //   const homeserver = localStorage.getItem("base_url");
-  //   if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
-  //
-  //   const res = resourceMap[resource];
-  //   if (!("create" in res)) return Promise.reject();
-  //
-  //   const create = res.create(params.data);
-  //   const endpoint_url = homeserver + create.endpoint;
-  //   const { json } = await jsonClient(endpoint_url, {
-  //     method: create.method,
-  //     body: JSON.stringify(create.body, filterNullValues),
-  //   });
-  //   return { data: res.map(json) };
-  // },
-
   create: async (resource, params) => {
     console.log("create " + resource, params);
     const homeserver = localStorage.getItem("base_url");
@@ -861,38 +855,63 @@ const baseDataProvider: SynapseDataProvider = {
     const res = resourceMap[resource];
     if (!("create" in res)) return Promise.reject();
 
-    // --- НАЧАЛО ФИНАЛЬНОГО ИСПРАВЛЕНИЯ ---
+    const { meta, ...dataForBody } = params.data;
 
-    // 1. Извлекаем ID для олицетворения и остальные данные
-    const { creator_id, ...dataForBody } = params.data;
-
-    // 2. Получаем конфигурацию для создания ресурса
     const createConfig = res.create(dataForBody);
 
     let endpoint_url = homeserver + createConfig.endpoint;
 
-    // 3. Если creator_id передан, используем его для олицетворения
-    if (creator_id) {
-      const impersonateId = encodeURIComponent(creator_id);
+    // Используем meta для олицетворения, а не creator_id
+    if (meta?.impersonate) {
+      const impersonateId = encodeURIComponent(meta.impersonate);
       endpoint_url += (endpoint_url.includes("?") ? "&" : "?") + `_user_id=${impersonateId}`;
       console.log(`Impersonating user: ${impersonateId}. New URL: ${endpoint_url}`);
     } else {
-      // Если creator_id не выбран, выполняем действие от имени текущего админа
-      console.log("No creator_id provided, performing action as current admin.");
+      console.log("No impersonation, performing action as current admin.");
     }
 
-    // 4. Отправляем запрос с правильным URL и телом
     const { json } = await jsonClient(endpoint_url, {
       method: createConfig.method,
-      // В теле запроса теперь только чистые данные комнаты
       body: JSON.stringify(createConfig.body, filterNullValues),
     });
 
-    // --- КОНЕЦ ФИНАЛЬНОГО ИСПРАВЛЕНИЯ ---
-
+    // ==============================================================================
+    // Author: Uriy Martynenko
+    // Date: 26.05.20025
+    //
+    // --- ЛОГИКА ---
+    // 1. Этот блок срабатывает только при создании ресурса 'rooms'.
+    // 2. Он проверяет поле `room_alias` в ответе от сервера.
+    // 3. Если `room_alias` содержит нашу специальную строку (с разделителем '|'),
+    //    он "распаковывает" ее, извлекая ID автоматически созданных дочерних чатов.
+    // 4. Он обогащает возвращаемый объект `data`, добавляя в него поля
+    //    `public_chat_id` и `private_chat_id`.
+    // 5. Это позволяет компоненту `RoomCreate` на фронтенде получить ID чатов
+    //    и выполнить для них дальнейшие действия (например, делегирование прав).
+    // ==============================================================================
     if (resource === "rooms" && json.room_id) {
+      let child_rooms = {};
+
+      // json.room_alias теперь может содержать нашу кастомную строку
+      if (json.room_alias) {
+        const parts = json.room_alias.split("|");
+        if (parts.length === 3) {
+          // Наш формат: "alias|public_chat_id|private_chat_id"
+          json.room_alias = parts[0]; // Восстанавливаем настоящий alias
+          child_rooms = {
+            public_chat_id: parts[1],
+            private_chat_id: parts[2],
+          };
+          console.log("Успешно извлечены ID дочерних чатов:", child_rooms);
+        }
+      }
+
       return {
-        data: { id: json.room_id, ...dataForBody },
+        data: {
+          id: json.room_id,
+          ...dataForBody,
+          ...child_rooms, // Добавляем ID чатов в возвращаемый объект
+        },
       };
     }
 
@@ -1088,12 +1107,31 @@ const baseDataProvider: SynapseDataProvider = {
       throw error;
     }
   },
-  makeRoomAdmin: async (room_id: string, user_id: string) => {
-    const base_url = localStorage.getItem("base_url");
+  // makeRoomAdmin: async (room_id: string, user_id: string) => {
+  //   const base_url = localStorage.getItem("base_url");
+  //
+  //   const endpoint_url = `${base_url}/_synapse/admin/v1/rooms/${encodeURIComponent(room_id)}/make_room_admin`;
+  //   try {
+  //     const { json } = await jsonClient(endpoint_url, { method: "POST", body: JSON.stringify({ user_id }) });
+  //     return { success: true };
+  //   } catch (error) {
+  //     if (error instanceof HttpError) {
+  //       return { success: false, error: error.body.error, errcode: error.body.errcode };
+  //     }
+  //     throw error;
+  //   }
+  // },
 
-    const endpoint_url = `${base_url}/_synapse/admin/v1/rooms/${encodeURIComponent(room_id)}/make_room_admin`;
+  makeRoomAdmin: async (roomId, userId, impersonateId) => {
+    const base_url = localStorage.getItem("base_url");
+    let endpoint_url = `${base_url}/_synapse/admin/v1/rooms/${encodeURIComponent(roomId)}/make_room_admin`;
+
+    if (impersonateId) {
+      endpoint_url += `?_user_id=${encodeURIComponent(impersonateId)}`;
+    }
+
     try {
-      const { json } = await jsonClient(endpoint_url, { method: "POST", body: JSON.stringify({ user_id }) });
+      const { json } = await jsonClient(endpoint_url, { method: "POST", body: JSON.stringify({ user_id: userId }) });
       return { success: true };
     } catch (error) {
       if (error instanceof HttpError) {
@@ -1102,6 +1140,58 @@ const baseDataProvider: SynapseDataProvider = {
       throw error;
     }
   },
+
+  /**
+   * Приглашает пользователя в комнату.
+   * @param roomId - ID комнаты.
+   * @param userId - ID пользователя для приглашения.
+   * @param impersonateId - ID администратора, от имени которого отправляется приглашение.
+   */
+  inviteUser: async (roomId, userId, impersonateId) => {
+    const base_url = localStorage.getItem("base_url");
+    let endpoint_url = `${base_url}/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite`;
+
+    if (impersonateId) {
+      endpoint_url += `?_user_id=${encodeURIComponent(impersonateId)}`;
+    }
+
+    return jsonClient(endpoint_url, {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId }),
+    });
+  },
+
+  // ==============================================================================
+  // КАСТОМНЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С КОМНАТАМИ
+  // Author: Uriy Martynenko
+  // Date: 26.05.2025
+  // ==============================================================================
+
+  /**
+   * Принудительно присоединяет пользователя к комнате, используя Admin API.
+   * Работает даже для приватных комнат без предварительного приглашения.
+   * @param roomId - ID комнаты для присоединения.
+   * @param userIdToJoin - ID пользователя, которого нужно присоединить.
+   * @param adminImpersonatingId - ID администратора, от имени которого выполняется действие.
+   */
+  joinRoom: async (roomId, userIdToJoin, adminImpersonatingId) => {
+    const base_url = localStorage.getItem("base_url");
+
+    // Используем административный API для принудительного присоединения
+    let endpoint_url = `${base_url}/_synapse/admin/v1/join/${encodeURIComponent(roomId)}`;
+
+    // Этот запрос должен выполняться от имени администратора,
+    // поэтому мы используем `adminImpersonatingId` для олицетворения.
+    if (adminImpersonatingId) {
+      endpoint_url += `?_user_id=${encodeURIComponent(adminImpersonatingId)}`;
+    }
+
+    return jsonClient(endpoint_url, {
+      method: "POST",
+      body: JSON.stringify({ user_id: userIdToJoin }), // В теле указываем, КОГО присоединить
+    });
+  },
+
   getServerRunningProcess: async (etkeAdminUrl: string, burstCache = false): Promise<ServerProcessResponse> => {
     const locked_at = "";
     const command = "";
