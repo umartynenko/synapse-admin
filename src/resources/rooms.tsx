@@ -552,7 +552,8 @@ export const RoomCreate = (props: any) => {
         />
 
         {/* Используем наш новый кастомный компонент */}
-        <SubspaceTreeInput source="subspaces" />
+        {/*<SubspaceTreeInput source="subspaces" />*/}
+        <SubspaceTreeInput source="subspaces" fullWidth />
       </SimpleForm>
     </Create>
   );
