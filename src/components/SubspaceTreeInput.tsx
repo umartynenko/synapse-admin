@@ -147,19 +147,21 @@ const SubspaceNode = ({ name, control, remove, level = 0 }) => {
         border: "1px solid #ddd",
         borderRadius: "4px",
         position: "relative",
+        width: `calc(100% - ${level * 20}px)`,
+        boxSizing: "border-box",
       }}
     >
-      <Box display="flex" alignItems="center" gap={2}>
+      <Box display="flex" alignItems="center" gap={2} width="100%">
         <TextInput
           source={`${name}.name`}
-          // Используем translate для получения текста
           label={translate(
             level === 0 ? "resources.rooms.fields.subspaces.name" : "resources.rooms.fields.subspaces.nested_name"
           )}
           helperText={false}
-          fullWidth
+          fullWidth // <-- ИЗМЕНЕНИЕ: Самое важное для TextInput!
         />
-        <IconButton onClick={() => remove()} size="small" sx={{ alignSelf: "center" }}>
+        {/* IconButton не должен растягиваться, flexbox справится */}
+        <IconButton onClick={() => remove()} size="small">
           <DeleteIcon />
         </IconButton>
       </Box>
@@ -186,7 +188,7 @@ const SubspaceNode = ({ name, control, remove, level = 0 }) => {
 };
 
 // Основной компонент-обертка
-export const SubspaceTreeInput = ({ source }) => {
+export const SubspaceTreeInput = ({ source, fullWidth }) => {
   const { control } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
@@ -194,18 +196,19 @@ export const SubspaceTreeInput = ({ source }) => {
   });
 
   return (
-    <Labeled label="resources.rooms.fields.subspaces.structure_label">
-      <Box>
+    // <-- ИЗМЕНЕНИЕ: Передаем `fullWidth` в Labeled
+    <Labeled label="resources.rooms.fields.subspaces.structure_label" fullWidth={fullWidth}>
+      {/* Этот Box будет контейнером для всех узлов верхнего уровня */}
+      <Box sx={{ width: "100%" }}>
         {fields.map((field, index) => (
           <SubspaceNode key={field.id} name={`${source}[${index}]`} control={control} remove={() => remove(index)} />
         ))}
         <Button
-          label="resources.rooms.fields.subspaces.add_top_level" // Используем ключ перевода
+          label="resources.rooms.fields.subspaces.add_top_level"
           onClick={() => append({ name: "", subspaces: [] })}
           sx={{ marginTop: 2 }}
-        >
-          <AddCircleIcon sx={{ mr: 1 }} />
-        </Button>
+          startIcon={<AddCircleIcon />} // <-- ИЗМЕНЕНИЕ: startIcon вместо иконки как дочернего элемента
+        ></Button>
       </Box>
     </Labeled>
   );
