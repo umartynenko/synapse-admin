@@ -285,6 +285,11 @@ const ru: SynapseTranslationMessages = {
         avatar: "Аватар",
         actions: "Действия",
         preset: "Предустановка",
+        room_type: {
+          label: "Тип пространства",
+          department: "Пространство Подразделений",
+          group: "Пространство Группа",
+        },
         alias_localpart: "Псевдоним (локальная часть)",
         subspaces: {
           label: "Подпространства",

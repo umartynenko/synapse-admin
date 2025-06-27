@@ -275,6 +275,11 @@ const en: SynapseTranslationMessages = {
         avatar: "Avatar",
         actions: "Actions",
         preset: "Preset",
+        room_type: {
+          label: "Space Type",
+          department: "Department Space",
+          group: "Group Space",
+        },
         alias_localpart: "Alias (localpart)",
         subspaces: {
           label: "Subspaces",

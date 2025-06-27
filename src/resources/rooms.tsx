@@ -17,6 +17,7 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
 import {
   AutocompleteInput,
   BooleanField,
@@ -385,6 +386,20 @@ const RoomListActions = () => (
   </TopToolbar>
 );
 
+// Создадим отдельный компонент для условного рендеринга, чтобы сделать код чище
+// Этот компонент будет следить за полем 'room_type'
+const ConditionalSubspaceInput = ({ users }) => {
+  // Следим за значением поля 'room_type' в форме
+  const roomType = useWatch({ name: "room_type" });
+
+  // Если тип пространства - 'department' (Подразделение), показываем структуру
+  if (roomType === "department") {
+    return <SubspaceTreeInput source="subspaces" fullWidth users={users} />;
+  }
+
+  return null; // Если тип не 'department', ничего не показываем
+};
+
 export const RoomCreate = (props: any) => {
   const currentAdminId = localStorage.getItem("user_id");
   const dataProvider = useDataProvider();
@@ -458,6 +473,7 @@ export const RoomCreate = (props: any) => {
         creator: nodeCreatorId,
         // ВАЖНО: `meta.impersonate` говорит, что действие выполняет админ
         meta: { impersonate: adminCreatorId },
+        room_type: spaceNode.room_type || values.room_type, // Передаем тип
       };
       const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
 
@@ -538,6 +554,18 @@ export const RoomCreate = (props: any) => {
       }}
     >
       <SimpleForm onSubmit={handleSave} saving={isSaving}>
+        <SelectInput
+          source="room_type"
+          label="resources.rooms.fields.room_type.label"
+          choices={[
+            { id: "department", name: "resources.rooms.fields.room_type.department" },
+            { id: "group", name: "resources.rooms.fields.room_type.group" },
+          ]}
+          defaultValue="department" // По умолчанию предлагаем создавать "Подразделение"
+          validate={required()}
+          fullWidth
+        />
+
         <AutocompleteInput
           source="creator_id"
           label="resources.rooms.fields.creator"
@@ -563,8 +591,10 @@ export const RoomCreate = (props: any) => {
           validate={required()}
         />
 
+        <ConditionalSubspaceInput users={users} />
+
         {/* Используем наш новый кастомный компонент */}
-        <SubspaceTreeInput source="subspaces" fullWidth users={users} />
+        {/*<SubspaceTreeInput source="subspaces" fullWidth users={users} />*/}
       </SimpleForm>
     </Create>
   );
