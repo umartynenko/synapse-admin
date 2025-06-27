@@ -1,4 +1,3 @@
-import AddIcon from "@mui/icons-material/Add";
 import EventIcon from "@mui/icons-material/Event";
 import FastForwardIcon from "@mui/icons-material/FastForward";
 import UserIcon from "@mui/icons-material/Group";
@@ -18,61 +17,58 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-
-import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
 import {
+  AutocompleteInput,
   BooleanField,
-  DateField,
-  WrapperField,
+  Confirm,
+  Create,
+  CreateButton,
   Datagrid,
   DatagridConfigurable,
+  DateField,
+  DeleteButton,
   ExportButton,
   FunctionField,
   List,
   ListProps,
+  Loading,
   NumberField,
   Pagination,
   ReferenceField,
   ReferenceManyField,
+  required,
   ResourceProps,
   SearchInput,
   SelectColumnsButton,
   SelectField,
+  SelectInput,
   Show,
   ShowProps,
+  SimpleForm,
   Tab,
   TabbedShowLayout,
   TextField as RaTextField,
+  TextInput,
   TopToolbar,
-  useRecordContext,
-  useTranslate,
+  useDataProvider,
+  useGetList,
   useListContext,
   useNotify,
-  DeleteButton,
-  CreateButton,
-  Create,
-  SimpleForm,
-  TextInput,
-  SelectInput,
-  required,
-  ReferenceInput,
-  AutocompleteInput,
-  useGetList,
-  Loading,
-  ArrayInput,
-  SimpleFormIterator,
+  useRecordContext,
+  useRedirect,
+  useTranslate,
+  WrapperField,
 } from "react-admin";
-import { useDataProvider, useRedirect } from "react-admin";
-import { Confirm } from "react-admin";
 
 import {
-  RoomDirectoryBulkUnpublishButton,
   RoomDirectoryBulkPublishButton,
-  RoomDirectoryUnpublishButton,
+  RoomDirectoryBulkUnpublishButton,
   RoomDirectoryPublishButton,
+  RoomDirectoryUnpublishButton,
 } from "./room_directory";
 import AvatarField from "../components/AvatarField";
 import DeleteRoomButton from "../components/DeleteRoomButton";
+import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
 import { MediaIDField } from "../components/media";
 import { Room } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
@@ -405,38 +401,30 @@ export const RoomCreate = (props: any) => {
     sort: { field: "name", order: "ASC" },
   });
 
-  /**
-   * Обработчик сохранения формы. Выполняет сложный, многошаговый процесс
-   * создания иерархии пространств и делегирования прав.
-   *
-   * Author: Uriy Martynenko (and AI assistant)
-   * Date: [Можете вставить текущую дату]
-   *
-   * @param values - Данные из формы создания.
-   */
   const handleSave = async (values: any) => {
     setIsSaving(true);
+
     const adminCreatorId = currentAdminId;
-    const delegatedUserId = values.creator_id || adminCreatorId;
+    const mainDelegateUserId = values.creator_id || adminCreatorId;
     const { subspaces, ...mainSpaceData } = values;
 
     /**
-     * Вспомогательная функция для делегирования прав на комнату.
-     * Выполняет последовательность: ПРИСОЕДИНИТЬ -> СДЕЛАТЬ АДМИНОМ.
-     * Использует административные API, поэтому предварительное приглашение не требуется.
-     * @param roomId - ID комнаты/пространства, на которое делегируются права.
-     * @param roomName - Имя комнаты для отображения в уведомлениях.
+     * Вспомогательная функция для делегирования прав на указанную комнату
+     * указанному пользователю. Выполняется от имени админа.
+     * @param roomId - ID комнаты/пространства для делегирования.
+     * @param roomName - Имя комнаты для уведомлений.
+     * @param delegateToUserId - ID пользователя, которому делегируются права.
      */
-    const delegatePermissions = async (roomId: string, roomName: string) => {
-      if (delegatedUserId !== adminCreatorId) {
+    const delegatePermissions = async (roomId: string, roomName: string, delegateToUserId: string) => {
+      // Делегируем права, только если это не сам админ, выполняющий операцию
+      if (delegateToUserId !== adminCreatorId) {
         try {
           // @ts-ignore
-          // Передаем ID комнаты, ID кого присоединить, и ID кто выполняет (админ)
-          await dataProvider.joinRoom(roomId, delegatedUserId, adminCreatorId);
-
+          await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);
           // @ts-ignore
-          await dataProvider.makeRoomAdmin(roomId, delegatedUserId, adminCreatorId);
-          notify(`Права на "${roomName}" делегированы пользователю ${delegatedUserId}.`, { type: "info" });
+          await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId);
+
+          notify(`Права на "${roomName}" делегированы ${delegateToUserId}.`, { type: "info" });
         } catch (e: any) {
           notify(`Не удалось делегировать права на "${roomName}": ${e.message}`, { type: "warning" });
         }
@@ -444,40 +432,54 @@ export const RoomCreate = (props: any) => {
     };
 
     /**
-     * Рекурсивная функция для создания дерева пространств.
-     * @param spaceNode - Узел дерева с данными о пространстве (имя, дочерние узлы).
-     * @param parentId - ID родительского пространства (null для верхнего уровня).
+     * Рекурсивная функция для создания дерева пространств и их полной настройки.
+     * @param spaceNode - Узел дерева с данными о пространстве.
+     * @param parentId - ID родительского пространства.
      * @param preset - Пресет ("private_chat" или "public_chat").
+     * @param inheritedCreatorId - ID создателя, унаследованный от родителя.
      */
-    const createAndSetupRecursive = async (spaceNode: any, parentId: string | null, preset: string) => {
+    const createAndSetupRecursive = async (
+      spaceNode: any,
+      parentId: string | null,
+      preset: string,
+      inheritedCreatorId: string
+    ) => {
       if (!spaceNode.name) return null;
 
-      // Админ создает пространство
+      // Если у узла есть свой `creator_id`, используем его. Иначе - наследуем.
+      const nodeCreatorId = spaceNode.creator_id || inheritedCreatorId;
+
+      // Админ создает пространство. В `creator` указываем фактического владельца.
       const payload = {
         name: spaceNode.name,
         preset: preset,
         creation_content: { type: "m.space" },
+        // ВАЖНО: поле `creator` нужно для корректной записи создателя в Synapse
+        creator: nodeCreatorId,
+        // ВАЖНО: `meta.impersonate` говорит, что действие выполняет админ
         meta: { impersonate: adminCreatorId },
       };
       const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
+
       notify(`Пространство "${spaceNode.name}" создано.`, { type: "info" });
 
-      // Делегируем права на само пространство
-      await delegatePermissions(createdSpace.id, createdSpace.name);
+      // Делегируем права на само пространство его определенному создателю.
+      await delegatePermissions(createdSpace.id, createdSpace.name, nodeCreatorId);
 
-      // --- КЛЮЧЕВОЙ БЛОК: Получаем дочерние чаты и делегируем права на них ---
+      // Получаем дочерние чаты, созданные автоматически на бэкенде.
       try {
         // @ts-ignore
         const childRoomIds = await dataProvider.getRoomChildren(createdSpace.id);
+
         for (const childId of childRoomIds) {
-          await delegatePermissions(childId, `чат для "${spaceNode.name}"`);
+          // Делегируем права на каждый чат тому же создателю.
+          await delegatePermissions(childId, `чат для "${spaceNode.name}"`, nodeCreatorId);
         }
       } catch (e) {
-        notify(`Не удалось получить или обработать дочерние чаты для "${spaceNode.name}"`, { type: "error" });
+        notify(`Не удалось обработать дочерние чаты для "${spaceNode.name}"`, { type: "error" });
       }
-      // --- КОНЕЦ КЛЮЧЕВОГО БЛОКА ---
 
-      // Привязываем к родителю
+      // Привязываем к родителю, если он есть.
       if (parentId) {
         // @ts-ignore
         await dataProvider.sendStateEvent(
@@ -492,20 +494,30 @@ export const RoomCreate = (props: any) => {
         );
       }
 
-      // Рекурсия для дочерних пространств
+      // Рекурсия для дочерних пространств.
       if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
         for (const childNode of spaceNode.subspaces) {
-          await createAndSetupRecursive(childNode, createdSpace.id, preset);
+          // Передаем `nodeCreatorId` как унаследованный для дочерних узлов.
+          await createAndSetupRecursive(childNode, createdSpace.id, preset, nodeCreatorId);
         }
       }
       return createdSpace.id;
     };
 
     try {
-      // Запускаем процесс с главного пространства.
-      await createAndSetupRecursive({ ...mainSpaceData, subspaces: subspaces }, null, mainSpaceData.preset);
+      // Запускаем процесс с главного пространства, передавая главного создателя.
+      await createAndSetupRecursive(
+        {
+          ...mainSpaceData,
+          subspaces: subspaces,
+        },
+        null,
+        mainSpaceData.preset,
+        mainDelegateUserId
+      );
 
       notify("Вся структура успешно создана!", { type: "success" });
+
       redirect("/rooms");
     } catch (error: any) {
       notify(`Критическая ошибка при создании: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
@@ -552,8 +564,7 @@ export const RoomCreate = (props: any) => {
         />
 
         {/* Используем наш новый кастомный компонент */}
-        {/*<SubspaceTreeInput source="subspaces" />*/}
-        <SubspaceTreeInput source="subspaces" fullWidth />
+        <SubspaceTreeInput source="subspaces" fullWidth users={users} />
       </SimpleForm>
     </Create>
   );
