@@ -279,10 +279,12 @@ const en: SynapseTranslationMessages = {
         subspaces: {
           label: "Subspaces",
           name: "Subspace Name",
-          nested_name: "Nested Subspace Name", // <-- New key
+          nested_name: "Nested Subspace Name",
           structure_label: "Subspaces Structure",
           add_top_level: "Add top-level subspace",
-          add_nested: "Add nested subspace", // <-- New key
+          add_nested: "Add nested subspace",
+          creator: "Delegate subspace to user",
+          creator_helper: "If not selected, permissions are inherited from the parent or main form.",
         },
       },
       helper: {

@@ -20,114 +20,18 @@
  * @created 2025-06-24
  */
 
-// import AddCircleIcon from "@mui/icons-material/AddCircle";
-// import DeleteIcon from "@mui/icons-material/Delete";
-// import { Box, IconButton, Paper } from "@mui/material";
-// import React from "react";
-// import { Button, Labeled, TextInput } from "react-admin";
-// import { useFieldArray, useFormContext } from "react-hook-form";
-//
-// // Рекурсивный компонент для отображения одного узла дерева
-// const SubspaceNode = ({ name, control, register, remove, level = 0 }) => {
-//   const {
-//     fields,
-//     append,
-//     remove: removeChild,
-//   } = useFieldArray({
-//     control,
-//     name: `${name}.subspaces`,
-//   });
-//
-//   return (
-//     <Paper
-//       elevation={level > 0 ? 1 : 0}
-//       sx={{
-//         padding: 2,
-//         marginTop: 1,
-//         marginLeft: `${level * 20}px`,
-//         border: "1px solid #ddd",
-//         borderRadius: "4px",
-//         position: "relative",
-//       }}
-//     >
-//       <Box display="flex" alignItems="center" gap={2}>
-//         <TextInput
-//           source={`${name}.name`}
-//           label={level === 0 ? "Название подпространства" : "Название вложенного подпространства"}
-//           helperText={false}
-//           fullWidth
-//         />
-//         <IconButton onClick={() => remove()} size="small" sx={{ alignSelf: "center" }}>
-//           <DeleteIcon />
-//         </IconButton>
-//       </Box>
-//
-//       {fields.map((field, index) => (
-//         <SubspaceNode
-//           key={field.id}
-//           name={`${name}.subspaces[${index}]`}
-//           control={control}
-//           register={register}
-//           remove={() => removeChild(index)}
-//           level={level + 1}
-//         />
-//       ))}
-//
-//       <Button
-//         label="Добавить вложенное пространство"
-//         onClick={() => append({ name: "", subspaces: [] })}
-//         size="small"
-//         startIcon={<AddCircleIcon />}
-//         sx={{ marginTop: 1 }}
-//       />
-//     </Paper>
-//   );
-// };
-//
-// // Основной компонент-обертка
-// export const SubspaceTreeInput = ({ source }) => {
-//   const { control, register } = useFormContext();
-//   const { fields, append, remove } = useFieldArray({
-//     control,
-//     name: source,
-//   });
-//
-//   return (
-//     <Labeled label="Структура подпространств">
-//       <Box>
-//         {fields.map((field, index) => (
-//           <SubspaceNode
-//             key={field.id}
-//             name={`${source}[${index}]`}
-//             control={control}
-//             register={register}
-//             remove={() => remove(index)}
-//           />
-//         ))}
-//         <Button
-//           label="Добавить подпространство верхнего уровня"
-//           onClick={() => append({ name: "", subspaces: [] })}
-//           sx={{ marginTop: 2 }}
-//         >
-//           <AddCircleIcon sx={{ mr: 1 }} />
-//         </Button>
-//       </Box>
-//     </Labeled>
-//   );
-// };
-
-// ./components/SubspaceTreeInput.tsx
-
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Box, Paper, IconButton } from "@mui/material";
 import React from "react";
-import { Button, Labeled, TextInput, useTranslate } from "react-admin";
+// Добавляем AutocompleteInput в импорты
+import { Button, Labeled, TextInput, useTranslate, AutocompleteInput } from "react-admin";
 import { useFieldArray, useFormContext } from "react-hook-form";
 
 // Рекурсивный компонент для отображения одного узла дерева
-const SubspaceNode = ({ name, control, remove, level = 0 }) => {
-  const translate = useTranslate(); // <--- Используем хук
+// Добавляем `users` в пропсы
+const SubspaceNode = ({ name, control, remove, level = 0, users }) => {
+  const translate = useTranslate();
   const {
     fields,
     append,
@@ -158,13 +62,25 @@ const SubspaceNode = ({ name, control, remove, level = 0 }) => {
             level === 0 ? "resources.rooms.fields.subspaces.name" : "resources.rooms.fields.subspaces.nested_name"
           )}
           helperText={false}
-          fullWidth // <-- ИЗМЕНЕНИЕ: Самое важное для TextInput!
+          fullWidth
         />
-        {/* IconButton не должен растягиваться, flexbox справится */}
         <IconButton onClick={() => remove()} size="small">
           <DeleteIcon />
         </IconButton>
       </Box>
+
+      {/* Добавляем AutocompleteInput для выбора создателя подпространства --> */}
+      <AutocompleteInput
+        source={`${name}.creator_id`}
+        label={translate("resources.rooms.fields.subspaces.creator")}
+        choices={users}
+        optionText="id"
+        optionValue="id"
+        filterToQuery={searchText => ({ name: searchText })}
+        helperText={translate("resources.rooms.fields.subspaces.creator_helper")}
+        fullWidth
+        // Это поле не является обязательным
+      />
 
       {fields.map((field, index) => (
         <SubspaceNode
@@ -173,11 +89,12 @@ const SubspaceNode = ({ name, control, remove, level = 0 }) => {
           control={control}
           remove={() => removeChild(index)}
           level={level + 1}
+          users={users} // <-- ИЗМЕНЕНИЕ: Пробрасываем список пользователей дальше
         />
       ))}
 
       <Button
-        label="resources.rooms.fields.subspaces.add_nested" // Используем ключ перевода
+        label="resources.rooms.fields.subspaces.add_nested"
         onClick={() => append({ name: "", subspaces: [] })}
         size="small"
         startIcon={<AddCircleIcon />}
@@ -188,7 +105,8 @@ const SubspaceNode = ({ name, control, remove, level = 0 }) => {
 };
 
 // Основной компонент-обертка
-export const SubspaceTreeInput = ({ source, fullWidth }) => {
+// Принимаем `users` в пропсы
+export const SubspaceTreeInput = ({ source, fullWidth, users }) => {
   const { control } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
@@ -196,18 +114,22 @@ export const SubspaceTreeInput = ({ source, fullWidth }) => {
   });
 
   return (
-    // <-- ИЗМЕНЕНИЕ: Передаем `fullWidth` в Labeled
     <Labeled label="resources.rooms.fields.subspaces.structure_label" fullWidth={fullWidth}>
-      {/* Этот Box будет контейнером для всех узлов верхнего уровня */}
       <Box sx={{ width: "100%" }}>
         {fields.map((field, index) => (
-          <SubspaceNode key={field.id} name={`${source}[${index}]`} control={control} remove={() => remove(index)} />
+          <SubspaceNode
+            key={field.id}
+            name={`${source}[${index}]`}
+            control={control}
+            remove={() => remove(index)}
+            users={users} // <-- ИЗМЕНЕНИЕ: Передаем список пользователей в первый узел
+          />
         ))}
         <Button
           label="resources.rooms.fields.subspaces.add_top_level"
           onClick={() => append({ name: "", subspaces: [] })}
           sx={{ marginTop: 2 }}
-          startIcon={<AddCircleIcon />} // <-- ИЗМЕНЕНИЕ: startIcon вместо иконки как дочернего элемента
+          startIcon={<AddCircleIcon />}
         ></Button>
       </Box>
     </Labeled>
