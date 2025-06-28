@@ -272,7 +272,7 @@ const en: SynapseTranslationMessages = {
         encryption: "Encryption",
         federatable: "Federatable",
         public: "Visible in room directory",
-        creator: "Creator",
+        creator: "Delegate this space to",
         join_rules: "Join rules",
         guest_access: "Guest access",
         history_visibility: "History visibility",
@@ -300,7 +300,7 @@ const en: SynapseTranslationMessages = {
       helper: {
         forward_extremities:
           "Forward extremities are the leaf events at the end of a Directed acyclic graph (DAG) in a room, aka events that have no children. The more exist in a room, the more state resolution that Synapse needs to perform (hint: it's an expensive operation). While Synapse has code to prevent too many of these existing at one time in a room, bugs can sometimes make them crop up again. If a room has >10 forward extremities, it's worth checking which room is the culprit and potentially removing them using the SQL queries mentioned in #1760.",
-        creator: "Select the user who will be the creator. Defaults to the current admin.",
+        creator: "Select user whom this space will be delegated to. Defaults to the current admin.",
       },
       enums: {
         join_rules: {
