@@ -26,6 +26,7 @@ const fixedEnglishMessages = {
       access_denied: "You don't have permission to access this page.",
       authentication_error: "The authentication server returned an error and could not verify your credentials.",
       select_all_limit_reached: "Too many items to select. Only the first %{max} items have been selected.",
+      unknown_error: "Unknown error",
     },
   },
 };
@@ -170,6 +171,9 @@ const en: SynapseTranslationMessages = {
       email: "Email",
       msisdn: "Phone",
       threepid: "Email / Phone",
+      errors: {
+        load_failed: "Error loading users: %{message}",
+      },
       fields: {
         avatar: "Avatar",
         id: "User-ID",
@@ -254,6 +258,7 @@ const en: SynapseTranslationMessages = {
     },
     rooms: {
       name: "Room |||| Rooms",
+      generated_chat_name: 'chat for "%{name}"',
       fields: {
         room_id: "Room-ID",
         name: "Name",
@@ -341,6 +346,20 @@ const en: SynapseTranslationMessages = {
             "Put the full MXID of the user which will be set as admin.\nWarning: for this to work, the room needs to have at least one local member as admin.",
           success: "The user has been set as room admin.",
           failure: "The user could not be set as room admin. %{errMsg}",
+        },
+        delegate: {
+          success: 'Permissions for "%{roomName}" have been delegated to %{delegateToUserId}.',
+          failure: 'Failed to delegate permissions for "%{roomName}": %{error}',
+        },
+        create_space: {
+          success: 'Space "%{name}" created.',
+        },
+        process_child_chats: {
+          failure: 'Failed to process child chats for "%{name}"',
+        },
+        create_structure: {
+          success: "The entire structure was created successfully!",
+          critical_failure: "Critical error during creation: %{error}",
         },
       },
     },
