@@ -26,6 +26,7 @@ const fixedEnglishMessages = {
       access_denied: "You don't have permission to access this page.",
       authentication_error: "The authentication server returned an error and could not verify your credentials.",
       select_all_limit_reached: "Too many items to select. Only the first %{max} items have been selected.",
+      unknown_error: "Unknown error",
     },
   },
 };
@@ -170,6 +171,9 @@ const en: SynapseTranslationMessages = {
       email: "Email",
       msisdn: "Phone",
       threepid: "Email / Phone",
+      errors: {
+        load_failed: "Error loading users: %{message}",
+      },
       fields: {
         avatar: "Avatar",
         id: "User-ID",
@@ -254,6 +258,7 @@ const en: SynapseTranslationMessages = {
     },
     rooms: {
       name: "Room |||| Rooms",
+      generated_chat_name: 'chat for "%{name}"',
       fields: {
         room_id: "Room-ID",
         name: "Name",
@@ -267,7 +272,7 @@ const en: SynapseTranslationMessages = {
         encryption: "Encryption",
         federatable: "Federatable",
         public: "Visible in room directory",
-        creator: "Creator",
+        creator: "Delegate this space to",
         join_rules: "Join rules",
         guest_access: "Guest access",
         history_visibility: "History visibility",
@@ -275,6 +280,11 @@ const en: SynapseTranslationMessages = {
         avatar: "Avatar",
         actions: "Actions",
         preset: "Preset",
+        room_type: {
+          label: "Space Type",
+          department: "Department Space",
+          group: "Group Space",
+        },
         alias_localpart: "Alias (localpart)",
         subspaces: {
           label: "Subspaces",
@@ -290,7 +300,7 @@ const en: SynapseTranslationMessages = {
       helper: {
         forward_extremities:
           "Forward extremities are the leaf events at the end of a Directed acyclic graph (DAG) in a room, aka events that have no children. The more exist in a room, the more state resolution that Synapse needs to perform (hint: it's an expensive operation). While Synapse has code to prevent too many of these existing at one time in a room, bugs can sometimes make them crop up again. If a room has >10 forward extremities, it's worth checking which room is the culprit and potentially removing them using the SQL queries mentioned in #1760.",
-        creator: "Select the user who will be the creator. Defaults to the current admin.",
+        creator: "Select user whom this space will be delegated to. Defaults to the current admin.",
       },
       enums: {
         join_rules: {
@@ -336,6 +346,20 @@ const en: SynapseTranslationMessages = {
             "Put the full MXID of the user which will be set as admin.\nWarning: for this to work, the room needs to have at least one local member as admin.",
           success: "The user has been set as room admin.",
           failure: "The user could not be set as room admin. %{errMsg}",
+        },
+        delegate: {
+          success: 'Permissions for "%{roomName}" have been delegated to %{delegateToUserId}.',
+          failure: 'Failed to delegate permissions for "%{roomName}": %{error}',
+        },
+        create_space: {
+          success: 'Space "%{name}" created.',
+        },
+        process_child_chats: {
+          failure: 'Failed to process child chats for "%{name}"',
+        },
+        create_structure: {
+          success: "The entire structure was created successfully!",
+          critical_failure: "Critical error during creation: %{error}",
         },
       },
     },

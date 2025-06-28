@@ -17,6 +17,7 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
 import {
   AutocompleteInput,
   BooleanField,
@@ -385,11 +386,26 @@ const RoomListActions = () => (
   </TopToolbar>
 );
 
+// Создадим отдельный компонент для условного рендеринга, чтобы сделать код чище
+// Этот компонент будет следить за полем 'room_type'
+const ConditionalSubspaceInput = ({ users }) => {
+  // Следим за значением поля 'room_type' в форме
+  const roomType = useWatch({ name: "room_type" });
+
+  // Если тип пространства - 'department' (Подразделение), показываем структуру
+  if (roomType === "department") {
+    return <SubspaceTreeInput source="subspaces" fullWidth users={users} />;
+  }
+
+  return null; // Если тип не 'department', ничего не показываем
+};
+
 export const RoomCreate = (props: any) => {
   const currentAdminId = localStorage.getItem("user_id");
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const redirect = useRedirect();
+  const translate = useTranslate();
   const [isSaving, setIsSaving] = useState(false);
 
   const {
@@ -424,9 +440,10 @@ export const RoomCreate = (props: any) => {
           // @ts-ignore
           await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId);
 
-          notify(`Права на "${roomName}" делегированы ${delegateToUserId}.`, { type: "info" });
+          notify("resources.rooms.action.delegate.success", {type: "info", messageArgs: { roomName, delegateToUserId },});
         } catch (e: any) {
-          notify(`Не удалось делегировать права на "${roomName}": ${e.message}`, { type: "warning" });
+          notify("resources.rooms.action.delegate.failure", {type: "warning", messageArgs: { roomName, error: e.message },
+         });
         }
       }
     };
@@ -458,10 +475,11 @@ export const RoomCreate = (props: any) => {
         creator: nodeCreatorId,
         // ВАЖНО: `meta.impersonate` говорит, что действие выполняет админ
         meta: { impersonate: adminCreatorId },
+        room_type: spaceNode.room_type || values.room_type, // Передаем тип
       };
       const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
 
-      notify(`Пространство "${spaceNode.name}" создано.`, { type: "info" });
+      notify("resources.rooms.action.create_space.success", { type: "info", messageArgs: { name: spaceNode.name } });
 
       // Делегируем права на само пространство его определенному создателю.
       await delegatePermissions(createdSpace.id, createdSpace.name, nodeCreatorId);
@@ -473,10 +491,14 @@ export const RoomCreate = (props: any) => {
 
         for (const childId of childRoomIds) {
           // Делегируем права на каждый чат тому же создателю.
-          await delegatePermissions(childId, `чат для "${spaceNode.name}"`, nodeCreatorId);
+          const chatName = translate("resources.rooms.generated_chat_name", { name: spaceNode.name });
+          await delegatePermissions(childId, chatName, nodeCreatorId);
         }
       } catch (e) {
-        notify(`Не удалось обработать дочерние чаты для "${spaceNode.name}"`, { type: "error" });
+        notify("resources.rooms.action.process_child_chats.failure", {
+          type: "error",
+          messageArgs: { name: spaceNode.name },
+        });
       }
 
       // Привязываем к родителю, если он есть.
@@ -516,18 +538,22 @@ export const RoomCreate = (props: any) => {
         mainDelegateUserId
       );
 
-      notify("Вся структура успешно создана!", { type: "success" });
+      notify("resources.rooms.action.create_structure.success", { type: "success" });
 
       redirect("/rooms");
     } catch (error: any) {
-      notify(`Критическая ошибка при создании: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
+      const errorMessage = error.message || translate("ra.message.unknown_error");
+      notify("resources.rooms.action.create_structure.critical_failure", {
+        type: "error",
+        messageArgs: { error: errorMessage },
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
   if (isLoading) return <Loading />;
-  if (error) return <p>Ошибка загрузки пользователей: {error.message}</p>;
+  if (error) return <p>{translate("resources.users.errors.load_failed", { message: error.message })}</p>;
 
   return (
     <Create
@@ -538,6 +564,18 @@ export const RoomCreate = (props: any) => {
       }}
     >
       <SimpleForm onSubmit={handleSave} saving={isSaving}>
+        <SelectInput
+          source="room_type"
+          label="resources.rooms.fields.room_type.label"
+          choices={[
+            { id: "department", name: "resources.rooms.fields.room_type.department" },
+            { id: "group", name: "resources.rooms.fields.room_type.group" },
+          ]}
+          defaultValue="department" // По умолчанию предлагаем создавать "Подразделение"
+          validate={required()}
+          fullWidth
+        />
+
         <AutocompleteInput
           source="creator_id"
           label="resources.rooms.fields.creator"
@@ -563,8 +601,10 @@ export const RoomCreate = (props: any) => {
           validate={required()}
         />
 
+        <ConditionalSubspaceInput users={users} />
+
         {/* Используем наш новый кастомный компонент */}
-        <SubspaceTreeInput source="subspaces" fullWidth users={users} />
+        {/*<SubspaceTreeInput source="subspaces" fullWidth users={users} />*/}
       </SimpleForm>
     </Create>
   );
