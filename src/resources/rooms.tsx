@@ -17,7 +17,7 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 import {
   AutocompleteInput,
   BooleanField,
@@ -74,6 +74,59 @@ import { MediaIDField } from "../components/media";
 import { Room } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
 
+// =============================================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ГЕНЕРАЦИИ ИМЕН И АЛИАСОВ
+// =============================================================================
+
+/**
+ * Генерирует простую аббревиатуру для алиаса пространства.
+ * Пример: "Отдел Продаж" -> "оп"
+ */
+const generateAbbreviation = (name: string): string => {
+  if (!name) return "";
+  const words = name.split(/[\s-]+/);
+  return words.map(word => word.charAt(0).toLowerCase()).join("");
+};
+/**
+ * Генерирует сложное ИМЯ для чата на основе иерархического пути.
+ * Финальная версия с обработкой списка союзов.
+ */
+const generateChatName = (hierarchicalName: string, chatType: string): string => {
+  if (!hierarchicalName) return chatType;
+
+  // Список союзов и предлогов, которые должны оставаться в нижнем регистре.
+  // Вы можете легко расширить этот список.
+  const stopWords = ["и", "а", "в", "на", "с", "к", "по", "о", "из", "у", "за", "над", "под"];
+
+  const parts = hierarchicalName.split(" / ");
+  const lastPart = parts.pop() || "";
+
+  const processedParts = parts.map(part => {
+    const words = part.split(/[\s-]+/);
+
+    return words
+      .map(word => {
+        const lowerCaseWord = word.toLowerCase();
+        // Проверяем, есть ли слово в нашем списке стоп-слов
+        if (stopWords.includes(lowerCaseWord)) {
+          // Если да, возвращаем его как есть, в нижнем регистре
+          return lowerCaseWord;
+        }
+        // В противном случае берем первую букву и делаем ее заглавной
+        return word.charAt(0).toUpperCase();
+      })
+      .join(""); // Соединяем
+  });
+
+  const baseName = processedParts.length > 0 ? processedParts.join(".") + "." : "";
+
+  return `${baseName}${lastPart} ${chatType}`;
+};
+
+// =============================================================================
+// КОМПОНЕНТЫ РЕСУРСА
+// =============================================================================
+
 const RoomPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]} />;
 
 const RoomTitle = () => {
@@ -97,7 +150,6 @@ const RoomShowActions = () => {
     return null;
   }
   const publishButton = record?.public ? <RoomDirectoryUnpublishButton /> : <RoomDirectoryPublishButton />;
-  // FIXME: refresh after (un)publish
   return (
     <TopToolbar>
       {publishButton}
@@ -132,6 +184,7 @@ export const MakeAdminBtn = () => {
   const { mutate, isPending } = useMutation({
     mutationFn: async () => {
       try {
+        // @ts-ignore
         const result = await dataProvider.makeRoomAdmin(record.room_id, userIdValue);
         if (!result.success) {
           throw new Error(result.error);
@@ -215,7 +268,6 @@ export const MakeAdminBtn = () => {
 
 export const RoomShow = (props: ShowProps) => {
   const translate = useTranslate();
-  const record = useRecordContext();
   return (
     <Show {...props} actions={<RoomShowActions />} title={<RoomTitle />}>
       <TabbedShowLayout>
@@ -229,7 +281,6 @@ export const RoomShow = (props: ShowProps) => {
             <RaTextField source="id" />
           </ReferenceField>
         </Tab>
-
         <Tab label="synapseadmin.rooms.tabs.detail" icon={<PageviewIcon />} path="detail">
           <RaTextField source="joined_members" />
           <RaTextField source="joined_local_members" />
@@ -238,7 +289,6 @@ export const RoomShow = (props: ShowProps) => {
           <RaTextField source="version" />
           <RaTextField source="encryption" emptyText={translate("resources.rooms.enums.unencrypted")} />
         </Tab>
-
         <Tab label="synapseadmin.rooms.tabs.members" icon={<UserIcon />} path="members">
           <MakeAdminBtn />
           <ReferenceManyField reference="room_members" target="room_id" label={false}>
@@ -256,7 +306,6 @@ export const RoomShow = (props: ShowProps) => {
             </Datagrid>
           </ReferenceManyField>
         </Tab>
-
         <Tab label="synapseadmin.rooms.tabs.media" icon={<PermMediaIcon />} path="media">
           <Alert severity="warning">{translate("resources.room_media.helper.info")}</Alert>
           <ReferenceManyField reference="room_media" target="room_id" label={false}>
@@ -266,7 +315,6 @@ export const RoomShow = (props: ShowProps) => {
             </Datagrid>
           </ReferenceManyField>
         </Tab>
-
         <Tab label="synapseadmin.rooms.tabs.permission" icon={<VisibilityIcon />} path="permission">
           <BooleanField source="federatable" />
           <BooleanField source="public" />
@@ -276,48 +324,26 @@ export const RoomShow = (props: ShowProps) => {
               { id: "public", name: "resources.rooms.enums.join_rules.public" },
               { id: "knock", name: "resources.rooms.enums.join_rules.knock" },
               { id: "invite", name: "resources.rooms.enums.join_rules.invite" },
-              {
-                id: "private",
-                name: "resources.rooms.enums.join_rules.private",
-              },
+              { id: "private", name: "resources.rooms.enums.join_rules.private" },
             ]}
           />
           <SelectField
             source="guest_access"
             choices={[
-              {
-                id: "can_join",
-                name: "resources.rooms.enums.guest_access.can_join",
-              },
-              {
-                id: "forbidden",
-                name: "resources.rooms.enums.guest_access.forbidden",
-              },
+              { id: "can_join", name: "resources.rooms.enums.guest_access.can_join" },
+              { id: "forbidden", name: "resources.rooms.enums.guest_access.forbidden" },
             ]}
           />
           <SelectField
             source="history_visibility"
             choices={[
-              {
-                id: "invited",
-                name: "resources.rooms.enums.history_visibility.invited",
-              },
-              {
-                id: "joined",
-                name: "resources.rooms.enums.history_visibility.joined",
-              },
-              {
-                id: "shared",
-                name: "resources.rooms.enums.history_visibility.shared",
-              },
-              {
-                id: "world_readable",
-                name: "resources.rooms.enums.history_visibility.world_readable",
-              },
+              { id: "invited", name: "resources.rooms.enums.history_visibility.invited" },
+              { id: "joined", name: "resources.rooms.enums.history_visibility.joined" },
+              { id: "shared", name: "resources.rooms.enums.history_visibility.shared" },
+              { id: "world_readable", name: "resources.rooms.enums.history_visibility.world_readable" },
             ]}
           />
         </Tab>
-
         <Tab label={translate("resources.room_state.name", { smart_count: 2 })} icon={<EventIcon />} path="state">
           <ReferenceManyField reference="room_state" target="room_id" label={false}>
             <Datagrid sx={{ width: "100%" }} bulkActionButtons={false}>
@@ -334,14 +360,8 @@ export const RoomShow = (props: ShowProps) => {
             </Datagrid>
           </ReferenceManyField>
         </Tab>
-
         <Tab label="resources.forward_extremities.name" icon={<FastForwardIcon />} path="forward_extremities">
-          <Box
-            sx={{
-              fontFamily: "Roboto, Helvetica, Arial, sans-serif",
-              margin: "0.5em",
-            }}
-          >
+          <Box sx={{ fontFamily: "Roboto, Helvetica, Arial, sans-serif", margin: "0.5em" }}>
             {translate("resources.rooms.helper.forward_extremities")}
           </Box>
           <ReferenceManyField reference="forward_extremities" target="room_id" label={false}>
@@ -377,27 +397,18 @@ const roomFilters = [<SearchInput source="search_term" alwaysOn />];
 
 const RoomListActions = () => (
   <TopToolbar>
-    {/*<Button label="resources.rooms.action.create_room">*/}
-    {/*<AddIcon />*/}
     <CreateButton label="resources.rooms.action.create_room" />
-    {/*</Button>*/}
     <SelectColumnsButton />
     <ExportButton />
   </TopToolbar>
 );
 
-// Создадим отдельный компонент для условного рендеринга, чтобы сделать код чище
-// Этот компонент будет следить за полем 'room_type'
 const ConditionalSubspaceInput = ({ users }) => {
-  // Следим за значением поля 'room_type' в форме
   const roomType = useWatch({ name: "room_type" });
-
-  // Если тип пространства - 'department' (Подразделение), показываем структуру
   if (roomType === "department") {
     return <SubspaceTreeInput source="subspaces" fullWidth users={users} />;
   }
-
-  return null; // Если тип не 'department', ничего не показываем
+  return null;
 };
 
 export const RoomCreate = (props: any) => {
@@ -419,141 +430,135 @@ export const RoomCreate = (props: any) => {
 
   const handleSave = async (values: any) => {
     setIsSaving(true);
-
     const adminCreatorId = currentAdminId;
     const mainDelegateUserId = values.creator_id || adminCreatorId;
     const { subspaces, ...mainSpaceData } = values;
 
-    /**
-     * Вспомогательная функция для делегирования прав на указанную комнату
-     * указанному пользователю. Выполняется от имени админа.
-     * @param roomId - ID комнаты/пространства для делегирования.
-     * @param roomName - Имя комнаты для уведомлений.
-     * @param delegateToUserId - ID пользователя, которому делегируются права.
-     */
     const delegatePermissions = async (roomId: string, roomName: string, delegateToUserId: string) => {
-      // Делегируем права, только если это не сам админ, выполняющий операцию
       if (delegateToUserId !== adminCreatorId) {
         try {
           // @ts-ignore
           await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);
           // @ts-ignore
           await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId);
-
-          notify("resources.rooms.action.delegate.success", {type: "info", messageArgs: { roomName, delegateToUserId },});
+          notify(`Права на "${roomName}" делегированы ${delegateToUserId}.`, { type: "info" });
         } catch (e: any) {
-          notify("resources.rooms.action.delegate.failure", {type: "warning", messageArgs: { roomName, error: e.message },
-         });
+          notify(`Не удалось делегировать права на "${roomName}": ${e.message}`, { type: "warning" });
         }
       }
     };
 
-    /**
-     * Рекурсивная функция для создания дерева пространств и их полной настройки.
-     * @param spaceNode - Узел дерева с данными о пространстве.
-     * @param parentId - ID родительского пространства.
-     * @param preset - Пресет ("private_chat" или "public_chat").
-     * @param inheritedCreatorId - ID создателя, унаследованный от родителя.
-     */
+    // Новая функция для переименования комнаты
+    const setRoomName = async (roomId: string, newName: string) => {
+      try {
+        // @ts-ignore
+        await dataProvider.sendStateEvent(roomId, "m.room.name", "", { name: newName }, adminCreatorId);
+        notify(`Комната переименована в "${newName}".`, { type: "info" });
+      } catch (e: any) {
+        notify(`Не удалось переименовать комнату: ${e.message}`, { type: "warning" });
+      }
+    };
+
     const createAndSetupRecursive = async (
       spaceNode: any,
       parentId: string | null,
       preset: string,
-      inheritedCreatorId: string
+      inheritedCreatorId: string,
+      parentNamePrefix: string = "",
+      parentAliasPrefix: string = ""
     ) => {
-      if (!spaceNode.name) return null;
+      const shortNodeName = spaceNode.name;
+      if (!shortNodeName) return null;
 
-      // Если у узла есть свой `creator_id`, используем его. Иначе - наследуем.
       const nodeCreatorId = spaceNode.creator_id || inheritedCreatorId;
+      const hierarchicalName = parentNamePrefix ? `${parentNamePrefix} / ${shortNodeName}` : shortNodeName;
+      const nodeAbbreviation = generateAbbreviation(shortNodeName);
+      const hierarchicalAlias = parentAliasPrefix ? `${parentAliasPrefix}.${nodeAbbreviation}` : nodeAbbreviation;
 
-      // Админ создает пространство. В `creator` указываем фактического владельца.
       const payload = {
-        name: spaceNode.name,
+        name: hierarchicalName,
+        room_alias_name: hierarchicalAlias,
         preset: preset,
         creation_content: { type: "m.space" },
-        // ВАЖНО: поле `creator` нужно для корректной записи создателя в Synapse
         creator: nodeCreatorId,
-        // ВАЖНО: `meta.impersonate` говорит, что действие выполняет админ
         meta: { impersonate: adminCreatorId },
-        room_type: spaceNode.room_type || values.room_type, // Передаем тип
+        room_type: values.room_type,
       };
+
+      // @ts-ignore
       const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
+      notify(`Пространство "${hierarchicalName}" создано с алиасом #${hierarchicalAlias}.`, { type: "info" });
 
-      notify("resources.rooms.action.create_space.success", { type: "info", messageArgs: { name: spaceNode.name } });
+      await setRoomName(createdSpace.id, shortNodeName);
 
-      // Делегируем права на само пространство его определенному создателю.
-      await delegatePermissions(createdSpace.id, createdSpace.name, nodeCreatorId);
+      await delegatePermissions(createdSpace.id, shortNodeName, nodeCreatorId);
 
-      // Получаем дочерние чаты, созданные автоматически на бэкенде.
       try {
         // @ts-ignore
         const childRoomIds = await dataProvider.getRoomChildren(createdSpace.id);
 
         for (const childId of childRoomIds) {
-          // Делегируем права на каждый чат тому же создателю.
-          const chatName = translate("resources.rooms.generated_chat_name", { name: spaceNode.name });
-          await delegatePermissions(childId, chatName, nodeCreatorId);
+          // @ts-ignore
+          const { data: chatRoomData } = await dataProvider.getOne("rooms", { id: childId });
+          const isGeneralChat = chatRoomData.name.includes("- ОЧ");
+          const chatTypeAbbr = isGeneralChat ? "ОЧ" : "ЗЧ"; // Используем ЗЧ для закрытого чата
+
+          const finalChatName = generateChatName(hierarchicalName, chatTypeAbbr);
+
+          await setRoomName(childId, finalChatName);
+
+          await delegatePermissions(childId, finalChatName, nodeCreatorId);
         }
       } catch (e) {
-        notify("resources.rooms.action.process_child_chats.failure", {
-          type: "error",
-          messageArgs: { name: spaceNode.name },
-        });
+        notify(`Не удалось обработать дочерние чаты для "${shortNodeName}"`, { type: "error" });
       }
 
-      // Привязываем к родителю, если он есть.
       if (parentId) {
         // @ts-ignore
         await dataProvider.sendStateEvent(
           parentId,
           "m.space.child",
           createdSpace.id,
-          {
-            via: [localStorage.getItem("home_server")],
-            suggested: true,
-          },
+          { via: [localStorage.getItem("home_server")], suggested: true },
           adminCreatorId
         );
       }
 
-      // Рекурсия для дочерних пространств.
       if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
         for (const childNode of spaceNode.subspaces) {
-          // Передаем `nodeCreatorId` как унаследованный для дочерних узлов.
-          await createAndSetupRecursive(childNode, createdSpace.id, preset, nodeCreatorId);
+          await createAndSetupRecursive(
+            childNode,
+            createdSpace.id,
+            preset,
+            nodeCreatorId,
+            hierarchicalName,
+            hierarchicalAlias
+          );
         }
       }
       return createdSpace.id;
     };
 
     try {
-      // Запускаем процесс с главного пространства, передавая главного создателя.
       await createAndSetupRecursive(
-        {
-          ...mainSpaceData,
-          subspaces: subspaces,
-        },
+        { ...mainSpaceData, subspaces: subspaces },
         null,
         mainSpaceData.preset,
-        mainDelegateUserId
+        mainDelegateUserId,
+        "",
+        ""
       );
-
-      notify("resources.rooms.action.create_structure.success", { type: "success" });
-
+      notify("Вся структура успешно создана!", { type: "success" });
       redirect("/rooms");
     } catch (error: any) {
-      const errorMessage = error.message || translate("ra.message.unknown_error");
-      notify("resources.rooms.action.create_structure.critical_failure", {
-        type: "error",
-        messageArgs: { error: errorMessage },
-      });
+      notify(`Критическая ошибка при создании: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
     } finally {
       setIsSaving(false);
     }
   };
 
   if (isLoading) return <Loading />;
-  if (error) return <p>{translate("resources.users.errors.load_failed", { message: error.message })}</p>;
+  if (error) return <p>Ошибка загрузки пользователей: {error.message}</p>;
 
   return (
     <Create
@@ -571,11 +576,10 @@ export const RoomCreate = (props: any) => {
             { id: "department", name: "resources.rooms.fields.room_type.department" },
             { id: "group", name: "resources.rooms.fields.room_type.group" },
           ]}
-          defaultValue="department" // По умолчанию предлагаем создавать "Подразделение"
+          defaultValue="department"
           validate={required()}
           fullWidth
         />
-
         <AutocompleteInput
           source="creator_id"
           label="resources.rooms.fields.creator"
@@ -588,7 +592,6 @@ export const RoomCreate = (props: any) => {
           fullWidth
         />
         <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
-        <TextInput source="room_alias_name" label="resources.rooms.fields.alias_localpart" fullWidth />
         <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth />
         <SelectInput
           source="preset"
@@ -600,11 +603,7 @@ export const RoomCreate = (props: any) => {
           defaultValue="private_chat"
           validate={required()}
         />
-
         <ConditionalSubspaceInput users={users} />
-
-        {/* Используем наш новый кастомный компонент */}
-        {/*<SubspaceTreeInput source="subspaces" fullWidth users={users} />*/}
       </SimpleForm>
     </Create>
   );
