@@ -97,6 +97,7 @@ const generateChatName = (hierarchicalName: string, chatType: string): string =>
   // Список союзов и предлогов, которые должны оставаться в нижнем регистре.
   // Вы можете легко расширить этот список.
   const stopWords = ["и", "а", "в", "на", "с", "к", "по", "о", "из", "у", "за", "над", "под"];
+  const isNumeric = /^\d+$/;
 
   const parts = hierarchicalName.split(" / ");
   const lastPart = parts.pop() || "";
@@ -106,6 +107,13 @@ const generateChatName = (hierarchicalName: string, chatType: string): string =>
 
     return words
       .map(word => {
+        if (!word) return ''; // Пропускаем пустые строки на всякий случай
+
+        // Проверяем, является ли слово числом
+        if (isNumeric.test(word)) {
+          return word; // Если да, возвращаем всё число целиком
+        }
+
         const lowerCaseWord = word.toLowerCase();
         // Проверяем, есть ли слово в нашем списке стоп-слов
         if (stopWords.includes(lowerCaseWord)) {
