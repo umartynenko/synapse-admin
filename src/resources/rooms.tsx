@@ -6,8 +6,7 @@ import NoEncryptionIcon from "@mui/icons-material/NoEncryption";
 import PageviewIcon from "@mui/icons-material/Pageview";
 import PermMediaIcon from "@mui/icons-material/PermMedia";
 import PersonIcon from "@mui/icons-material/Person";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import RoomIcon from "@mui/icons-material/ViewList";
+import { default as RoomIcon, default as ViewListIcon } from "@mui/icons-material/ViewList";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -17,7 +16,6 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { useWatch } from "react-hook-form";
 import {
   AutocompleteInput,
   BooleanField,
@@ -33,8 +31,12 @@ import {
   List,
   ListProps,
   Loading,
+  maxValue,
+  minValue,
+  number,
   NumberField,
   Pagination,
+  TextField as RaTextField,
   ReferenceField,
   ReferenceManyField,
   required,
@@ -48,7 +50,6 @@ import {
   SimpleForm,
   Tab,
   TabbedShowLayout,
-  TextField as RaTextField,
   TextInput,
   TopToolbar,
   useDataProvider,
@@ -58,21 +59,23 @@ import {
   useRecordContext,
   useRedirect,
   useTranslate,
-  WrapperField,
+  WrapperField
 } from "react-admin";
+import { useWatch } from "react-hook-form";
+import { ClampedNumberInput } from "../components/ClampedNumberInput";
 
-import {
-  RoomDirectoryBulkPublishButton,
-  RoomDirectoryBulkUnpublishButton,
-  RoomDirectoryPublishButton,
-  RoomDirectoryUnpublishButton,
-} from "./room_directory";
 import AvatarField from "../components/AvatarField";
 import DeleteRoomButton from "../components/DeleteRoomButton";
 import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
 import { MediaIDField } from "../components/media";
 import { Room } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
+import {
+  RoomDirectoryBulkPublishButton,
+  RoomDirectoryBulkUnpublishButton,
+  RoomDirectoryPublishButton,
+  RoomDirectoryUnpublishButton,
+} from "./room_directory";
 
 // =============================================================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ГЕНЕРАЦИИ ИМЕН И АЛИАСОВ
@@ -411,12 +414,50 @@ const RoomListActions = () => (
   </TopToolbar>
 );
 
-const ConditionalSubspaceInput = ({ users }) => {
+const ConditionalSubspaceInput = ({ users }: { users: any[] } ) => {
   const roomType = useWatch({ name: "room_type" });
   if (roomType === "department") {
     return <SubspaceTreeInput source="subspaces" fullWidth users={users} />;
   }
   return null;
+};
+
+// Условный рендеринг для полей "Группы"
+const ConditionalGroupFields =() => {
+  const roomType = useWatch({ name: "room_type" });
+  const translate = useTranslate();
+  const minUsers = 2;
+  const minChats = 2;
+  const maxUsers = 200;
+  const maxChats = 20;
+
+  if (roomType !== "group") {
+    return null;
+  }
+
+  return (
+    // Используем Box с display="flex" для горизонтального расположения
+    <Box display="flex" sx={{ gap: 2, width: '100%' }}>
+      <ClampedNumberInput
+        source="max_users"
+        label={translate("resources.rooms.fields.max_users")}
+        helperText={translate("resources.rooms.helper.max_users")}
+        min={minUsers}
+        max={maxUsers}
+        validate={[number(), minValue(minUsers), maxValue(maxUsers)]}
+        fullWidth
+      />
+      <ClampedNumberInput
+        source="max_chats"
+        label={translate("resources.rooms.fields.max_chats")}
+        helperText={translate("resources.rooms.helper.max_chats")}
+        min={minChats}
+        max={maxChats}
+        validate={[number(), minValue(minChats), maxValue(maxChats)]}
+        fullWidth
+      />
+    </Box>
+  );
 };
 
 export const RoomCreate = (props: any) => {
@@ -482,12 +523,18 @@ export const RoomCreate = (props: any) => {
       const hierarchicalName = parentNamePrefix ? `${parentNamePrefix} / ${shortNodeName}` : shortNodeName;
       const nodeAbbreviation = generateAbbreviation(shortNodeName);
       const hierarchicalAlias = parentAliasPrefix ? `${parentAliasPrefix}.${nodeAbbreviation}` : nodeAbbreviation;
+      const creacreation_content: { [k: string]: any } = { type: "m.space" };
+
+      if (parentId === null && values.room_type === "group") {
+        if (values.max_users) creacreation_content['custom.max_users'] = values.max_users;
+        if (values.max_chats) creacreation_content['custom.max_chats'] = values.max_chats;
+      }
 
       const payload = {
         name: hierarchicalName,
         room_alias_name: hierarchicalAlias,
         preset: preset,
-        creation_content: { type: "m.space" },
+        creation_content: creacreation_content,
         creator: nodeCreatorId,
         meta: { impersonate: adminCreatorId },
         room_type: values.room_type,
@@ -498,7 +545,6 @@ export const RoomCreate = (props: any) => {
       notify(`Пространство "${hierarchicalName}" создано с алиасом #${hierarchicalAlias}.`, { type: "info" });
 
       await setRoomName(createdSpace.id, shortNodeName);
-
       await delegatePermissions(createdSpace.id, shortNodeName, nodeCreatorId);
 
       try {
@@ -518,7 +564,7 @@ export const RoomCreate = (props: any) => {
           await delegatePermissions(childId, finalChatName, nodeCreatorId);
         }
       } catch (e) {
-        notify(`Не удалось обработать дочерние чаты для "${shortNodeName}"`, { type: "error" });
+        notify(`resources.rooms.action.process_child_chats.failure`, { type: "error", messageArgs: { name: shortNodeName } });
       }
 
       if (parentId) {
@@ -556,7 +602,7 @@ export const RoomCreate = (props: any) => {
         "",
         ""
       );
-      notify("Вся структура успешно создана!", { type: "success" });
+      notify("resources.rooms.action.create_structure.success", { type: "success" });
       redirect("/rooms");
     } catch (error: any) {
       notify(`Критическая ошибка при создании: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
@@ -572,9 +618,7 @@ export const RoomCreate = (props: any) => {
     <Create
       {...props}
       title="resources.rooms.action.create_room_title"
-      mutationOptions={{
-        onSuccess: () => {},
-      }}
+      mutationOptions={{ onSuccess: () => {} }}
     >
       <SimpleForm onSubmit={handleSave} saving={isSaving}>
         <SelectInput
@@ -611,7 +655,9 @@ export const RoomCreate = (props: any) => {
           defaultValue="private_chat"
           validate={required()}
         />
+
         <ConditionalSubspaceInput users={users} />
+        <ConditionalGroupFields />
       </SimpleForm>
     </Create>
   );
