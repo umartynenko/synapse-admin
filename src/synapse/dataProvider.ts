@@ -365,6 +365,7 @@ export interface SynapseDataProvider extends DataProvider {
   inviteUser: (roomId: string, userId: string, impersonateId?: string) => Promise<any>; // <-- Добавьте
   joinRoom: (roomId: string, impersonateId: string) => Promise<any>; // <-- Добавьте
   getRoomChildren: (roomId: string) => Promise<string[]>;
+  getRoomChildrenWithDetails: (roomId: string) => Promise<any[]>;
   sendStateEvent: (
     roomId: string,
     eventType: string,
@@ -1161,6 +1162,21 @@ const baseDataProvider: SynapseDataProvider = {
     });
   },
 
+  /**
+   * НОВЫЙ МЕТОД: Получает дочерние комнаты и их типы через новый API.
+   */
+  getRoomChildrenWithDetails: async (roomId) => {
+    const base_url = localStorage.getItem("base_url");
+    const endpoint_url = `${base_url}/_synapse/admin/v1/room_children/${encodeURIComponent(roomId)}`;
+    try {
+      const { json } = await jsonClient(endpoint_url);
+      return json.children || [];
+    } catch (error) {
+      console.error(`Ошибка при получении дочерних чатов для ${roomId}:`, error);
+      return [];
+    }
+  },
+
   // ==============================================================================
   // КАСТОМНЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С КОМНАТАМИ
   // Author: Uriy Martynenko
@@ -1176,19 +1192,15 @@ const baseDataProvider: SynapseDataProvider = {
    */
   joinRoom: async (roomId, userIdToJoin, adminImpersonatingId) => {
     const base_url = localStorage.getItem("base_url");
-
-    // Используем административный API для принудительного присоединения
     let endpoint_url = `${base_url}/_synapse/admin/v1/join/${encodeURIComponent(roomId)}`;
 
-    // Этот запрос должен выполняться от имени администратора,
-    // поэтому мы используем `adminImpersonatingId` для олицетворения.
     if (adminImpersonatingId) {
-      endpoint_url += `?_user_id=${encodeURIComponent(adminImpersonatingId)}`;
+      endpoint_url += `?user_id=${encodeURIComponent(adminImpersonatingId)}`;
     }
 
     return jsonClient(endpoint_url, {
       method: "POST",
-      body: JSON.stringify({ user_id: userIdToJoin }), // В теле указываем, КОГО присоединить
+      body: JSON.stringify({ user_id: userIdToJoin }),
     });
   },
 

@@ -462,7 +462,6 @@ export const RoomCreate = (props: any) => {
     const createAndSetupRecursive = async (
       spaceNode: any,
       parentId: string | null,
-      preset: string,
       inheritedCreatorId: string,
       parentNamePrefix: string = "",
       parentAliasPrefix: string = ""
@@ -475,11 +474,17 @@ export const RoomCreate = (props: any) => {
       const nodeAbbreviation = generateAbbreviation(shortNodeName);
       const hierarchicalAlias = parentAliasPrefix ? `${parentAliasPrefix}.${nodeAbbreviation}` : nodeAbbreviation;
 
+      // *** ИЗМЕНЕНИЕ: Жестко задаем preset как "private_chat" ***
+      const preset = "private_chat";
+
       const payload = {
         name: hierarchicalName,
         room_alias_name: hierarchicalAlias,
         preset: preset,
-        creation_content: { type: "m.space" },
+        creation_content: {
+          type: "m.space",
+          "custom.room_category": "space"
+          },
         creator: nodeCreatorId,
         meta: { impersonate: adminCreatorId },
         room_type: values.room_type,
@@ -522,6 +527,30 @@ export const RoomCreate = (props: any) => {
           { via: [localStorage.getItem("home_server")], suggested: true },
           adminCreatorId
         );
+
+        // *** НОВЫЙ БЛОК: АВТОМАТИЧЕСКОЕ ПРИСОЕДИНЕНИЕ К ЧАТУ РОДИТЕЛЯ ***
+        try {
+            const userToJoin = nodeCreatorId; // Пользователь, которого надо добавить
+            if (userToJoin) {
+                // @ts-ignore
+                const parentChildren = await dataProvider.getRoomChildrenWithDetails(parentId);
+                const privateParentChat = parentChildren.find(
+                    (child: any) => child.chat_type === 'private_chat'
+                );
+
+                if (privateParentChat) {
+                    notify(`Добавляем ${userToJoin} в чат "${privateParentChat.room_id}"...`, { type: "info" });
+                    // @ts-ignore
+                    await dataProvider.joinRoom(privateParentChat.room_id, userToJoin, adminCreatorId);
+                    notify(`Пользователь ${userToJoin} успешно добавлен в чат родительского пространства.`, { type: "success" });
+                } else {
+                    notify(`Не найден "закрытый" чат в родительском пространстве ${parentId}.`, { type: "warning" });
+                }
+            }
+        } catch (e: any) {
+            notify(`Ошибка при добавлении пользователя в чат родителя: ${e.message}`, { type: "error" });
+        }
+        // *** КОНЕЦ НОВОГО БЛОКА ***
       }
 
       if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
@@ -529,7 +558,6 @@ export const RoomCreate = (props: any) => {
           await createAndSetupRecursive(
             childNode,
             createdSpace.id,
-            preset,
             nodeCreatorId,
             hierarchicalName,
             hierarchicalAlias
@@ -543,7 +571,6 @@ export const RoomCreate = (props: any) => {
       await createAndSetupRecursive(
         { ...mainSpaceData, subspaces: subspaces },
         null,
-        mainSpaceData.preset,
         mainDelegateUserId,
         "",
         ""
@@ -593,16 +620,9 @@ export const RoomCreate = (props: any) => {
         />
         <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
         <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth />
-        <SelectInput
-          source="preset"
-          label="resources.rooms.fields.preset"
-          choices={[
-            { id: "private_chat", name: "resources.rooms.enums.presets.private_chat" },
-            { id: "public_chat", name: "resources.rooms.enums.presets.public_chat" },
-          ]}
-          defaultValue="private_chat"
-          validate={required()}
-        />
+
+        {/* *** ИЗМЕНЕНИЕ: Поле <SelectInput source="preset" ... /> полностью удалено *** */}
+
         <ConditionalSubspaceInput users={users} />
       </SimpleForm>
     </Create>
