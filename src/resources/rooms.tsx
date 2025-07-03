@@ -27,6 +27,7 @@ import {
   DateField,
   DeleteButton,
   ExportButton,
+  FormDataConsumer, // <-- ВОЗВРАЩАЕМ ИМПОРТ
   FunctionField,
   List,
   ListProps,
@@ -59,16 +60,16 @@ import {
   useRecordContext,
   useRedirect,
   useTranslate,
-  WrapperField
+  WrapperField,
 } from "react-admin";
 import { useWatch } from "react-hook-form";
-import { ClampedNumberInput } from "../components/ClampedNumberInput";
 
 import AvatarField from "../components/AvatarField";
+import { ClampedNumberInput } from "../components/ClampedNumberInput";
 import DeleteRoomButton from "../components/DeleteRoomButton";
 import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
 import { MediaIDField } from "../components/media";
-import { Room } from "../synapse/dataProvider";
+import { Room, SynapseDataProvider } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
 import {
   RoomDirectoryBulkPublishButton,
@@ -414,6 +415,29 @@ const RoomListActions = () => (
   </TopToolbar>
 );
 
+const ConditionalParentSpaceInput = ({ spaces, isLoading }: { spaces: any[], isLoading: boolean }) => {
+    const roomType = useWatch({ name: "room_type" });
+    const translate = useTranslate();
+
+    if (roomType !== 'feed') return null;
+
+    if (isLoading) return <Loading />;
+
+    return (
+        <AutocompleteInput
+            source="parent_space_id"
+            label={translate("resources.rooms.fields.parent_space")}
+            choices={spaces || []}
+            optionText="name"
+            optionValue="room_id"
+            filterToQuery={searchText => ({ name: searchText })}
+            helperText={translate("resources.rooms.helper.parent_space")}
+            fullWidth
+            resettable
+        />
+    );
+};
+
 const ConditionalSubspaceInput = ({ users }: { users: any[] } ) => {
   const roomType = useWatch({ name: "room_type" });
   if (roomType === "department") {
@@ -422,21 +446,19 @@ const ConditionalSubspaceInput = ({ users }: { users: any[] } ) => {
   return null;
 };
 
-// Условный рендеринг для полей "Группы"
 const ConditionalGroupFields =() => {
   const roomType = useWatch({ name: "room_type" });
   const translate = useTranslate();
-  const minUsers = 2;
+  const minUsers = 1;
   const minChats = 2;
-  const maxUsers = 200;
-  const maxChats = 20;
+  const maxUsers = 9999;
+  const maxChats = 999;
 
   if (roomType !== "group") {
     return null;
   }
 
   return (
-    // Используем Box с display="flex" для горизонтального расположения
     <Box display="flex" sx={{ gap: 2, width: '100%' }}>
       <ClampedNumberInput
         source="max_users"
@@ -444,7 +466,7 @@ const ConditionalGroupFields =() => {
         helperText={translate("resources.rooms.helper.max_users")}
         min={minUsers}
         max={maxUsers}
-        validate={[number(), minValue(minUsers), maxValue(maxUsers)]}
+        validate={[required(), number(), minValue(minUsers), maxValue(maxUsers)]}
         fullWidth
       />
       <ClampedNumberInput
@@ -453,7 +475,7 @@ const ConditionalGroupFields =() => {
         helperText={translate("resources.rooms.helper.max_chats")}
         min={minChats}
         max={maxChats}
-        validate={[number(), minValue(minChats), maxValue(maxChats)]}
+        validate={[required(), number(), minValue(minChats), maxValue(maxChats)]}
         fullWidth
       />
     </Box>
@@ -462,157 +484,130 @@ const ConditionalGroupFields =() => {
 
 export const RoomCreate = (props: any) => {
   const currentAdminId = localStorage.getItem("user_id");
-  const dataProvider = useDataProvider();
+  const dataProvider = useDataProvider<SynapseDataProvider>();
   const notify = useNotify();
   const redirect = useRedirect();
-  const translate = useTranslate();
   const [isSaving, setIsSaving] = useState(false);
 
-  const {
-    data: users,
-    isLoading,
-    error,
-  } = useGetList("users", {
+  const { data: users, isLoading: isLoadingUsers, error: usersError } = useGetList("users", {
     pagination: { page: 1, perPage: 1000 },
     sort: { field: "name", order: "ASC" },
+  });
+
+  const { data: spaces, isLoading: isLoadingSpaces, error: spacesError } = useGetList("rooms", {
+    pagination: { page: 1, perPage: 5000 },
+    sort: { field: "name", order: "ASC" },
+    filter: { room_type: "m.space" }
   });
 
   const handleSave = async (values: any) => {
     setIsSaving(true);
     const adminCreatorId = currentAdminId;
-    const mainDelegateUserId = values.creator_id || adminCreatorId;
-    const { subspaces, ...mainSpaceData } = values;
+    const { room_type, ...data } = values;
 
-    const delegatePermissions = async (roomId: string, roomName: string, delegateToUserId: string) => {
-      if (delegateToUserId !== adminCreatorId) {
+    const delegatePermissions = async (roomId: string, roomName: string, delegatedUserId: string) => {
+      if (delegatedUserId && delegatedUserId !== adminCreatorId) {
         try {
-          // @ts-ignore
-          await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);
-          // @ts-ignore
-          await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId);
-          notify(`Права на "${roomName}" делегированы ${delegateToUserId}.`, { type: "info" });
+          await dataProvider.joinRoom(roomId, delegatedUserId, adminCreatorId);
+          await dataProvider.makeRoomAdmin(roomId, delegatedUserId, adminCreatorId);
+          notify(`Права на "${roomName}" делегированы пользователю ${delegatedUserId}.`, { type: "info" });
         } catch (e: any) {
           notify(`Не удалось делегировать права на "${roomName}": ${e.message}`, { type: "warning" });
         }
       }
     };
 
-    // Новая функция для переименования комнаты
-    const setRoomName = async (roomId: string, newName: string) => {
-      try {
-        // @ts-ignore
-        await dataProvider.sendStateEvent(roomId, "m.room.name", "", { name: newName }, adminCreatorId);
-        notify(`Комната переименована в "${newName}".`, { type: "info" });
-      } catch (e: any) {
-        notify(`Не удалось переименовать комнату: ${e.message}`, { type: "warning" });
-      }
+    const createDepartmentHierarchy = async (departmentData: any) => {
+        const { subspaces, ...mainSpaceData } = departmentData;
+        const mainDelegateUserId = mainSpaceData.creator_id || adminCreatorId;
+
+        const createAndSetupRecursive = async (spaceNode: any, parentId: string | null, hierarchicalName: string) => {
+            if (!spaceNode.name) return;
+            const fullHierarchicalName = hierarchicalName ? `${hierarchicalName} / ${spaceNode.name}` : spaceNode.name;
+            const delegatedUserId = spaceNode.creator_id || mainDelegateUserId;
+            const payload = {
+                preset: mainSpaceData.preset,
+                creation_content: { type: "m.space", "custom.room_type": "department" },
+                meta: { impersonate: adminCreatorId },
+                name: fullHierarchicalName,
+                topic: spaceNode.topic || mainSpaceData.topic,
+            };
+            const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
+            notify(`Пространство "${fullHierarchicalName}" создано.`, { type: "info" });
+            await dataProvider.update("rooms", {
+                id: createdSpace.id, data: { ...createdSpace, name: spaceNode.name },
+                previousData: createdSpace, meta: { impersonate: adminCreatorId, eventType: 'm.room.name', stateKey: '' }
+            });
+            await delegatePermissions(createdSpace.id, spaceNode.name, delegatedUserId);
+            if(createdSpace.public_chat_id) await delegatePermissions(createdSpace.public_chat_id, `${spaceNode.name} Общий`, delegatedUserId);
+            if(createdSpace.private_chat_id) await delegatePermissions(createdSpace.private_chat_id, `${spaceNode.name} Приватный`, delegatedUserId);
+
+            if (parentId) {
+                await dataProvider.sendStateEvent(parentId, "m.space.child", createdSpace.id, { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId);
+            }
+            if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
+                for (const childNode of spaceNode.subspaces) {
+                    await createAndSetupRecursive(childNode, createdSpace.id, fullHierarchicalName);
+                }
+            }
+        };
+        await createAndSetupRecursive({ ...mainSpaceData, subspaces }, null, "");
     };
 
-    const createAndSetupRecursive = async (
-      spaceNode: any,
-      parentId: string | null,
-      preset: string,
-      inheritedCreatorId: string,
-      parentNamePrefix: string = "",
-      parentAliasPrefix: string = ""
-    ) => {
-      const shortNodeName = spaceNode.name;
-      if (!shortNodeName) return null;
+    const createGroupSpace = async (groupData: any) => {
+        const delegatedUserId = groupData.creator_id || adminCreatorId;
+        const creationContent = {
+            type: "m.space", "custom.room_type": "group",
+            "custom.max_users": parseInt(groupData.max_users, 10), "custom.max_chats": parseInt(groupData.max_chats, 10),
+        };
+        const payload = {
+            name: groupData.name, topic: groupData.topic, preset: groupData.preset,
+            creation_content: creationContent, meta: { impersonate: adminCreatorId },
+        };
+        const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
+        notify(`Группа "${groupData.name}" создана.`, { type: "success" });
+        await delegatePermissions(createdSpace.id, createdSpace.name, delegatedUserId);
+        if(createdSpace.public_chat_id) await delegatePermissions(createdSpace.public_chat_id, `${createdSpace.name} Общий`, delegatedUserId);
+        if(createdSpace.private_chat_id) await delegatePermissions(createdSpace.private_chat_id, `${createdSpace.name} Приватный`, delegatedUserId);
+    };
 
-      const nodeCreatorId = spaceNode.creator_id || inheritedCreatorId;
-      const hierarchicalName = parentNamePrefix ? `${parentNamePrefix} / ${shortNodeName}` : shortNodeName;
-      const nodeAbbreviation = generateAbbreviation(shortNodeName);
-      const hierarchicalAlias = parentAliasPrefix ? `${parentAliasPrefix}.${nodeAbbreviation}` : nodeAbbreviation;
-      const creacreation_content: { [k: string]: any } = { type: "m.space" };
-
-      if (parentId === null && values.room_type === "group") {
-        if (values.max_users) creacreation_content['custom.max_users'] = values.max_users;
-        if (values.max_chats) creacreation_content['custom.max_chats'] = values.max_chats;
-      }
-
-      const payload = {
-        name: hierarchicalName,
-        room_alias_name: hierarchicalAlias,
-        preset: preset,
-        creation_content: creacreation_content,
-        creator: nodeCreatorId,
-        meta: { impersonate: adminCreatorId },
-        room_type: values.room_type,
-      };
-
-      // @ts-ignore
-      const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
-      notify(`Пространство "${hierarchicalName}" создано с алиасом #${hierarchicalAlias}.`, { type: "info" });
-
-      await setRoomName(createdSpace.id, shortNodeName);
-      await delegatePermissions(createdSpace.id, shortNodeName, nodeCreatorId);
-
-      try {
-        // @ts-ignore
-        const childRoomIds = await dataProvider.getRoomChildren(createdSpace.id);
-
-        for (const childId of childRoomIds) {
-          // @ts-ignore
-          const { data: chatRoomData } = await dataProvider.getOne("rooms", { id: childId });
-          const isGeneralChat = chatRoomData.name.includes("- ОЧ");
-          const chatTypeAbbr = isGeneralChat ? "ОЧ" : "ЗЧ"; // Используем ЗЧ для закрытого чата
-
-          const finalChatName = generateChatName(hierarchicalName, chatTypeAbbr);
-
-          await setRoomName(childId, finalChatName);
-
-          await delegatePermissions(childId, finalChatName, nodeCreatorId);
+    const createFeedChat = async (feedData: any) => {
+        const delegatedUserId = feedData.creator_id || adminCreatorId;
+        const payload = {
+            name: feedData.name, topic: feedData.topic, preset: "public_chat",
+            is_space: false, meta: { impersonate: adminCreatorId },
+        };
+        const { data: createdChat } = await dataProvider.create("rooms", { data: payload });
+        notify(`Чат "${feedData.name}" успешно создан.`, { type: "success" });
+        await delegatePermissions(createdChat.id, feedData.name, delegatedUserId);
+        if (feedData.parent_space_id) {
+            await dataProvider.sendStateEvent(
+                feedData.parent_space_id, "m.space.child", createdChat.id,
+                { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId
+            );
+            notify(`Чат "${feedData.name}" добавлен в родительское пространство.`, { type: "info" });
         }
-      } catch (e) {
-        notify(`resources.rooms.action.process_child_chats.failure`, { type: "error", messageArgs: { name: shortNodeName } });
-      }
-
-      if (parentId) {
-        // @ts-ignore
-        await dataProvider.sendStateEvent(
-          parentId,
-          "m.space.child",
-          createdSpace.id,
-          { via: [localStorage.getItem("home_server")], suggested: true },
-          adminCreatorId
-        );
-      }
-
-      if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
-        for (const childNode of spaceNode.subspaces) {
-          await createAndSetupRecursive(
-            childNode,
-            createdSpace.id,
-            preset,
-            nodeCreatorId,
-            hierarchicalName,
-            hierarchicalAlias
-          );
-        }
-      }
-      return createdSpace.id;
     };
 
     try {
-      await createAndSetupRecursive(
-        { ...mainSpaceData, subspaces: subspaces },
-        null,
-        mainSpaceData.preset,
-        mainDelegateUserId,
-        "",
-        ""
-      );
-      notify("resources.rooms.action.create_structure.success", { type: "success" });
+      if (room_type === 'department') {
+        await createDepartmentHierarchy(data);
+      } else if (room_type === 'group') {
+        await createGroupSpace(data);
+      } else if (room_type === 'feed') {
+        await createFeedChat(data);
+      }
+      notify("Операция успешно завершена!", { type: "success" });
       redirect("/rooms");
     } catch (error: any) {
-      notify(`Критическая ошибка при создании: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
+      notify(`Критическая ошибка: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) return <Loading />;
-  if (error) return <p>Ошибка загрузки пользователей: {error.message}</p>;
+  if (isLoadingUsers || isLoadingSpaces) return <Loading />;
+  if (usersError || spacesError) return <p>Ошибка загрузки данных: {usersError?.message || spacesError?.message}</p>;
 
   return (
     <Create
@@ -627,15 +622,17 @@ export const RoomCreate = (props: any) => {
           choices={[
             { id: "department", name: "resources.rooms.fields.room_type.department" },
             { id: "group", name: "resources.rooms.fields.room_type.group" },
+            { id: "feed", name: "resources.rooms.fields.room_type.feed" },
           ]}
           defaultValue="department"
           validate={required()}
           fullWidth
         />
+        <ConditionalParentSpaceInput spaces={spaces} isLoading={isLoadingSpaces} />
         <AutocompleteInput
           source="creator_id"
           label="resources.rooms.fields.creator"
-          choices={users}
+          choices={users || []}
           optionValue="id"
           optionText="id"
           filterToQuery={searchText => ({ name: searchText })}
@@ -645,18 +642,22 @@ export const RoomCreate = (props: any) => {
         />
         <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
         <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth />
-        <SelectInput
-          source="preset"
-          label="resources.rooms.fields.preset"
-          choices={[
-            { id: "private_chat", name: "resources.rooms.enums.presets.private_chat" },
-            { id: "public_chat", name: "resources.rooms.enums.presets.public_chat" },
-          ]}
-          defaultValue="private_chat"
-          validate={required()}
-        />
-
-        <ConditionalSubspaceInput users={users} />
+        <FormDataConsumer>
+            {({ formData, ...rest }) => formData.room_type !== 'feed' && (
+                <SelectInput
+                  source="preset"
+                  label="resources.rooms.fields.preset"
+                  choices={[
+                    { id: "private_chat", name: "resources.rooms.enums.presets.private_chat" },
+                    { id: "public_chat", name: "resources.rooms.enums.presets.public_chat" },
+                  ]}
+                  defaultValue="private_chat"
+                  validate={required()}
+                  {...rest}
+                />
+            )}
+        </FormDataConsumer>
+        <ConditionalSubspaceInput users={users || []} />
         <ConditionalGroupFields />
       </SimpleForm>
     </Create>

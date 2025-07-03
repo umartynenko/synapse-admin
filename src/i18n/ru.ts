@@ -294,6 +294,7 @@ const ru: SynapseTranslationMessages = {
           label: "Тип пространства",
           department: "Пространство Подразделений",
           group: "Пространство Группа",
+          feed: "Лента",
         },
         alias_localpart: "Псевдоним (локальная часть)",
         subspaces: {

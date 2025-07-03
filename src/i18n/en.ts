@@ -284,6 +284,7 @@ const en: SynapseTranslationMessages = {
           label: "Space Type",
           department: "Department Space",
           group: "Group Space",
+          feed: "Feed",
         },
         alias_localpart: "Alias (localpart)",
         subspaces: {
