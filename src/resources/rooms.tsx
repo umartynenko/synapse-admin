@@ -8,8 +8,7 @@ import NoEncryptionIcon from "@mui/icons-material/NoEncryption";
 import PageviewIcon from "@mui/icons-material/Pageview";
 import PermMediaIcon from "@mui/icons-material/PermMedia";
 import PersonIcon from "@mui/icons-material/Person";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import RoomIcon from "@mui/icons-material/ViewList";
+import { default as RoomIcon, default as ViewListIcon } from "@mui/icons-material/ViewList";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -19,7 +18,6 @@ import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useWatch } from "react-hook-form";
 import {
   AutocompleteInput,
   BooleanField,
@@ -35,8 +33,12 @@ import {
   List,
   ListProps,
   Loading,
+  maxValue,
+  minValue,
+  number,
   NumberField,
   Pagination,
+  TextField as RaTextField,
   ReferenceField,
   ReferenceManyField,
   required,
@@ -50,7 +52,6 @@ import {
   SimpleForm,
   Tab,
   TabbedShowLayout,
-  TextField as RaTextField,
   TextInput,
   TopToolbar,
   useDataProvider,
@@ -60,21 +61,23 @@ import {
   useRecordContext,
   useRedirect,
   useTranslate,
-  WrapperField,
+  WrapperField
 } from "react-admin";
+import { useWatch } from "react-hook-form";
+import { ClampedNumberInput } from "../components/ClampedNumberInput";
 
-import {
-  RoomDirectoryBulkPublishButton,
-  RoomDirectoryBulkUnpublishButton,
-  RoomDirectoryPublishButton,
-  RoomDirectoryUnpublishButton,
-} from "./room_directory";
 import AvatarField from "../components/AvatarField";
 import DeleteRoomButton from "../components/DeleteRoomButton";
 import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
 import { MediaIDField } from "../components/media";
 import { Room } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
+import {
+  RoomDirectoryBulkPublishButton,
+  RoomDirectoryBulkUnpublishButton,
+  RoomDirectoryPublishButton,
+  RoomDirectoryUnpublishButton,
+} from "./room_directory";
 
 const generateAbbreviation = (name: string): string => {
   if (!name) return "";
@@ -91,6 +94,13 @@ const generateChatName = (hierarchicalName: string, chatType: string): string =>
     const words = part.split(/[\s-]+/);
     return words
       .map(word => {
+        if (!word) return ''; // Пропускаем пустые строки на всякий случай
+
+        // Проверяем, является ли слово числом
+        if (isNumeric.test(word)) {
+          return word; // Если да, возвращаем всё число целиком
+        }
+
         const lowerCaseWord = word.toLowerCase();
         if (stopWords.includes(lowerCaseWord)) {
           return lowerCaseWord;
@@ -359,6 +369,44 @@ const ConditionalFormInputs = ({ users }) => {
     }
 };
 
+// Условный рендеринг для полей "Группы"
+const ConditionalGroupFields =() => {
+  const roomType = useWatch({ name: "room_type" });
+  const translate = useTranslate();
+  const minUsers = 2;
+  const minChats = 2;
+  const maxUsers = 200;
+  const maxChats = 20;
+
+  if (roomType !== "group") {
+    return null;
+  }
+
+  return (
+    // Используем Box с display="flex" для горизонтального расположения
+    <Box display="flex" sx={{ gap: 2, width: '100%' }}>
+      <ClampedNumberInput
+        source="max_users"
+        label={translate("resources.rooms.fields.max_users")}
+        helperText={translate("resources.rooms.helper.max_users")}
+        min={minUsers}
+        max={maxUsers}
+        validate={[number(), minValue(minUsers), maxValue(maxUsers)]}
+        fullWidth
+      />
+      <ClampedNumberInput
+        source="max_chats"
+        label={translate("resources.rooms.fields.max_chats")}
+        helperText={translate("resources.rooms.helper.max_chats")}
+        min={minChats}
+        max={maxChats}
+        validate={[number(), minValue(minChats), maxValue(maxChats)]}
+        fullWidth
+      />
+    </Box>
+  );
+};
+
 export const RoomCreate = (props: any) => {
   const currentAdminId = localStorage.getItem("user_id");
   const dataProvider = useDataProvider();
@@ -437,7 +485,6 @@ export const RoomCreate = (props: any) => {
         } finally {
              setIsSaving(false);
         }
-
     } else {
         // Создание иерархии
         const mainDelegateUserId = values.creator_id || adminCreatorId;
@@ -552,6 +599,7 @@ export const RoomCreate = (props: any) => {
             }
             return createdSpace.id;
         };
+
 
         try {
           await createAndSetupRecursive(
