@@ -1162,10 +1162,19 @@ const baseDataProvider: SynapseDataProvider = {
     });
   },
 
+  getRoomsByCategory: async (category: string) => {
+    const url = `${localStorage.getItem("base_url")}/_synapse/admin/v1/rooms_by_category?category=${category}`;
+    const { json } = await fetchUtils.fetchJson(url, {
+      method: "GET",
+      headers: new Headers({ Authorization: `Bearer ${localStorage.getItem("access_token")}` }),
+    });
+    return json.rooms || []; // API вернет { rooms: [...] }
+  },
+
   /**
    * НОВЫЙ МЕТОД: Получает дочерние комнаты и их типы через новый API.
    */
-  getRoomChildrenWithDetails: async (roomId) => {
+  getRoomChildrenWithDetails: async roomId => {
     const base_url = localStorage.getItem("base_url");
     const endpoint_url = `${base_url}/_synapse/admin/v1/room_children/${encodeURIComponent(roomId)}`;
     try {
