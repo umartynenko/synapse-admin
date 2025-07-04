@@ -297,7 +297,7 @@ const ru: SynapseTranslationMessages = {
           feed: "Лента",
         },
         parent_space: "Родительское пространство",
-        parent_space_helper: "Если не выбрано, пространство будет создано в корневом пространстве.",
+        parent_space_helper: "Оставьте пустым, чтобы создать ленту верхнего уровня",
         alias_localpart: "Псевдоним (локальная часть)",
         subspaces: {
           label: "Подпространства",

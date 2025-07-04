@@ -335,7 +335,7 @@ const ParentSpaceInput = () => {
       optionText="name"
       optionValue="id"
       fullWidth
-      helperText="Оставьте пустым, чтобы создать ленту верхнего уровня"
+      helperText="resources.rooms.fields.parent_space_helper"
     />
   );
 };

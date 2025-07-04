@@ -287,7 +287,7 @@ const en: SynapseTranslationMessages = {
           feed: "Feed",
         },
         parent_space: "Parent Space",
-        parent_space_helper: "If not selected, the room will be created in the main space.",
+        parent_space_helper: "Leave empty to create a top-level feed.",
         alias_localpart: "Alias (localpart)",
         subspaces: {
           label: "Subspaces",
