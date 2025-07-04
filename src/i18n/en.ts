@@ -284,7 +284,10 @@ const en: SynapseTranslationMessages = {
           label: "Space Type",
           department: "Department Space",
           group: "Group Space",
+          feed: "Feed",
         },
+        parent_space: "Parent Space",
+        parent_space_helper: "Leave empty to create a top-level feed.",
         alias_localpart: "Alias (localpart)",
         subspaces: {
           label: "Subspaces",
