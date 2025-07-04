@@ -544,7 +544,7 @@ export const RoomCreate = (props: any) => {
               // @ts-ignore
               const childRooms = await dataProvider.getRoomChildrenWithDetails(createdSpace.id);
               for (const child of childRooms) {
-                const chatTypeAbbr = child.chat_type === "private_chat" ? "АН" : "ОБ";
+                const chatTypeAbbr = child.chat_type === "private_chat" ? "ЗЧ" : "ОЧ";
                 const finalChatName = generateChatName(hierarchicalName, chatTypeAbbr);
                 await setRoomName(child.room_id, finalChatName);
                 await delegatePermissions(child.room_id, finalChatName, nodeCreatorId);
