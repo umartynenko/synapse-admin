@@ -86,31 +86,34 @@ const generateAbbreviation = (name: string): string => {
 };
 
 const generateChatName = (hierarchicalName: string, chatType: string): string => {
-  if (!hierarchicalName) return chatType;
-  const stopWords = ["и", "а", "в", "на", "с", "к", "по", "о", "из", "у", "за", "над", "под"];
-  const parts = hierarchicalName.split(" / ");
-  const lastPart = parts.pop() || "";
-  const processedParts = parts.map(part => {
-    const words = part.split(/[\s-]+/);
-    return words
-      .map(word => {
-        if (!word) return ''; // Пропускаем пустые строки на всякий случай
+    if (!hierarchicalName) return chatType;
+    const stopWords = ["и", "а", "в", "на", "с", "к", "по", "о", "из", "у", "за", "над", "под"];
+    const isNumeric = /^\d+$/;
+    const parts = hierarchicalName.split(" / ");
+    const lastPart = parts.pop() || "";
 
-        // Проверяем, является ли слово числом
-        if (isNumeric.test(word)) {
-          return word; // Если да, возвращаем всё число целиком
-        }
+    const processedParts = parts.map(part => {
+        const words = part.split(/[\s-]+/);
+        return words
+            .map(word => {
+                if (!word) return ''; // Skip empty words
 
-        const lowerCaseWord = word.toLowerCase();
-        if (stopWords.includes(lowerCaseWord)) {
-          return lowerCaseWord;
-        }
-        return word.charAt(0).toUpperCase();
-      })
-      .join("");
-  });
-  const baseName = processedParts.length > 0 ? processedParts.join(".") + "." : "";
-  return `${baseName}${lastPart} ${chatType}`;
+                // Check if the word is a number
+                if (isNumeric.test(word)) {
+                    return word; // Return the number as is
+                }
+
+                const lowerCaseWord = word.toLowerCase();
+                if (stopWords.includes(lowerCaseWord)) {
+                    return lowerCaseWord;
+                }
+                return word.charAt(0).toUpperCase();
+            })
+            .join("");
+    });
+
+    const baseName = processedParts.length > 0 ? processedParts.join(".") + "." : "";
+    return `${baseName}${lastPart} ${chatType}`;
 };
 
 const RoomPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]} />;
@@ -325,13 +328,13 @@ const RoomListActions = () => (
 );
 
 
-// КОМПОНЕНТ для выбора родительского пространства
+// Component for selecting the parent space
 const ParentSpaceInput = () => {
   const dataProvider = useDataProvider();
 
   const { data: spaces, isLoading } = useQuery({
     queryKey: ['spaces_for_feed'],
-    // @ts-ignore - TypeScript не знает о нашем кастомном методе, это нормально
+    // @ts-ignore - TypeScript is not aware of our custom method, which is fine
     queryFn: () => dataProvider.getRoomsByCategory('space'),
   });
 
@@ -350,7 +353,7 @@ const ParentSpaceInput = () => {
   );
 };
 
-// КОМПОНЕНТ для условного рендеринга полей формы
+// Component for conditional rendering of form fields
 const ConditionalFormInputs = ({ users }) => {
     const roomType = useWatch({ name: "room_type" });
 
@@ -369,7 +372,7 @@ const ConditionalFormInputs = ({ users }) => {
     }
 };
 
-// Условный рендеринг для полей "Группы"
+// Conditional rendering for "Groups" fields
 const ConditionalGroupFields =() => {
   const roomType = useWatch({ name: "room_type" });
   const translate = useTranslate();
@@ -383,7 +386,7 @@ const ConditionalGroupFields =() => {
   }
 
   return (
-    // Используем Box с display="flex" для горизонтального расположения
+    // Use Box with display="flex" for horizontal layout
     <Box display="flex" sx={{ gap: 2, width: '100%' }}>
       <ClampedNumberInput
         source="max_users"
@@ -428,7 +431,7 @@ export const RoomCreate = (props: any) => {
     const adminCreatorId = currentAdminId;
 
     if (values.room_type === 'feed') {
-        // Создание Ленты
+        // Create a Feed
         try {
             const feedCreatorId = values.creator_id || adminCreatorId;
 
@@ -454,20 +457,20 @@ export const RoomCreate = (props: any) => {
 
             // @ts-ignore
             const { data: createdFeed } = await dataProvider.create("rooms", { data: payload });
-            notify(`Лента "${values.name}" успешно создана.`, { type: "success" });
+            notify(`Feed "${values.name}" created successfully.`, { type: "success" });
 
-            // Делегируем права, если создатель - не текущий админ
+            // Delegate permissions if the creator is not the current admin
             if (feedCreatorId !== adminCreatorId) {
-                // Сначала принудительно добавляем пользователя в комнату
-                notify(`Присоединяем ${feedCreatorId} к ленте...`, { type: "info" });
+                // First, forcefully add the user to the room
+                notify(`Adding ${feedCreatorId} to the feed...`, { type: "info" });
                 // @ts-ignore
                 await dataProvider.joinRoom(createdFeed.id, feedCreatorId, adminCreatorId);
 
-                // А только потом делаем его админом
-                notify(`Делегируем права на ленту пользователю ${feedCreatorId}...`, { type: "info" });
+                // Then, make them an admin
+                notify(`Delegating feed permissions to ${feedCreatorId}...`, { type: "info" });
                 // @ts-ignore
                 await dataProvider.makeRoomAdmin(createdFeed.id, feedCreatorId, adminCreatorId);
-                notify(`Права на ленту "${values.name}" делегированы.`, { type: "success" });
+                notify(`Permissions for feed "${values.name}" have been delegated.`, { type: "success" });
             }
 
             if (values.parent_id) {
@@ -476,17 +479,17 @@ export const RoomCreate = (props: any) => {
                     values.parent_id, "m.space.child", createdFeed.id,
                     { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId
                 );
-                notify(`Лента привязана к пространству ${values.parent_id}.`, { type: "info" });
+                notify(`Feed linked to space ${values.parent_id}.`, { type: "info" });
             }
             redirect("/rooms");
 
         } catch (e: any) {
-             notify(`Ошибка при создании ленты: ${e.message}`, { type: "error" });
+             notify(`Error creating feed: ${e.message}`, { type: "error" });
         } finally {
              setIsSaving(false);
         }
     } else {
-        // Создание иерархии
+        // Create a hierarchy
         const mainDelegateUserId = values.creator_id || adminCreatorId;
         const { subspaces, ...mainSpaceData } = values;
 
@@ -497,9 +500,9 @@ export const RoomCreate = (props: any) => {
                 await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);
                 // @ts-ignore
                 await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId);
-                notify(`Права на "${roomName}" делегированы ${delegateToUserId}.`, { type: "info" });
+                notify(`Permissions for "${roomName}" delegated to ${delegateToUserId}.`, { type: "info" });
               } catch (e: any) {
-                notify(`Не удалось делегировать права на "${roomName}": ${e.message}`, { type: "warning" });
+                notify(`Failed to delegate permissions for "${roomName}": ${e.message}`, { type: "warning" });
               }
             }
         };
@@ -508,9 +511,9 @@ export const RoomCreate = (props: any) => {
             try {
               // @ts-ignore
               await dataProvider.sendStateEvent(roomId, "m.room.name", "", { name: newName }, adminCreatorId);
-              notify(`Комната переименована в "${newName}".`, { type: "info" });
+              notify(`Room renamed to "${newName}".`, { type: "info" });
             } catch (e: any) {
-              notify(`Не удалось переименовать комнату: ${e.message}`, { type: "warning" });
+              notify(`Failed to rename room: ${e.message}`, { type: "warning" });
             }
         };
 
@@ -535,7 +538,7 @@ export const RoomCreate = (props: any) => {
 
             // @ts-ignore
             const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
-            notify(`Пространство "${hierarchicalName}" создано.`, { type: "info" });
+            notify(`Space "${hierarchicalName}" created.`, { type: "info" });
 
             await setRoomName(createdSpace.id, shortNodeName);
             await delegatePermissions(createdSpace.id, shortNodeName, nodeCreatorId);
@@ -550,7 +553,7 @@ export const RoomCreate = (props: any) => {
                 await delegatePermissions(child.room_id, finalChatName, nodeCreatorId);
               }
             } catch (e: any) {
-              notify(`Не удалось обработать дочерние чаты для "${shortNodeName}"`, { type: "error" });
+              notify(`Failed to process child chats for "${shortNodeName}"`, { type: "error" });
             }
 
             if (parentId) {
@@ -570,7 +573,7 @@ export const RoomCreate = (props: any) => {
                   if (ancestorId === parentId) {
                     const privateChat = ancestorChildren.find((c: any) => c.chat_type === 'private_chat');
                     if (privateChat) {
-                      notify(`Добавляем ${userToJoin} в приватный чат родителя...`, { type: "info" });
+                      notify(`Adding ${userToJoin} to the parent's private chat...`, { type: "info" });
                       // @ts-ignore
                       await dataProvider.joinRoom(privateChat.room_id, userToJoin, adminCreatorId);
                     }
@@ -578,19 +581,19 @@ export const RoomCreate = (props: any) => {
 
                   const publicChats = ancestorChildren.filter((c: any) => c.chat_type === 'public_chat');
                   for (const publicChat of publicChats) {
-                    notify(`Добавляем ${userToJoin} в публичный чат ${publicChat.room_id}...`, { type: "info" });
+                    notify(`Adding ${userToJoin} to public chat ${publicChat.room_id}...`, { type: "info" });
                     // @ts-ignore
                     await dataProvider.joinRoom(publicChat.room_id, userToJoin, adminCreatorId);
                   }
                 } catch (e: any) {
-                  notify(`Ошибка при добавлении пользователя в чаты предка ${ancestorId}: ${e.message}`, { type: "error" });
+                  notify(`Error adding user to ancestor chats ${ancestorId}: ${e.message}`, { type: "error" });
                 }
               }
             }
 
             if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
               for (const childNode of spaceNode.subspaces) {
-                const newAncestors = parentId ? [...ancestors, parentId] : [];
+                const newAncestors = parentId ? [...ancestors, parentI] : [];
                 await createAndSetupRecursive(
                   childNode, createdSpace.id, newAncestors,
                   nodeCreatorId, hierarchicalName, hierarchicalAlias
@@ -605,10 +608,10 @@ export const RoomCreate = (props: any) => {
           await createAndSetupRecursive(
             { ...mainSpaceData, subspaces: subspaces }, null, [], mainDelegateUserId, "", ""
           );
-          notify("Вся структура успешно создана!", { type: "success" });
+          notify("The entire structure was created successfully!", { type: "success" });
           redirect("/rooms");
         } catch (error: any) {
-          notify(`Критическая ошибка при создании: ${error.message || "Неизвестная ошибка"}`, { type: "error" });
+          notify(`Critical error during creation: ${error.message || "Unknown error"}`, { type: "error" });
         } finally {
           setIsSaving(false);
         }
@@ -616,7 +619,7 @@ export const RoomCreate = (props: any) => {
   };
 
   if (isLoading) return <Loading />;
-  if (error) return <p>Ошибка загрузки пользователей: {error.message}</p>;
+  if (error) return <p>Error loading users: {error.message}</p>;
 
   return (
     <Create
