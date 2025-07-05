@@ -593,7 +593,7 @@ export const RoomCreate = (props: any) => {
 
             if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
               for (const childNode of spaceNode.subspaces) {
-                const newAncestors = parentId ? [...ancestors, parentI] : [];
+                const newAncestors = parentId ? [...ancestors, parentId] : [];
                 await createAndSetupRecursive(
                   childNode, createdSpace.id, newAncestors,
                   nodeCreatorId, hierarchicalName, hierarchicalAlias
