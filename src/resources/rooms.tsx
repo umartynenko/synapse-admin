@@ -435,9 +435,9 @@ export const RoomCreate = (props: any) => {
         try {
             const feedCreatorId = values.creator_id || adminCreatorId;
 
-            const powerLevelUsers = {
-                [feedCreatorId]: 100,
-            };
+            notify('Creating the feed room...', { type: 'info' });
+
+            const powerLevelUsers = { [feedCreatorId]: 100 };
             if (adminCreatorId !== feedCreatorId) {
                 powerLevelUsers[adminCreatorId] = 100;
             }
@@ -447,10 +447,7 @@ export const RoomCreate = (props: any) => {
                 name: values.name,
                 topic: values.topic,
                 power_level_content_override: { events_default: 100, users: powerLevelUsers },
-                creation_content: {
-                    "custom.room_category": "chat",
-                    "custom.chat_type": "feed"
-                },
+                creation_content: { "custom.room_category": "chat", "custom.chat_type": "feed" },
                 creator: feedCreatorId,
                 meta: { impersonate: adminCreatorId },
             };
@@ -459,28 +456,77 @@ export const RoomCreate = (props: any) => {
             const { data: createdFeed } = await dataProvider.create("rooms", { data: payload });
             notify(`Feed "${values.name}" created successfully.`, { type: "success" });
 
-            // Delegate permissions if the creator is not the current admin
+            // Делегирование прав, если создатель не админ
             if (feedCreatorId !== adminCreatorId) {
-                // First, forcefully add the user to the room
-                notify(`Adding ${feedCreatorId} to the feed...`, { type: "info" });
+                notify(`Delegating permissions to ${feedCreatorId}...`, { type: 'info' });
                 // @ts-ignore
                 await dataProvider.joinRoom(createdFeed.id, feedCreatorId, adminCreatorId);
-
-                // Then, make them an admin
-                notify(`Delegating feed permissions to ${feedCreatorId}...`, { type: "info" });
                 // @ts-ignore
-                await dataProvider.makeRoomAdmin(createdFeed.id, feedCreatorId, adminCreatorId);
-                notify(`Permissions for feed "${values.name}" have been delegated.`, { type: "success" });
+                await dataProvider.makeRoomAdmin(createdFeed.id, feedCreatorId);
+                notify(`Permissions for feed "${values.name}" delegated.`, { type: "success" });
             }
 
+            // Привязка к родительскому пространству
             if (values.parent_id) {
+                notify(`Linking feed to parent space...`, { type: 'info' });
                 // @ts-ignore
                 await dataProvider.sendStateEvent(
                     values.parent_id, "m.space.child", createdFeed.id,
                     { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId
                 );
-                notify(`Feed linked to space ${values.parent_id}.`, { type: "info" });
             }
+
+            // --- НОВАЯ ЛОГИКА: АВТОМАТИЧЕСКОЕ ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЕЙ ---
+            let userIdsToInvite: string[] = [];
+
+            if (values.parent_id) {
+                // Случай 1: Лента создана в пространстве. Собираем пользователей из иерархии.
+                notify('Gathering users from the space hierarchy...', { type: 'info' });
+                try {
+                    // @ts-ignore - вызываем наш новый метод
+                    const { data: hierarchyUsers } = await dataProvider.getHierarchyMembers(values.parent_id);
+                    userIdsToInvite = hierarchyUsers;
+                    notify(`Found ${userIdsToInvite.length} users to add.`, { type: 'info' });
+                } catch (e: any) {
+                    notify(`Could not get hierarchy members: ${e.message}`, { type: 'error' });
+                }
+            } else {
+                // Случай 2: Лента на уровне федерации. Собираем всех пользователей.
+                notify('Gathering all server users...', { type: 'info' });
+                try {
+                    const { data: allUsers } = await dataProvider.getList('users', {
+                        pagination: { page: 1, perPage: 10000 }, // Достаточно большое число
+                        sort: { field: 'name', order: 'ASC' },
+                        filter: {}
+                    });
+                    userIdsToInvite = allUsers.map((u: any) => u.id);
+                    notify(`Found ${userIdsToInvite.length} users to add.`, { type: 'info' });
+                } catch (e: any) {
+                    notify(`Could not get all users: ${e.message}`, { type: 'error' });
+                }
+            }
+
+            if (userIdsToInvite.length > 0) {
+                notify(`Starting to add ${userIdsToInvite.length} users to the feed. This may take a while...`, { type: 'info', autoHideDuration: 5000 });
+                let successCount = 0;
+                for (const userId of userIdsToInvite) {
+                    // Пропускаем создателя и админа, т.к. они уже в комнате или будут добавлены с правами
+                    if (userId === feedCreatorId || userId === adminCreatorId) {
+                        continue;
+                    }
+                    try {
+                        // Используем joinRoom для принудительного добавления. Права не делегируются.
+                        // @ts-ignore
+                        await dataProvider.joinRoom(createdFeed.id, userId, adminCreatorId);
+                        successCount++;
+                    } catch (e: any) {
+                        notify(`Failed to add user ${userId}: ${e.message}`, { type: 'warning' });
+                    }
+                }
+                notify(`Successfully added ${successCount} out of ${userIdsToInvite.length} users to the feed.`, { type: 'success' });
+            }
+            // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+
             redirect("/rooms");
 
         } catch (e: any) {
