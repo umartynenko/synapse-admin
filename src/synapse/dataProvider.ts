@@ -1,3 +1,5 @@
+// src/synapse/dataProvider.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ
+
 import {
   DataProvider,
   DeleteParams,
@@ -361,11 +363,12 @@ export interface SynapseDataProvider extends DataProvider {
   createRecurringCommand: (etkeAdminUrl: string, command: Partial<RecurringCommand>) => Promise<RecurringCommand>;
   updateRecurringCommand: (etkeAdminUrl: string, command: RecurringCommand) => Promise<RecurringCommand>;
   deleteRecurringCommand: (etkeAdminUrl: string, id: string) => Promise<{ success: boolean }>;
-  makeRoomAdmin: (roomId: string, userId: string, impersonateId?: string) => Promise<any>; // Обновим его, чтобы принимал impersonateId
-  inviteUser: (roomId: string, userId: string, impersonateId?: string) => Promise<any>; // <-- Добавьте
-  joinRoom: (roomId: string, impersonateId: string) => Promise<any>; // <-- Добавьте
+  makeRoomAdmin: (roomId: string, userId: string, impersonateId?: string) => Promise<any>;
+  inviteUser: (roomId: string, userId: string, impersonateId?: string) => Promise<any>;
+  joinRoom: (roomId: string, impersonateId: string) => Promise<any>;
   getRoomChildren: (roomId: string) => Promise<string[]>;
   getRoomChildrenWithDetails: (roomId: string) => Promise<any[]>;
+  getHierarchyMembers: (roomId: string) => Promise<{ data: string[] }>;
   sendStateEvent: (
     roomId: string,
     eventType: string,
@@ -415,11 +418,8 @@ const resourceMap = {
     data: "rooms",
     total: json => json.total_rooms,
     create: (params: RaRecord) => ({
-      // API эндпоинт для создания комнаты
       endpoint: "/_matrix/client/v3/createRoom",
-      // Тело запроса - это данные из нашей будущей формы
       body: params,
-      // Метод - POST, как требует спецификация Matrix
       method: "POST",
     }),
     delete: (params: DeleteParams) => ({
@@ -751,10 +751,6 @@ const baseDataProvider: SynapseDataProvider = {
     const endpoint_url = base_url + res.path;
     const responses = await Promise.all(
       params.ids.map(id => {
-        // edge case: when user is external / federated, homeserver will return error, as querying external users via
-        // /_synapse/admin/v2/users is not allowed.
-        // That leads to an issue when a user is referenced (e.g., in room state datagrid) - the user cell is just empty.
-        // To avoid that, we fake the response with one specific field (name) which is used in the datagrid.
         if (homeserver && resource === "users") {
           if (!(id as string).endsWith(homeserver)) {
             const json = {
@@ -804,7 +800,6 @@ const baseDataProvider: SynapseDataProvider = {
       jsonData = json[res.data];
       total = res.total(json, from, perPage);
       if (resource === "joined_rooms") {
-        // cache will be applied only for joined_rooms
         CACHED_MANY_REF[CACHE_KEY] = { data: jsonData, total: total };
         jsonData = jsonData.slice(from, from + perPage);
       }
@@ -840,10 +835,12 @@ const baseDataProvider: SynapseDataProvider = {
 
     const endpoint_url = homeserver + res.path;
     const responses = await Promise.all(
-      params.ids.map(id => jsonClient(`${endpoint_url}/${encodeURIComponent(id)}`), {
-        method: "PUT",
-        body: JSON.stringify(params.data, filterNullValues),
-      })
+      params.ids.map(id =>
+        jsonClient(`${endpoint_url}/${encodeURIComponent(id)}`, {
+          method: "PUT",
+          body: JSON.stringify(params.data, filterNullValues),
+        })
+      )
     );
     return { data: responses.map(({ json }) => json) };
   },
@@ -862,7 +859,6 @@ const baseDataProvider: SynapseDataProvider = {
 
     let endpoint_url = homeserver + createConfig.endpoint;
 
-    // Используем meta для олицетворения, а не creator_id
     if (meta?.impersonate) {
       const impersonateId = encodeURIComponent(meta.impersonate);
       endpoint_url += (endpoint_url.includes("?") ? "&" : "?") + `_user_id=${impersonateId}`;
@@ -876,29 +872,13 @@ const baseDataProvider: SynapseDataProvider = {
       body: JSON.stringify(createConfig.body, filterNullValues),
     });
 
-    // ==============================================================================
-    // Author: Uriy Martynenko
-    // Date: 26.05.20025
-    //
-    // --- ЛОГИКА ---
-    // 1. Этот блок срабатывает только при создании ресурса 'rooms'.
-    // 2. Он проверяет поле `room_alias` в ответе от сервера.
-    // 3. Если `room_alias` содержит нашу специальную строку (с разделителем '|'),
-    //    он "распаковывает" ее, извлекая ID автоматически созданных дочерних чатов.
-    // 4. Он обогащает возвращаемый объект `data`, добавляя в него поля
-    //    `public_chat_id` и `private_chat_id`.
-    // 5. Это позволяет компоненту `RoomCreate` на фронтенде получить ID чатов
-    //    и выполнить для них дальнейшие действия (например, делегирование прав).
-    // ==============================================================================
     if (resource === "rooms" && json.room_id) {
       let child_rooms = {};
 
-      // json.room_alias теперь может содержать нашу кастомную строку
       if (json.room_alias) {
         const parts = json.room_alias.split("|");
         if (parts.length === 3) {
-          // Наш формат: "alias|public_chat_id|private_chat_id"
-          json.room_alias = parts[0]; // Восстанавливаем настоящий alias
+          json.room_alias = parts[0];
           child_rooms = {
             public_chat_id: parts[1],
             private_chat_id: parts[2],
@@ -911,7 +891,7 @@ const baseDataProvider: SynapseDataProvider = {
         data: {
           id: json.room_id,
           ...dataForBody,
-          ...child_rooms, // Добавляем ID чатов в возвращаемый объект
+          ...child_rooms,
         },
       };
     }
@@ -994,7 +974,6 @@ const baseDataProvider: SynapseDataProvider = {
         params.ids.map(id =>
           jsonClient(`${endpoint_url}/${id}`, {
             method: "DELETE",
-            // body: JSON.stringify(params.data, filterNullValues),  @FIXME
           })
         )
       );
@@ -1002,20 +981,8 @@ const baseDataProvider: SynapseDataProvider = {
     }
   },
 
-  // Custom methods (https://marmelab.com/react-admin/DataProviders.html#adding-custom-methods)
-
-  /**
-   * Delete media by date or size
-   *
-   * @link https://matrix-org.github.io/synapse/latest/admin_api/media_admin_api.html#delete-local-media-by-date-or-size
-   *
-   * @param before_ts Unix timestamp in milliseconds. Files that were last used before this timestamp will be deleted. It is the timestamp of last access, not the timestamp when the file was created.
-   * @param size_gt   Size of the media in bytes. Files that are larger will be deleted.
-   * @param keep_profiles Switch to also delete files that are still used in image data (e.g user profile, room avatar). If false these files will be deleted.
-   * @returns
-   */
   deleteMedia: async ({ before_ts, size_gt = 0, keep_profiles = true }) => {
-    const homeserver = localStorage.getItem("home_server"); // TODO only required for synapse < 1.78.0
+    const homeserver = localStorage.getItem("home_server");
     const endpoint = `/_synapse/admin/v1/media/${homeserver}/delete?before_ts=${before_ts}&size_gt=${size_gt}&keep_profiles=${keep_profiles}`;
 
     const base_url = localStorage.getItem("base_url");
@@ -1024,14 +991,6 @@ const baseDataProvider: SynapseDataProvider = {
     return json as DeleteMediaResult;
   },
 
-  /**
-   * Purge remote media by date
-   *
-   * @link https://element-hq.github.io/synapse/latest/admin_api/media_admin_api.html#purge-remote-media-api
-   *
-   * @param before_ts Unix timestamp in milliseconds. Files that were last used before this timestamp will be deleted. It is the timestamp of last access, not the timestamp when the file was created.
-   * @returns
-   */
   purgeRemoteMedia: async ({ before_ts }) => {
     const endpoint = `/_synapse/admin/v1/purge_media_cache?before_ts=${before_ts}`;
 
@@ -1108,20 +1067,6 @@ const baseDataProvider: SynapseDataProvider = {
       throw error;
     }
   },
-  // makeRoomAdmin: async (room_id: string, user_id: string) => {
-  //   const base_url = localStorage.getItem("base_url");
-  //
-  //   const endpoint_url = `${base_url}/_synapse/admin/v1/rooms/${encodeURIComponent(room_id)}/make_room_admin`;
-  //   try {
-  //     const { json } = await jsonClient(endpoint_url, { method: "POST", body: JSON.stringify({ user_id }) });
-  //     return { success: true };
-  //   } catch (error) {
-  //     if (error instanceof HttpError) {
-  //       return { success: false, error: error.body.error, errcode: error.body.errcode };
-  //     }
-  //     throw error;
-  //   }
-  // },
 
   makeRoomAdmin: async (roomId, userId, impersonateId) => {
     const base_url = localStorage.getItem("base_url");
@@ -1142,12 +1087,6 @@ const baseDataProvider: SynapseDataProvider = {
     }
   },
 
-  /**
-   * Приглашает пользователя в комнату.
-   * @param roomId - ID комнаты.
-   * @param userId - ID пользователя для приглашения.
-   * @param impersonateId - ID администратора, от имени которого отправляется приглашение.
-   */
   inviteUser: async (roomId, userId, impersonateId) => {
     const base_url = localStorage.getItem("base_url");
     let endpoint_url = `${base_url}/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite`;
@@ -1168,12 +1107,9 @@ const baseDataProvider: SynapseDataProvider = {
       method: "GET",
       headers: new Headers({ Authorization: `Bearer ${localStorage.getItem("access_token")}` }),
     });
-    return json.rooms || []; // API вернет { rooms: [...] }
+    return json.rooms || [];
   },
 
-  /**
-   * НОВЫЙ МЕТОД: Получает дочерние комнаты и их типы через новый API.
-   */
   getRoomChildrenWithDetails: async roomId => {
     const base_url = localStorage.getItem("base_url");
     const endpoint_url = `${base_url}/_synapse/admin/v1/room_children/${encodeURIComponent(roomId)}`;
@@ -1186,19 +1122,18 @@ const baseDataProvider: SynapseDataProvider = {
     }
   },
 
-  // ==============================================================================
-  // КАСТОМНЫЕ МЕТОДЫ ДЛЯ РАБОТЫ С КОМНАТАМИ
-  // Author: Uriy Martynenko
-  // Date: 26.05.2025
-  // ==============================================================================
+  getHierarchyMembers: async (roomId: string) => {
+    const base_url = localStorage.getItem("base_url");
+    const endpoint_url = `${base_url}/_synapse/admin/v1/hierarchy_members/${encodeURIComponent(roomId)}`;
+    try {
+        const { json } = await jsonClient(endpoint_url);
+        return { data: json.users || [] };
+    } catch (error) {
+        console.error(`Error getting hierarchy members for space ${roomId}:`, error);
+        return { data: [] };
+    }
+  },
 
-  /**
-   * Принудительно присоединяет пользователя к комнате, используя Admin API.
-   * Работает даже для приватных комнат без предварительного приглашения.
-   * @param roomId - ID комнаты для присоединения.
-   * @param userIdToJoin - ID пользователя, которого нужно присоединить.
-   * @param adminImpersonatingId - ID администратора, от имени которого выполняется действие.
-   */
   joinRoom: async (roomId, userIdToJoin, adminImpersonatingId) => {
     const base_url = localStorage.getItem("base_url");
     let endpoint_url = `${base_url}/_synapse/admin/v1/join/${encodeURIComponent(roomId)}`;
@@ -1478,9 +1413,8 @@ const baseDataProvider: SynapseDataProvider = {
   },
   updateScheduledCommand: async (scheduledCommandsUrl: string, command: ScheduledCommand) => {
     try {
-      // Use the base endpoint without ID and use PUT for upsert
       const response = await fetch(`${scheduledCommandsUrl}/schedules`, {
-        method: "PUT", // Using PUT on the base endpoint
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -1494,13 +1428,10 @@ const baseDataProvider: SynapseDataProvider = {
         throw new Error(jsonErr.error);
       }
 
-      // According to docs, successful response is 204 No Content
       if (response.status === 204) {
-        // Return the command object we sent since the server doesn't return data
         return command;
       }
 
-      // If server does return data (though docs suggest it returns 204)
       const json = await response.json();
       console.log("JSON", json);
       return json as ScheduledCommand;
@@ -1546,7 +1477,6 @@ const baseDataProvider: SynapseDataProvider = {
       }
 
       if (response.status === 204) {
-        // Return the command object we sent since the server doesn't return data
         return command as RecurringCommand;
       }
 
@@ -1574,7 +1504,6 @@ const baseDataProvider: SynapseDataProvider = {
       }
 
       if (response.status === 204) {
-        // Return the command object we sent since the server doesn't return data
         return command as RecurringCommand;
       }
 
