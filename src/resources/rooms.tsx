@@ -1,4 +1,5 @@
-import AddIcon from "@mui/icons-material/Add";
+// src/resources/rooms.tsx
+
 import EventIcon from "@mui/icons-material/Event";
 import FastForwardIcon from "@mui/icons-material/FastForward";
 import UserIcon from "@mui/icons-material/Group";
@@ -7,8 +8,7 @@ import NoEncryptionIcon from "@mui/icons-material/NoEncryption";
 import PageviewIcon from "@mui/icons-material/Pageview";
 import PermMediaIcon from "@mui/icons-material/PermMedia";
 import PersonIcon from "@mui/icons-material/Person";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import RoomIcon from "@mui/icons-material/ViewList";
+import { default as RoomIcon, default as ViewListIcon } from "@mui/icons-material/ViewList";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -16,78 +16,118 @@ import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  AutocompleteInput,
   BooleanField,
-  DateField,
-  WrapperField,
+  Confirm,
+  Create,
+  CreateButton,
   Datagrid,
   DatagridConfigurable,
+  DateField,
+  DeleteButton,
   ExportButton,
   FunctionField,
   List,
   ListProps,
+  Loading,
+  maxValue,
+  minValue,
+  number,
   NumberField,
   Pagination,
+  TextField as RaTextField,
   ReferenceField,
   ReferenceManyField,
+  required,
   ResourceProps,
   SearchInput,
   SelectColumnsButton,
   SelectField,
+  SelectInput,
   Show,
   ShowProps,
+  SimpleForm,
   Tab,
   TabbedShowLayout,
-  TextField as RaTextField,
+  TextInput,
   TopToolbar,
-  useRecordContext,
-  useTranslate,
+  useDataProvider,
+  useGetList,
   useListContext,
   useNotify,
-  DeleteButton,
-  CreateButton,
+  useRecordContext,
+  useRedirect,
+  useTranslate,
+  WrapperField
 } from "react-admin";
-import { useDataProvider } from "react-admin";
-import { Confirm } from "react-admin";
+import { useWatch } from "react-hook-form";
+import { ClampedNumberInput } from "../components/ClampedNumberInput";
 
-import {
-  RoomDirectoryBulkUnpublishButton,
-  RoomDirectoryBulkPublishButton,
-  RoomDirectoryUnpublishButton,
-  RoomDirectoryPublishButton,
-} from "./room_directory";
 import AvatarField from "../components/AvatarField";
 import DeleteRoomButton from "../components/DeleteRoomButton";
+import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
 import { MediaIDField } from "../components/media";
 import { Room } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
+import {
+  RoomDirectoryBulkPublishButton,
+  RoomDirectoryBulkUnpublishButton,
+  RoomDirectoryPublishButton,
+  RoomDirectoryUnpublishButton,
+} from "./room_directory";
+
+const generateAbbreviation = (name: string): string => {
+  if (!name) return "";
+  const words = name.split(/[\s-]+/);
+  return words.map(word => word.charAt(0).toLowerCase()).join("");
+};
+
+const generateChatName = (hierarchicalName: string, chatType: string): string => {
+    if (!hierarchicalName) return chatType;
+    const stopWords = ["и", "а", "в", "на", "с", "к", "по", "о", "из", "у", "за", "над", "под"];
+    const isNumeric = /^\d+$/;
+    const parts = hierarchicalName.split(" / ");
+    const lastPart = parts.pop() || "";
+
+    const processedParts = parts.map(part => {
+        const words = part.split(/[\s-]+/);
+        return words
+            .map(word => {
+                if (!word) return ''; // Skip empty words
+
+                // Check if the word is a number
+                if (isNumeric.test(word)) {
+                    return word; // Return the number as is
+                }
+
+                const lowerCaseWord = word.toLowerCase();
+                if (stopWords.includes(lowerCaseWord)) {
+                    return lowerCaseWord;
+                }
+                return word.charAt(0).toUpperCase();
+            })
+            .join("");
+    });
+
+    const baseName = processedParts.length > 0 ? processedParts.join(".") + "." : "";
+    return `${baseName}${lastPart} ${chatType}`;
+};
 
 const RoomPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]} />;
 
 const RoomTitle = () => {
   const record = useRecordContext();
   const translate = useTranslate();
-  let name = "";
-  if (record) {
-    name = record.name !== "" ? record.name : record.id;
-  }
-
-  return (
-    <span>
-      {translate("resources.rooms.name", 1)} {name}
-    </span>
-  );
+  return <span>{translate("resources.rooms.name", 1)} {record ? record.name || record.id : ""}</span>;
 };
 
 const RoomShowActions = () => {
   const record = useRecordContext();
-  if (!record) {
-    return null;
-  }
+  if (!record) return null;
   const publishButton = record?.public ? <RoomDirectoryUnpublishButton /> : <RoomDirectoryPublishButton />;
-  // FIXME: refresh after (un)publish
   return (
     <TopToolbar>
       {publishButton}
@@ -102,100 +142,47 @@ const RoomShowActions = () => {
 };
 
 export const MakeAdminBtn = () => {
-  const record = useRecordContext() as Room;
-
-  if (!record) {
-    return null;
-  }
-
-  if (record.joined_local_members < 1) {
-    return null;
-  }
-
-  const ownMXID = localStorage.getItem("user_id") || "";
+  const record = useRecordContext<Room>();
   const [open, setOpen] = useState(false);
-  const [userIdValue, setUserIdValue] = useState(ownMXID);
+  const [userIdValue, setUserIdValue] = useState(localStorage.getItem("user_id") || "");
   const dataProvider = useDataProvider();
   const notify = useNotify();
   const translate = useTranslate();
 
   const { mutate, isPending } = useMutation({
     mutationFn: async () => {
-      try {
-        const result = await dataProvider.makeRoomAdmin(record.room_id, userIdValue);
-        if (!result.success) {
-          throw new Error(result.error);
-        }
-      } catch (error) {
-        throw error;
-      }
+      // @ts-ignore
+      const result = await dataProvider.makeRoomAdmin(record.room_id, userIdValue);
+      if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
       notify("resources.rooms.action.make_admin.success", { type: "success" });
       setOpen(false);
-      setUserIdValue("");
     },
-    onError: err => {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      notify("resources.rooms.action.make_admin.failure", { type: "error", messageArgs: { errMsg: errorMessage } });
+    onError: (err: any) => {
+      notify("resources.rooms.action.make_admin.failure", { type: "error", messageArgs: { errMsg: err.message } });
       setOpen(false);
-      setUserIdValue("");
     },
   });
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setUserIdValue(event.target.value);
-  };
+  if (!record || record.joined_local_members < 1) return null;
 
-  const handleConfirm = async () => {
-    mutate();
-    setOpen(false);
-  };
-
-  const handleDialogClose = () => {
-    setOpen(false);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      handleConfirm();
-    }
-  };
+  const handleConfirm = () => mutate();
 
   return (
     <>
-      <Button
-        size="small"
-        onClick={e => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        disabled={isPending}
-      >
+      <Button size="small" onClick={() => setOpen(true)} disabled={isPending}>
         <PersonIcon /> {translate("resources.rooms.action.make_admin.assign_admin")}
       </Button>
       <Confirm
         isOpen={open}
         onConfirm={handleConfirm}
-        onClose={handleDialogClose}
-        confirm="resources.rooms.action.make_admin.confirm"
-        cancel="ra.action.cancel"
-        title={translate("resources.rooms.action.make_admin.title", {
-          roomName: record.name ? record.name : record.room_id,
-        })}
+        onClose={() => setOpen(false)}
+        title={translate("resources.rooms.action.make_admin.title", { roomName: record.name || record.room_id })}
         content={
           <>
-            <Typography sx={{ marginBottom: 2, whiteSpace: "pre-line" }}>
-              {translate("resources.rooms.action.make_admin.content")}
-            </Typography>
-            <TextField
-              type="text"
-              variant="filled"
-              value={userIdValue}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              label={"Matrix ID"}
-            />
+            <Typography sx={{ mb: 2 }}>{translate("resources.rooms.action.make_admin.content")}</Typography>
+            <TextField type="text" variant="filled" value={userIdValue} onChange={e => setUserIdValue(e.target.value)} onKeyDown={e => e.key === "Enter" && handleConfirm()} label="Matrix ID" />
           </>
         }
       />
@@ -205,7 +192,6 @@ export const MakeAdminBtn = () => {
 
 export const RoomShow = (props: ShowProps) => {
   const translate = useTranslate();
-  const record = useRecordContext();
   return (
     <Show {...props} actions={<RoomShowActions />} title={<RoomTitle />}>
       <TabbedShowLayout>
@@ -215,11 +201,10 @@ export const RoomShow = (props: ShowProps) => {
           <RaTextField source="name" />
           <RaTextField source="topic" />
           <RaTextField source="canonical_alias" />
-          <ReferenceField source="creator" reference="users">
+          <ReferenceField source="creator" reference="users" link="show">
             <RaTextField source="id" />
           </ReferenceField>
         </Tab>
-
         <Tab label="synapseadmin.rooms.tabs.detail" icon={<PageviewIcon />} path="detail">
           <RaTextField source="joined_members" />
           <RaTextField source="joined_local_members" />
@@ -228,11 +213,10 @@ export const RoomShow = (props: ShowProps) => {
           <RaTextField source="version" />
           <RaTextField source="encryption" emptyText={translate("resources.rooms.enums.unencrypted")} />
         </Tab>
-
         <Tab label="synapseadmin.rooms.tabs.members" icon={<UserIcon />} path="members">
           <MakeAdminBtn />
           <ReferenceManyField reference="room_members" target="room_id" label={false}>
-            <Datagrid sx={{ width: "100%" }} rowClick={id => "/users/" + id} bulkActionButtons={false}>
+            <Datagrid sx={{ width: "100%" }} rowClick={id => `/users/${id}/show`} bulkActionButtons={false}>
               <RaTextField source="id" sortable={false} label="resources.users.fields.id" />
               <ReferenceField
                 label="resources.users.fields.displayname"
@@ -246,7 +230,6 @@ export const RoomShow = (props: ShowProps) => {
             </Datagrid>
           </ReferenceManyField>
         </Tab>
-
         <Tab label="synapseadmin.rooms.tabs.media" icon={<PermMediaIcon />} path="media">
           <Alert severity="warning">{translate("resources.room_media.helper.info")}</Alert>
           <ReferenceManyField reference="room_media" target="room_id" label={false}>
@@ -256,7 +239,6 @@ export const RoomShow = (props: ShowProps) => {
             </Datagrid>
           </ReferenceManyField>
         </Tab>
-
         <Tab label="synapseadmin.rooms.tabs.permission" icon={<VisibilityIcon />} path="permission">
           <BooleanField source="federatable" />
           <BooleanField source="public" />
@@ -266,48 +248,26 @@ export const RoomShow = (props: ShowProps) => {
               { id: "public", name: "resources.rooms.enums.join_rules.public" },
               { id: "knock", name: "resources.rooms.enums.join_rules.knock" },
               { id: "invite", name: "resources.rooms.enums.join_rules.invite" },
-              {
-                id: "private",
-                name: "resources.rooms.enums.join_rules.private",
-              },
+              { id: "private", name: "resources.rooms.enums.join_rules.private" },
             ]}
           />
           <SelectField
             source="guest_access"
             choices={[
-              {
-                id: "can_join",
-                name: "resources.rooms.enums.guest_access.can_join",
-              },
-              {
-                id: "forbidden",
-                name: "resources.rooms.enums.guest_access.forbidden",
-              },
+              { id: "can_join", name: "resources.rooms.enums.guest_access.can_join" },
+              { id: "forbidden", name: "resources.rooms.enums.guest_access.forbidden" },
             ]}
           />
           <SelectField
             source="history_visibility"
             choices={[
-              {
-                id: "invited",
-                name: "resources.rooms.enums.history_visibility.invited",
-              },
-              {
-                id: "joined",
-                name: "resources.rooms.enums.history_visibility.joined",
-              },
-              {
-                id: "shared",
-                name: "resources.rooms.enums.history_visibility.shared",
-              },
-              {
-                id: "world_readable",
-                name: "resources.rooms.enums.history_visibility.world_readable",
-              },
+              { id: "invited", name: "resources.rooms.enums.history_visibility.invited" },
+              { id: "joined", name: "resources.rooms.enums.history_visibility.joined" },
+              { id: "shared", name: "resources.rooms.enums.history_visibility.shared" },
+              { id: "world_readable", name: "resources.rooms.enums.history_visibility.world_readable" },
             ]}
           />
         </Tab>
-
         <Tab label={translate("resources.room_state.name", { smart_count: 2 })} icon={<EventIcon />} path="state">
           <ReferenceManyField reference="room_state" target="room_id" label={false}>
             <Datagrid sx={{ width: "100%" }} bulkActionButtons={false}>
@@ -318,20 +278,14 @@ export const RoomShow = (props: ShowProps) => {
                 sortable={false}
                 render={record => `${JSON.stringify(record.content, null, 2)}`}
               />
-              <ReferenceField source="sender" reference="users" sortable={false}>
+              <ReferenceField source="sender" reference="users" sortable={false} link="show">
                 <RaTextField source="id" />
               </ReferenceField>
             </Datagrid>
           </ReferenceManyField>
         </Tab>
-
         <Tab label="resources.forward_extremities.name" icon={<FastForwardIcon />} path="forward_extremities">
-          <Box
-            sx={{
-              fontFamily: "Roboto, Helvetica, Arial, sans-serif",
-              margin: "0.5em",
-            }}
-          >
+          <Box sx={{ fontFamily: "Roboto, Helvetica, Arial, sans-serif", margin: "0.5em" }}>
             {translate("resources.rooms.helper.forward_extremities")}
           </Box>
           <ReferenceManyField reference="forward_extremities" target="room_id" label={false}>
@@ -367,14 +321,392 @@ const roomFilters = [<SearchInput source="search_term" alwaysOn />];
 
 const RoomListActions = () => (
   <TopToolbar>
-    {/*<Button label="resources.rooms.action.create_room">*/}
-    {/*<AddIcon />*/}
     <CreateButton label="resources.rooms.action.create_room" />
-    {/*</Button>*/}
     <SelectColumnsButton />
     <ExportButton />
   </TopToolbar>
 );
+
+
+// Component for selecting the parent space
+const ParentSpaceInput = () => {
+  const dataProvider = useDataProvider();
+
+  const { data: spaces, isLoading } = useQuery({
+    queryKey: ['spaces_for_feed'],
+    // @ts-ignore - TypeScript is not aware of our custom method, which is fine
+    queryFn: () => dataProvider.getRoomsByCategory('space'),
+  });
+
+  if (isLoading) return <Loading />;
+
+  return (
+    <AutocompleteInput
+      source="parent_id"
+      label="resources.rooms.fields.parent_space"
+      choices={spaces || []}
+      optionText="name"
+      optionValue="id"
+      fullWidth
+      helperText="resources.rooms.fields.parent_space_helper"
+    />
+  );
+};
+
+// Component for conditional rendering of form fields
+const ConditionalFormInputs = ({ users }) => {
+    const roomType = useWatch({ name: "room_type" });
+
+    switch (roomType) {
+        case "department":
+        case "group":
+            return (
+                <>
+                    {roomType === 'department' && <SubspaceTreeInput source="subspaces" fullWidth users={users} />}
+                </>
+            );
+        case "feed":
+            return <ParentSpaceInput />;
+        default:
+            return null;
+    }
+};
+
+// Conditional rendering for "Groups" fields
+const ConditionalGroupFields =() => {
+  const roomType = useWatch({ name: "room_type" });
+  const translate = useTranslate();
+  const minUsers = 2;
+  const minChats = 2;
+  const maxUsers = 200;
+  const maxChats = 20;
+
+  if (roomType !== "group") {
+    return null;
+  }
+
+  return (
+    // Use Box with display="flex" for horizontal layout
+    <Box display="flex" sx={{ gap: 2, width: '100%' }}>
+      <ClampedNumberInput
+        source="max_users"
+        label={translate("resources.rooms.fields.max_users")}
+        helperText={translate("resources.rooms.helper.max_users")}
+        min={minUsers}
+        max={maxUsers}
+        validate={[number(), minValue(minUsers), maxValue(maxUsers)]}
+        fullWidth
+      />
+      <ClampedNumberInput
+        source="max_chats"
+        label={translate("resources.rooms.fields.max_chats")}
+        helperText={translate("resources.rooms.helper.max_chats")}
+        min={minChats}
+        max={maxChats}
+        validate={[number(), minValue(minChats), maxValue(maxChats)]}
+        fullWidth
+      />
+    </Box>
+  );
+};
+
+export const RoomCreate = (props: any) => {
+  const currentAdminId = localStorage.getItem("user_id");
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const redirect = useRedirect();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const {
+    data: users,
+    isLoading,
+    error,
+  } = useGetList("users", {
+    pagination: { page: 1, perPage: 1000 },
+    sort: { field: "name", order: "ASC" },
+  });
+
+  const handleSave = async (values: any) => {
+    setIsSaving(true);
+    const adminCreatorId = currentAdminId;
+
+    if (values.room_type === 'feed') {
+        // Create a Feed
+        try {
+            const feedCreatorId = values.creator_id || adminCreatorId;
+
+            notify('Creating the feed room...', { type: 'info' });
+
+            const powerLevelUsers = { [feedCreatorId]: 100 };
+            if (adminCreatorId !== feedCreatorId) {
+                powerLevelUsers[adminCreatorId] = 100;
+            }
+
+            const payload = {
+                preset: "public_chat",
+                name: values.name,
+                topic: values.topic,
+                power_level_content_override: { events_default: 100, users: powerLevelUsers },
+                creation_content: { "custom.room_category": "chat", "custom.chat_type": "feed" },
+                creator: feedCreatorId,
+                meta: { impersonate: adminCreatorId },
+            };
+
+            // @ts-ignore
+            const { data: createdFeed } = await dataProvider.create("rooms", { data: payload });
+            notify(`Feed "${values.name}" created successfully.`, { type: "success" });
+
+            // Делегирование прав, если создатель не админ
+            if (feedCreatorId !== adminCreatorId) {
+                notify(`Delegating permissions to ${feedCreatorId}...`, { type: 'info' });
+                // @ts-ignore
+                await dataProvider.joinRoom(createdFeed.id, feedCreatorId, adminCreatorId);
+                // @ts-ignore
+                await dataProvider.makeRoomAdmin(createdFeed.id, feedCreatorId);
+                notify(`Permissions for feed "${values.name}" delegated.`, { type: "success" });
+            }
+
+            // Привязка к родительскому пространству
+            if (values.parent_id) {
+                notify(`Linking feed to parent space...`, { type: 'info' });
+                // @ts-ignore
+                await dataProvider.sendStateEvent(
+                    values.parent_id, "m.space.child", createdFeed.id,
+                    { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId
+                );
+            }
+
+            // --- НОВАЯ ЛОГИКА: АВТОМАТИЧЕСКОЕ ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЕЙ ---
+            let userIdsToInvite: string[] = [];
+
+            if (values.parent_id) {
+                // Случай 1: Лента создана в пространстве. Собираем пользователей из иерархии.
+                notify('Gathering users from the space hierarchy...', { type: 'info' });
+                try {
+                    // @ts-ignore - вызываем наш новый метод
+                    const { data: hierarchyUsers } = await dataProvider.getHierarchyMembers(values.parent_id);
+                    userIdsToInvite = hierarchyUsers;
+                    notify(`Found ${userIdsToInvite.length} users to add.`, { type: 'info' });
+                } catch (e: any) {
+                    notify(`Could not get hierarchy members: ${e.message}`, { type: 'error' });
+                }
+            } else {
+                // Случай 2: Лента на уровне федерации. Собираем всех пользователей.
+                notify('Gathering all server users...', { type: 'info' });
+                try {
+                    const { data: allUsers } = await dataProvider.getList('users', {
+                        pagination: { page: 1, perPage: 10000 }, // Достаточно большое число
+                        sort: { field: 'name', order: 'ASC' },
+                        filter: {}
+                    });
+                    userIdsToInvite = allUsers.map((u: any) => u.id);
+                    notify(`Found ${userIdsToInvite.length} users to add.`, { type: 'info' });
+                } catch (e: any) {
+                    notify(`Could not get all users: ${e.message}`, { type: 'error' });
+                }
+            }
+
+            if (userIdsToInvite.length > 0) {
+                notify(`Starting to add ${userIdsToInvite.length} users to the feed. This may take a while...`, { type: 'info', autoHideDuration: 5000 });
+                let successCount = 0;
+                for (const userId of userIdsToInvite) {
+                    // Пропускаем создателя и админа, т.к. они уже в комнате или будут добавлены с правами
+                    if (userId === feedCreatorId || userId === adminCreatorId) {
+                        continue;
+                    }
+                    try {
+                        // Используем joinRoom для принудительного добавления. Права не делегируются.
+                        // @ts-ignore
+                        await dataProvider.joinRoom(createdFeed.id, userId, adminCreatorId);
+                        successCount++;
+                    } catch (e: any) {
+                        notify(`Failed to add user ${userId}: ${e.message}`, { type: 'warning' });
+                    }
+                }
+                notify(`Successfully added ${successCount} out of ${userIdsToInvite.length} users to the feed.`, { type: 'success' });
+            }
+            // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+
+            redirect("/rooms");
+
+        } catch (e: any) {
+             notify(`Error creating feed: ${e.message}`, { type: "error" });
+        } finally {
+             setIsSaving(false);
+        }
+    } else {
+        // Create a hierarchy
+        const mainDelegateUserId = values.creator_id || adminCreatorId;
+        const { subspaces, ...mainSpaceData } = values;
+
+        const delegatePermissions = async (roomId: string, roomName: string, delegateToUserId: string) => {
+            if (delegateToUserId !== adminCreatorId) {
+              try {
+                // @ts-ignore
+                await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);
+                // @ts-ignore
+                await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId);
+                notify(`Permissions for "${roomName}" delegated to ${delegateToUserId}.`, { type: "info" });
+              } catch (e: any) {
+                notify(`Failed to delegate permissions for "${roomName}": ${e.message}`, { type: "warning" });
+              }
+            }
+        };
+
+        const setRoomName = async (roomId: string, newName: string) => {
+            try {
+              // @ts-ignore
+              await dataProvider.sendStateEvent(roomId, "m.room.name", "", { name: newName }, adminCreatorId);
+              notify(`Room renamed to "${newName}".`, { type: "info" });
+            } catch (e: any) {
+              notify(`Failed to rename room: ${e.message}`, { type: "warning" });
+            }
+        };
+
+        const createAndSetupRecursive = async (
+            spaceNode: any, parentId: string | null, ancestors: string[],
+            inheritedCreatorId: string, parentNamePrefix: string = "", parentAliasPrefix: string = ""
+        ) => {
+            const shortNodeName = spaceNode.name;
+            if (!shortNodeName) return null;
+
+            const nodeCreatorId = spaceNode.creator_id || inheritedCreatorId;
+            const hierarchicalName = parentNamePrefix ? `${parentNamePrefix} / ${shortNodeName}` : shortNodeName;
+            const nodeAbbreviation = generateAbbreviation(shortNodeName);
+            const hierarchicalAlias = parentAliasPrefix ? `${parentAliasPrefix}.${nodeAbbreviation}` : nodeAbbreviation;
+            const preset = "private_chat";
+
+            const payload = {
+              name: hierarchicalName, room_alias_name: hierarchicalAlias, preset,
+              creation_content: { type: "m.space", "custom.room_category": "space" },
+              creator: nodeCreatorId, meta: { impersonate: adminCreatorId }, room_type: values.room_type,
+            };
+
+            // @ts-ignore
+            const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
+            notify(`Space "${hierarchicalName}" created.`, { type: "info" });
+
+            await setRoomName(createdSpace.id, shortNodeName);
+            await delegatePermissions(createdSpace.id, shortNodeName, nodeCreatorId);
+
+            try {
+              // @ts-ignore
+              const childRooms = await dataProvider.getRoomChildrenWithDetails(createdSpace.id);
+              for (const child of childRooms) {
+                const chatTypeAbbr = child.chat_type === "private_chat" ? "ЗЧ" : "ОЧ";
+                const finalChatName = generateChatName(hierarchicalName, chatTypeAbbr);
+                await setRoomName(child.room_id, finalChatName);
+                await delegatePermissions(child.room_id, finalChatName, nodeCreatorId);
+              }
+            } catch (e: any) {
+              notify(`Failed to process child chats for "${shortNodeName}"`, { type: "error" });
+            }
+
+            if (parentId) {
+              // @ts-ignore
+              await dataProvider.sendStateEvent(parentId, "m.space.child", createdSpace.id,
+                { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId
+              );
+
+              const userToJoin = nodeCreatorId;
+              const allAncestors = [...ancestors, parentId];
+
+              for (const ancestorId of allAncestors) {
+                try {
+                  // @ts-ignore
+                  const ancestorChildren = await dataProvider.getRoomChildrenWithDetails(ancestorId);
+
+                  if (ancestorId === parentId) {
+                    const privateChat = ancestorChildren.find((c: any) => c.chat_type === 'private_chat');
+                    if (privateChat) {
+                      notify(`Adding ${userToJoin} to the parent's private chat...`, { type: "info" });
+                      // @ts-ignore
+                      await dataProvider.joinRoom(privateChat.room_id, userToJoin, adminCreatorId);
+                    }
+                  }
+
+                  const publicChats = ancestorChildren.filter((c: any) => c.chat_type === 'public_chat');
+                  for (const publicChat of publicChats) {
+                    notify(`Adding ${userToJoin} to public chat ${publicChat.room_id}...`, { type: "info" });
+                    // @ts-ignore
+                    await dataProvider.joinRoom(publicChat.room_id, userToJoin, adminCreatorId);
+                  }
+                } catch (e: any) {
+                  notify(`Error adding user to ancestor chats ${ancestorId}: ${e.message}`, { type: "error" });
+                }
+              }
+            }
+
+            if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
+              for (const childNode of spaceNode.subspaces) {
+                const newAncestors = parentId ? [...ancestors, parentId] : [];
+                await createAndSetupRecursive(
+                  childNode, createdSpace.id, newAncestors,
+                  nodeCreatorId, hierarchicalName, hierarchicalAlias
+                );
+              }
+            }
+            return createdSpace.id;
+        };
+
+
+        try {
+          await createAndSetupRecursive(
+            { ...mainSpaceData, subspaces: subspaces }, null, [], mainDelegateUserId, "", ""
+          );
+          notify("The entire structure was created successfully!", { type: "success" });
+          redirect("/rooms");
+        } catch (error: any) {
+          notify(`Critical error during creation: ${error.message || "Unknown error"}`, { type: "error" });
+        } finally {
+          setIsSaving(false);
+        }
+    }
+  };
+
+  if (isLoading) return <Loading />;
+  if (error) return <p>Error loading users: {error.message}</p>;
+
+  return (
+    <Create
+      {...props}
+      title="resources.rooms.action.create_room_title"
+      mutationOptions={{ onSuccess: () => {} }}
+    >
+      <SimpleForm onSubmit={handleSave} saving={isSaving}>
+        <SelectInput
+          source="room_type"
+          label="resources.rooms.fields.room_type.label"
+          choices={[
+            { id: "department", name: "resources.rooms.fields.room_type.department" },
+            { id: "group", name: "resources.rooms.fields.room_type.group" },
+            { id: "feed", name: "resources.rooms.fields.room_type.feed" },
+          ]}
+          defaultValue="department"
+          validate={required()}
+          fullWidth
+        />
+
+        <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
+        <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth />
+
+        <AutocompleteInput
+            source="creator_id"
+            label="resources.rooms.fields.creator"
+            choices={users}
+            optionValue="id"
+            optionText="id"
+            filterToQuery={searchText => ({ name: searchText })}
+            helperText="resources.rooms.helper.creator"
+            defaultValue={currentAdminId}
+            fullWidth
+        />
+
+        <ConditionalFormInputs users={users || []} />
+      </SimpleForm>
+    </Create>
+  );
+};
 
 export const RoomList = (props: ListProps) => {
   const theme = useTheme();
@@ -444,6 +776,7 @@ const resource: ResourceProps = {
   icon: RoomIcon,
   list: RoomList,
   show: RoomShow,
+  create: RoomCreate,
 };
 
 export default resource;
