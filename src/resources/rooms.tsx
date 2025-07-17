@@ -96,17 +96,10 @@ const generateChatName = (hierarchicalName: string, chatType: string): string =>
         const words = part.split(/[\s-]+/);
         return words
             .map(word => {
-                if (!word) return ''; // Skip empty words
-
-                // Check if the word is a number
-                if (isNumeric.test(word)) {
-                    return word; // Return the number as is
-                }
-
+                if (!word) return '';
+                if (isNumeric.test(word)) return word;
                 const lowerCaseWord = word.toLowerCase();
-                if (stopWords.includes(lowerCaseWord)) {
-                    return lowerCaseWord;
-                }
+                if (stopWords.includes(lowerCaseWord)) return lowerCaseWord;
                 return word.charAt(0).toUpperCase();
             })
             .join("");
@@ -327,14 +320,12 @@ const RoomListActions = () => (
   </TopToolbar>
 );
 
-
-// Component for selecting the parent space
 const ParentSpaceInput = () => {
   const dataProvider = useDataProvider();
 
   const { data: spaces, isLoading } = useQuery({
     queryKey: ['spaces_for_feed'],
-    // @ts-ignore - TypeScript is not aware of our custom method, which is fine
+    // @ts-ignore
     queryFn: () => dataProvider.getRoomsByCategory('space'),
   });
 
@@ -353,7 +344,6 @@ const ParentSpaceInput = () => {
   );
 };
 
-// Component for conditional rendering of form fields
 const ConditionalFormInputs = ({ users }) => {
     const roomType = useWatch({ name: "room_type" });
 
@@ -372,7 +362,6 @@ const ConditionalFormInputs = ({ users }) => {
     }
 };
 
-// Conditional rendering for "Groups" fields
 const ConditionalGroupFields =() => {
   const roomType = useWatch({ name: "room_type" });
   const translate = useTranslate();
@@ -386,7 +375,6 @@ const ConditionalGroupFields =() => {
   }
 
   return (
-    // Use Box with display="flex" for horizontal layout
     <Box display="flex" sx={{ gap: 2, width: '100%' }}>
       <ClampedNumberInput
         source="max_users"
@@ -431,32 +419,23 @@ export const RoomCreate = (props: any) => {
     const adminCreatorId = currentAdminId;
 
     if (values.room_type === 'feed') {
-        // Create a Feed
+        // Логика для 'feed' остается без изменений
         try {
             const feedCreatorId = values.creator_id || adminCreatorId;
-
             notify('Creating the feed room...', { type: 'info' });
-
             const powerLevelUsers = { [feedCreatorId]: 100 };
             if (adminCreatorId !== feedCreatorId) {
                 powerLevelUsers[adminCreatorId] = 100;
             }
-
             const payload = {
-                preset: "public_chat",
-                name: values.name,
-                topic: values.topic,
+                preset: "public_chat", name: values.name, topic: values.topic,
                 power_level_content_override: { events_default: 100, users: powerLevelUsers },
                 creation_content: { "custom.room_category": "chat", "custom.chat_type": "feed" },
-                creator: feedCreatorId,
-                meta: { impersonate: adminCreatorId },
+                creator: feedCreatorId, meta: { impersonate: adminCreatorId },
             };
-
             // @ts-ignore
             const { data: createdFeed } = await dataProvider.create("rooms", { data: payload });
             notify(`Feed "${values.name}" created successfully.`, { type: "success" });
-
-            // Делегирование прав, если создатель не админ
             if (feedCreatorId !== adminCreatorId) {
                 notify(`Delegating permissions to ${feedCreatorId}...`, { type: 'info' });
                 // @ts-ignore
@@ -465,25 +444,17 @@ export const RoomCreate = (props: any) => {
                 await dataProvider.makeRoomAdmin(createdFeed.id, feedCreatorId);
                 notify(`Permissions for feed "${values.name}" delegated.`, { type: "success" });
             }
-
-            // Привязка к родительскому пространству
             if (values.parent_id) {
                 notify(`Linking feed to parent space...`, { type: 'info' });
                 // @ts-ignore
-                await dataProvider.sendStateEvent(
-                    values.parent_id, "m.space.child", createdFeed.id,
-                    { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId
-                );
+                await dataProvider.sendStateEvent(values.parent_id, "m.space.child", createdFeed.id,
+                    { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId);
             }
-
-            // --- НОВАЯ ЛОГИКА: АВТОМАТИЧЕСКОЕ ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЕЙ ---
             let userIdsToInvite: string[] = [];
-
             if (values.parent_id) {
-                // Случай 1: Лента создана в пространстве. Собираем пользователей из иерархии.
                 notify('Gathering users from the space hierarchy...', { type: 'info' });
                 try {
-                    // @ts-ignore - вызываем наш новый метод
+                    // @ts-ignore
                     const { data: hierarchyUsers } = await dataProvider.getHierarchyMembers(values.parent_id);
                     userIdsToInvite = hierarchyUsers;
                     notify(`Found ${userIdsToInvite.length} users to add.`, { type: 'info' });
@@ -491,13 +462,11 @@ export const RoomCreate = (props: any) => {
                     notify(`Could not get hierarchy members: ${e.message}`, { type: 'error' });
                 }
             } else {
-                // Случай 2: Лента на уровне федерации. Собираем всех пользователей.
                 notify('Gathering all server users...', { type: 'info' });
                 try {
                     const { data: allUsers } = await dataProvider.getList('users', {
-                        pagination: { page: 1, perPage: 10000 }, // Достаточно большое число
-                        sort: { field: 'name', order: 'ASC' },
-                        filter: {}
+                        pagination: { page: 1, perPage: 10000 },
+                        sort: { field: 'name', order: 'ASC' }, filter: {}
                     });
                     userIdsToInvite = allUsers.map((u: any) => u.id);
                     notify(`Found ${userIdsToInvite.length} users to add.`, { type: 'info' });
@@ -505,37 +474,24 @@ export const RoomCreate = (props: any) => {
                     notify(`Could not get all users: ${e.message}`, { type: 'error' });
                 }
             }
-
             if (userIdsToInvite.length > 0) {
                 notify(`Starting to add ${userIdsToInvite.length} users to the feed. This may take a while...`, { type: 'info', autoHideDuration: 5000 });
-                let successCount = 0;
-                for (const userId of userIdsToInvite) {
-                    // Пропускаем создателя и админа, т.к. они уже в комнате или будут добавлены с правами
-                    if (userId === feedCreatorId || userId === adminCreatorId) {
-                        continue;
-                    }
-                    try {
-                        // Используем joinRoom для принудительного добавления. Права не делегируются.
-                        // @ts-ignore
-                        await dataProvider.joinRoom(createdFeed.id, userId, adminCreatorId);
-                        successCount++;
-                    } catch (e: any) {
-                        notify(`Failed to add user ${userId}: ${e.message}`, { type: 'warning' });
-                    }
-                }
-                notify(`Successfully added ${successCount} out of ${userIdsToInvite.length} users to the feed.`, { type: 'success' });
+                const joinPromises = userIdsToInvite
+                    .filter(userId => userId !== feedCreatorId && userId !== adminCreatorId)
+                    .map(userId => // @ts-ignore
+                         dataProvider.joinRoom(createdFeed.id, userId, adminCreatorId));
+                const results = await Promise.allSettled(joinPromises);
+                const successfulJoins = results.filter(r => r.status === 'fulfilled').length;
+                notify(`Successfully added ${successfulJoins} out of ${userIdsToInvite.length} users to the feed.`, { type: 'success' });
             }
-            // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
-
             redirect("/rooms");
-
         } catch (e: any) {
              notify(`Error creating feed: ${e.message}`, { type: "error" });
         } finally {
              setIsSaving(false);
         }
     } else {
-        // Create a hierarchy
+        // Логика для "department" и "group"
         const mainDelegateUserId = values.creator_id || adminCreatorId;
         const { subspaces, ...mainSpaceData } = values;
 
@@ -564,13 +520,22 @@ export const RoomCreate = (props: any) => {
         };
 
         const createAndSetupRecursive = async (
-            spaceNode: any, parentId: string | null, ancestors: string[],
-            inheritedCreatorId: string, parentNamePrefix: string = "", parentAliasPrefix: string = ""
-        ) => {
+            spaceNode: any,
+            parentId: string | null,
+            ancestors: string[],
+            inheritedCreatorId: string,
+            parentNamePrefix: string = "",
+            parentAliasPrefix: string = ""
+        ): Promise<{ spaceId: string | null; collectedUserIds: Set<string> }> => {
             const shortNodeName = spaceNode.name;
-            if (!shortNodeName) return null;
+            if (!shortNodeName) {
+                return { spaceId: null, collectedUserIds: new Set() };
+            }
 
+            const userIdsInThisSubtree = new Set<string>();
             const nodeCreatorId = spaceNode.creator_id || inheritedCreatorId;
+            userIdsInThisSubtree.add(nodeCreatorId);
+
             const hierarchicalName = parentNamePrefix ? `${parentNamePrefix} / ${shortNodeName}` : shortNodeName;
             const nodeAbbreviation = generateAbbreviation(shortNodeName);
             const hierarchicalAlias = parentAliasPrefix ? `${parentAliasPrefix}.${nodeAbbreviation}` : nodeAbbreviation;
@@ -605,17 +570,13 @@ export const RoomCreate = (props: any) => {
             if (parentId) {
               // @ts-ignore
               await dataProvider.sendStateEvent(parentId, "m.space.child", createdSpace.id,
-                { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId
-              );
-
+                { via: [localStorage.getItem("home_server")], suggested: true }, adminCreatorId);
               const userToJoin = nodeCreatorId;
               const allAncestors = [...ancestors, parentId];
-
               for (const ancestorId of allAncestors) {
                 try {
                   // @ts-ignore
                   const ancestorChildren = await dataProvider.getRoomChildrenWithDetails(ancestorId);
-
                   if (ancestorId === parentId) {
                     const privateChat = ancestorChildren.find((c: any) => c.chat_type === 'private_chat');
                     if (privateChat) {
@@ -624,7 +585,6 @@ export const RoomCreate = (props: any) => {
                       await dataProvider.joinRoom(privateChat.room_id, userToJoin, adminCreatorId);
                     }
                   }
-
                   const publicChats = ancestorChildren.filter((c: any) => c.chat_type === 'public_chat');
                   for (const publicChat of publicChats) {
                     notify(`Adding ${userToJoin} to public chat ${publicChat.room_id}...`, { type: "info" });
@@ -640,20 +600,42 @@ export const RoomCreate = (props: any) => {
             if (spaceNode.subspaces && spaceNode.subspaces.length > 0) {
               for (const childNode of spaceNode.subspaces) {
                 const newAncestors = parentId ? [...ancestors, parentId] : [];
-                await createAndSetupRecursive(
-                  childNode, createdSpace.id, newAncestors,
-                  nodeCreatorId, hierarchicalName, hierarchicalAlias
+                const childResult = await createAndSetupRecursive(
+                  childNode, createdSpace.id, newAncestors, nodeCreatorId,
+                  hierarchicalName, hierarchicalAlias
                 );
+                if (childResult.collectedUserIds) {
+                    childResult.collectedUserIds.forEach(id => userIdsInThisSubtree.add(id));
+                }
               }
             }
-            return createdSpace.id;
-        };
 
+            if (createdSpace.id && userIdsInThisSubtree.size > 0) {
+                const userIdsToInvite = Array.from(userIdsInThisSubtree)
+                    .filter(id => id !== nodeCreatorId && id !== adminCreatorId);
+
+                if (userIdsToInvite.length > 0) {
+                    notify(`Adding ${userIdsToInvite.length} descendant users to "${shortNodeName}"...`, {
+                        type: 'info', autoHideDuration: 2000
+                    });
+                    const joinPromises = userIdsToInvite.map(userId =>
+                        // @ts-ignore
+                        dataProvider.joinRoom(createdSpace.id, userId, adminCreatorId)
+                    );
+                    await Promise.allSettled(joinPromises);
+                }
+            }
+            return { spaceId: createdSpace.id, collectedUserIds: userIdsInThisSubtree };
+        };
 
         try {
           await createAndSetupRecursive(
-            { ...mainSpaceData, subspaces: subspaces }, null, [], mainDelegateUserId, "", ""
+            { ...mainSpaceData, subspaces: subspaces },
+            null,
+            [],
+            mainDelegateUserId
           );
+
           notify("The entire structure was created successfully!", { type: "success" });
           redirect("/rooms");
         } catch (error: any) {
