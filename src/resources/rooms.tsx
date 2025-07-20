@@ -83,8 +83,21 @@ import {
 
 const generateAbbreviation = (name: string): string => {
   if (!name) return "";
+
+  // Регулярное выражение для проверки, состоит ли строка только из цифр
+  const isNumeric = /^\d+$/;
+
   const words = name.split(/[\s-]+/);
-  return words.map(word => word.charAt(0).toLowerCase()).join("");
+
+  return words
+    .map(word => {
+      // Если слово - это число, используем его целиком.
+      // В противном случае, берем первую букву.
+      return isNumeric.test(word)
+        ? word.toLowerCase()
+        : word.charAt(0).toLowerCase();
+    })
+    .join("");
 };
 
 const generateChatName = (hierarchicalName: string, chatType: string): string => {
