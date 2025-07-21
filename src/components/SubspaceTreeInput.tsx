@@ -69,6 +69,15 @@ const SubspaceNode = ({ name, control, remove, level = 0, users }) => {
         </IconButton>
       </Box>
 
+      <TextInput
+        source={`${name}.topic`}
+        label="resources.rooms.fields.topic" // Вам может понадобиться добавить ключ перевода
+        helperText={false}
+        fullWidth
+        multiline
+        // rows={2}
+      />
+
       {/* Добавляем AutocompleteInput для выбора создателя подпространства --> */}
       <AutocompleteInput
         source={`${name}.creator_id`}
@@ -95,7 +104,7 @@ const SubspaceNode = ({ name, control, remove, level = 0, users }) => {
 
       <Button
         label="resources.rooms.fields.subspaces.add_nested"
-        onClick={() => append({ name: "", subspaces: [] })}
+        onClick={() => append({ name: "", topic: "", subspaces: [] })}
         size="small"
         startIcon={<AddCircleIcon />}
         sx={{ marginTop: 1 }}
@@ -127,7 +136,7 @@ export const SubspaceTreeInput = ({ source, fullWidth, users }) => {
         ))}
         <Button
           label="resources.rooms.fields.subspaces.add_top_level"
-          onClick={() => append({ name: "", subspaces: [] })}
+          onClick={() => append({ name: "", topic: "", subspaces: [] })}
           sx={{ marginTop: 2 }}
           startIcon={<AddCircleIcon />}
         ></Button>

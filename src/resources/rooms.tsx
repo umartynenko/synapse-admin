@@ -18,6 +18,7 @@ import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
+import { useRefresh } from "react-admin";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import {
@@ -80,6 +81,9 @@ import {
   RoomDirectoryPublishButton,
   RoomDirectoryUnpublishButton,
 } from "./room_directory";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import CloseIcon from "@mui/icons-material/Close";
 
 const generateAbbreviation = (name: string): string => {
   if (!name) return "";
@@ -211,6 +215,40 @@ export const MakeAdminBtn = () => {
 
 export const RoomShow = (props: ShowProps) => {
   const translate = useTranslate();
+  const record = useRecordContext<Room>();
+  const dataProvider = useDataProvider();
+  const notify = useNotify();
+  const refresh = useRefresh();
+  const [editing, setEditing] = useState(false);
+  const [newName, setNewName] = useState(record?.name || "");
+  const [saving, setSaving] = useState(false);
+  const [, setRerender] = useState(0); // для форс-обновления UI
+
+  const handleSave = async () => {
+    if (!record) return;
+    setSaving(true);
+    try {
+      // @ts-ignore
+      await dataProvider.sendStateEvent(
+        record.room_id,
+        "m.room.name",
+        "",
+        { name: newName },
+        localStorage.getItem("user_id")
+      );
+      notify("Имя пространства обновлено", { type: "success" });
+      setEditing(false);
+      if (record.name !== undefined) record.name = newName; // обновить локальный record
+      setNewName(newName); // обновить поле ввода
+      setRerender(x => x + 1); // форс-обновление UI
+      refresh(); // перезагрузить данные Show view
+    } catch (e: any) {
+      notify(`Ошибка: ${e.message}`, { type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Show {...props} actions={<RoomShowActions />} title={<RoomTitle />}>
       <TabbedShowLayout>
@@ -588,6 +626,7 @@ export const RoomCreate = (props: any) => {
           creator: nodeCreatorId,
           meta: { impersonate: adminCreatorId },
           room_type: values.room_type,
+          topic: spaceNode.topic || undefined,
         };
 
         // @ts-ignore
@@ -721,7 +760,7 @@ export const RoomCreate = (props: any) => {
         />
 
         <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
-        <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth />
+        <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth multiline/>
 
         <AutocompleteInput
           source="creator_id"
