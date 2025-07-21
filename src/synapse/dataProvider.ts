@@ -49,7 +49,7 @@ const jsonClient = async (url: string, options: Options = {}) => {
 };
 
 const filterUndefined = (obj: Record<string, any>) => {
-  return Object.fromEntries(Object.entries(obj).filter(([key, value]) => value !== undefined));
+  return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== undefined && value !== ''));
 };
 
 interface Action {
@@ -691,40 +691,67 @@ const baseDataProvider: SynapseDataProvider = {
   },
 
   getList: async (resource, params) => {
-    console.log("getList " + resource);
-    const { user_id, name, guests, deactivated, locked, suspended, search_term, destination, valid } = params.filter;
+    console.log(`getList ${resource}`, params);
+
     const { page, perPage } = params.pagination as PaginationPayload;
     const { field, order } = params.sort as SortPayload;
     const from = (page - 1) * perPage;
-    const query = {
-      from: from,
-      limit: perPage,
-      user_id: user_id,
-      search_term: search_term,
-      name: name,
-      destination: destination,
-      guests: guests,
-      deactivated: deactivated,
-      locked: locked,
-      suspended: suspended,
-      valid: valid,
-      order_by: field,
-      dir: getSearchOrder(order),
+
+    const filter = { ...params.filter };
+
+    const query: Record<string, any> = {
+        from: from,
+        limit: perPage,
+        order_by: field,
+        dir: getSearchOrder(order),
     };
+
+    // Определяем, какой тип фильтрации на стороне клиента нам нужен
+    let clientSideFilterType: 'chats' | 'spaces' | null = null;
+    if (resource === 'rooms' && 'creation_content.type' in filter) {
+        const roomType = filter['creation_content.type'];
+        if (roomType === 'm.space') {
+            clientSideFilterType = 'spaces';
+        } else if (roomType === null) {
+            clientSideFilterType = 'chats';
+        }
+        // Удаляем фильтр, так как он будет применен на клиенте
+        delete filter['creation_content.type'];
+    }
+
+    Object.assign(query, filter);
+
     const homeserver = localStorage.getItem("base_url");
-    if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
+    if (!homeserver || !(resource in resourceMap)) throw new Error("Homeserver not set");
 
     const res = resourceMap[resource];
-
     const endpoint_url = homeserver + res.path;
+
     const url = `${endpoint_url}?${new URLSearchParams(filterUndefined(query)).toString()}`;
 
     const { json } = await jsonClient(url);
-    const formattedData = await json[res.data].map(res.map);
+
+    let data = json[res.data];
+    let total = res.total(json, from, perPage);
+
+    // Применяем фильтрацию на стороне клиента, если это необходимо
+    if (clientSideFilterType) {
+        if (clientSideFilterType === 'chats') {
+            // Оставляем комнаты, у которых НЕТ типа (это чаты)
+            data = data.filter((room: any) => !room.room_type);
+        } else if (clientSideFilterType === 'spaces') {
+            // Оставляем комнаты, у которых тип РАВЕН 'm.space'
+            data = data.filter((room: any) => room.room_type === 'm.space');
+        }
+        // Корректируем total для пагинации. Это компромисс при клиентской фильтрации.
+        total = data.length;
+    }
+
+    const formattedData = data.map((item: any) => res.map(item));
 
     return {
-      data: formattedData,
-      total: res.total(json, from, perPage),
+        data: formattedData,
+        total: total,
     };
   },
 
