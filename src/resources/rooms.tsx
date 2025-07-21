@@ -884,8 +884,8 @@ const RoomLists = (props: ListProps) => {
   return (
     <Fragment>
       <Tabs value={tab} onChange={handleChange} aria-label="room and space tabs">
-        <Tab label={translate("resources.rooms.tabs.spaces")} />
-        <Tab label={translate("resources.rooms.tabs.chats")} />
+        <Tab label={translate("synapseadmin.rooms.tabs.spaces")} />
+        <Tab label={translate("synapseadmin.rooms.tabs.chats")} />
       </Tabs>
       {tab === 1 && <ChatList {...props} />}
       {tab === 0 && <SpaceList {...props} />}
