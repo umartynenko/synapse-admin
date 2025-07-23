@@ -13,6 +13,7 @@ import {
   withLifecycleCallbacks,
 } from "react-admin";
 
+import { generateChatName } from "../resources/rooms";
 import { GetConfig } from "../utils/config";
 import { displayError, MatrixError } from "../utils/error";
 import { returnMXID } from "../utils/mxid";
@@ -367,12 +368,13 @@ export interface SynapseDataProvider extends DataProvider {
   getRoomChildren: (roomId: string) => Promise<string[]>;
   getRoomChildrenWithDetails: (roomId: string) => Promise<any[]>;
   getHierarchyMembers: (roomId: string) => Promise<{ data: string[] }>;
+  getSpaceAncestors: (roomId: string) => Promise<Room[]>;
   sendStateEvent: (
     roomId: string,
     eventType: string,
     stateKey: string,
     content: object,
-    impersonateId?: string
+    impersonateId?: string,
   ) => Promise<any>;
 }
 
@@ -805,7 +807,7 @@ const baseDataProvider: SynapseDataProvider = {
           }
         }
         return jsonClient(`${endpoint_url}/${encodeURIComponent(id)}`);
-      })
+      }),
     );
     return {
       data: responses.map(({ json }) => res.map(json)),
@@ -857,68 +859,120 @@ const baseDataProvider: SynapseDataProvider = {
   },
 
   /**
-   * Обновляет существующий ресурс.
+   * Обновляет запись ресурса, с особой логикой для иерархических пространств.
    *
-   * Этот метод реализует контракт `update` для `react-admin`. Он обрабатывает
-   * обновление ресурсов, применяя особую логику для определенных из них.
+   * Этот метод реализует стандартный контракт `update` для `react-admin`.
+   * Для большинства ресурсов он выполняет простой PUT-запрос. Однако для ресурса `rooms`
+   * он запускает сложный процесс обновления, который может затронуть множество связанных комнат.
    *
-   * **Особая логика для 'rooms':**
-   * Вместо одного PUT-запроса, обновление комнаты инициирует отправку одного или нескольких
-   * событий состояния (`m.room.name`, `m.room.topic`) в Matrix. Это позволяет
-   * гранулярно обновлять свойства комнаты, такие как название и тема, прямо из формы
-   * редактирования. Функция отправляет эти события параллельно с помощью `Promise.all`.
+   * **Логика для ресурса 'rooms':**
+   * 1.  **Обновление основной записи:** Сначала метод обновляет имя (`m.room.name`) и/или
+   *     описание (`m.room.topic`) самой редактируемой комнаты (пространства или чата),
+   *     отправляя соответствующие state events.
+   *
+   * 2.  **Иерархическое обновление (только для пространств):** Если редактируемая запись
+   *     является пространством (`isSpace`) и её имя было изменено, запускается
+   *     рекурсивное обновление всех дочерних элементов в иерархии.
+   *     - **Построение пути:** С помощью `getSpaceAncestors` определяется полный иерархический
+   *       путь к родителям редактируемого пространства (например, "Главный офис / Департамент ИТ").
+   *     - **Рекурсивный обход (`updateSubtree`):**
+   *       - Для каждого пространства в поддереве формируется новое полное иерархическое имя.
+   *       - Все дочерние *чаты* этого пространства переименовываются в соответствии с новым
+   *         иерархическим именем (например, `ГО.ДИ.Отдел разработки ОЧ`).
+   *       - Функция рекурсивно вызывается для каждого дочернего *пространства*.
    *
    * **Стандартная логика:**
-   * для всех остальных ресурсов выполняется стандартный HTTP PUT-запрос
-   * к соответствующему эндпоинту с новыми данными.
+   * Для всех остальных ресурсов выполняется стандартный HTTP PUT-запрос к соответствующему
+   * эндпоинту API для обновления записи.
    *
    * @async
-   * @method update
    * @param {string} resource - Имя ресурса для обновления (например, 'users', 'rooms').
-   * @param {UpdateParams} params - Параметры для операции обновления, содержащие `id` и `data` ресурса.
-   * @returns {Promise<{data: RaRecord}>} Промис, который разрешается объектом, содержащим обновленную запись.
+   * @param {UpdateParams} params - Параметры для обновления, предоставляемые react-admin.
+   * @returns {Promise<{data: RaRecord}>} Промис, который разрешается с обновленными данными записи.
+   * @throws {Error} Выбрасывает ошибку, если homeserver не установлен или ресурс неизвестен.
    */
-  update: async (resource, params) => {
-    console.log("update " + resource, params);
-    const homeserver = localStorage.getItem("base_url");
-    if (!homeserver || !(resource in resourceMap)) throw new Error("Homeserver not set");
-
-    // --- НАЧАЛО ИЗМЕНЕНИЙ ---
-    // Специальная логика для обновления комнат (пространств)
+  update: async (resource, params: UpdateParams) => {
     if (resource === "rooms") {
       const { id, data, previousData } = params;
-      const currentAdminId = localStorage.getItem("user_id");
-      const promises = [];
+      const roomId = id.toString();
+      const newName = data.name;
+      const oldName = previousData.name;
+      const newTopic = data.topic;
+      const isSpace = previousData.room_type === "m.space";
 
-      // Проверяем, изменилось ли название, и добавляем обещание для его обновления
-      if (data.name !== previousData.name && data.name) {
-        promises.push(
-          baseDataProvider.sendStateEvent(id.toString(), "m.room.name", "", { name: data.name }, currentAdminId)
-        );
+      console.log(`[Update Start] Room: ${roomId}, New Name: ${newName}, Is Space: ${isSpace}`);
+
+      // Шаг 1: Обновляем состояние самого редактируемого пространства
+      const updatePromises = [];
+      if (newName && newName !== oldName) {
+        updatePromises.push(baseDataProvider.sendStateEvent(roomId, "m.room.name", "", { name: newName }));
+      }
+      if (newTopic !== previousData.topic) {
+        updatePromises.push(baseDataProvider.sendStateEvent(roomId, "m.room.topic", "", { topic: newTopic || "" }));
       }
 
-      // Проверяем, изменилась ли тема, и добавляем обещание для ее обновления
-      if (data.topic !== previousData.topic) {
-        promises.push(
-          baseDataProvider.sendStateEvent(
-            id.toString(),
-            "m.room.topic",
-            "",
-            { topic: data.topic || "" }, // Отправляем пустую строку, если тема удалена
-            currentAdminId
-          )
-        );
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+        console.log(`[Update] Состояние основного пространства ${roomId} обновлено.`);
       }
 
-      // Дожидаемся выполнения всех обещаний
-      await Promise.all(promises);
+      // Шаг 2: Если это пространство и его имя изменилось, запускаем рекурсивное обновление иерархии
+      if (isSpace && newName && newName !== oldName) {
+        console.log(`[Update] Имя пространства изменилось. Запуск обновления иерархии.`);
 
-      // React-admin ожидает получить обновленную запись в ответе
+        const updateSubtree = async (spaceId: string, parentHierarchicalName: string): Promise<void> => {
+          // Для редактируемого пространства используем новое имя. Для всех дочерних — запрашиваем их текущее имя, чтобы избежать использования устаревших данных.
+          const currentShortName =
+            spaceId === roomId ? newName : (await baseDataProvider.getOne("rooms", { id: spaceId })).data.name;
+
+          const currentHierarchicalName = parentHierarchicalName
+            ? `${parentHierarchicalName} / ${currentShortName}`
+            : currentShortName;
+
+          console.log(`[Subtree] Обработка: ${spaceId} (${currentShortName}). Полный путь: ${currentHierarchicalName}`);
+
+          // ВАЖНО: getRoomChildrenWithDetails - это кастомный метод. Убедитесь, что он правильно реализован на бэкенде.
+          const childRooms = await baseDataProvider.getRoomChildrenWithDetails(spaceId);
+
+          // Переименовываем дочерние чаты
+          const chatPromises = childRooms
+            .filter(child => child.chat_type) // только чаты
+            .map(childChat => {
+              const chatTypeAbbr = childChat.chat_type === "private_chat" ? "ЗЧ" : "ОЧ";
+              const newChatName = generateChatName(currentHierarchicalName, chatTypeAbbr);
+              console.log(`[Subtree] Переименование чата ${childChat.room_id} в "${newChatName}"`);
+              return baseDataProvider.sendStateEvent(childChat.room_id, "m.room.name", "", { name: newChatName });
+            });
+          await Promise.all(chatPromises);
+
+          // Рекурсивно обрабатываем дочерние пространства
+          const childSpaces = childRooms.filter(child => !child.chat_type); // только пространства
+          for (const childSpace of childSpaces) {
+            await updateSubtree(childSpace.room_id, currentHierarchicalName);
+          }
+        };
+
+        // Находим всех предков, чтобы построить корректный родительский путь
+        const ancestors = await baseDataProvider.getSpaceAncestors(roomId);
+        console.log(
+          "[Update] Найденные предки:",
+          ancestors.map(a => a.name),
+        );
+
+        const parentHierarchicalName = ancestors.map(a => a.name).join(" / ");
+        console.log(`[Update] Стартовый путь от родителей: "${parentHierarchicalName}"`);
+
+        // Запускаем рекурсивное обновление
+        await updateSubtree(roomId, parentHierarchicalName);
+        console.log("[Update] Обновление иерархии завершено.");
+      }
+
       return { data: { ...previousData, ...data, id } };
     }
-    // --- КОНЕЦ ИЗМЕНЕНИЙ ---
 
-    // Стандартная логика для всех остальных ресурсов
+    // Стандартная логика для остальных ресурсов
+    const homeserver = localStorage.getItem("base_url");
+    if (!homeserver || !(resource in resourceMap)) throw new Error("Homeserver not set");
     const res = resourceMap[resource];
     const endpoint_url = homeserver + res.path;
     const { json } = await jsonClient(`${endpoint_url}/${encodeURIComponent(params.id)}`, {
@@ -926,6 +980,81 @@ const baseDataProvider: SynapseDataProvider = {
       body: JSON.stringify(params.data, filterNullValues),
     });
     return { data: res.map(json) };
+  },
+
+  /**
+   * Находит и возвращает всех предков (родительские пространства) для указанной комнаты.
+   *
+   * Функция итеративно поднимается по иерархии пространств, начиная с `roomId`.
+   * На каждом шаге она запрашивает state-события текущей комнаты, находит событие
+   * `m.space.parent`, которое указывает на ID родительского пространства. Затем
+   * запрашиваются детали этого родителя, и он добавляется в начало массива предков.
+   * Процесс повторяется до тех пор, пока не будет достигнут корень иерархии (пространство без родителя).
+   *
+   * @async
+   * @param {string} roomId - ID комнаты или пространства, для которого нужно найти предков.
+   * @returns {Promise<Room[]>} Промис, который разрешается массивом объектов `Room`.
+   * Массив отсортирован от самого верхнего предка (корня) до прямого родителя `roomId`.
+   * Если предков нет, возвращается пустой массив.
+   */
+  getSpaceAncestors: async (roomId: string): Promise<Room[]> => {
+    const ancestors: Room[] = [];
+    let currentRoomId: string | null = roomId;
+
+    while (currentRoomId) {
+      const stateUrl = `${localStorage.getItem("base_url")}/_synapse/admin/v1/rooms/${encodeURIComponent(currentRoomId)}/state`;
+      const { json: stateJson } = await jsonClient(stateUrl);
+      const stateEvents = stateJson.state || [];
+
+      // Ищем событие, указывающее на родителя
+      const parentEvent = stateEvents.find(event => event.type === "m.space.parent" && event.state_key);
+      const parentId = parentEvent ? parentEvent.state_key : null;
+
+      if (parentId) {
+        try {
+          // Запрашиваем детали родителя, чтобы получить его имя
+          const parentDetailsUrl = `${localStorage.getItem("base_url")}/_synapse/admin/v1/rooms/${encodeURIComponent(parentId)}`;
+          const { json: parentJson } = await jsonClient(parentDetailsUrl);
+          // Добавляем родителя в начало массива, чтобы сохранить правильный порядок (от корня к прямому родителю)
+          ancestors.unshift(parentJson as Room);
+          currentRoomId = parentId;
+        } catch (e) {
+          console.error(`Не удалось получить детали родительского пространства ${parentId}`, e);
+          currentRoomId = null; // Прерываем цикл в случае ошибки
+        }
+      } else {
+        currentRoomId = null; // Больше родителей нет
+      }
+    }
+    return ancestors;
+  },
+
+  /**
+   * Получает детальную информацию о прямых дочерних элементах (комнатах и пространствах) для указанного пространства.
+   *
+   * Эта функция обращается к *кастомному* эндпоинту Synapse Admin API (`/room_children/{roomId}`),
+   * который должен быть реализован на стороне сервера. В отличие от `getRoomChildren`,
+   * этот метод возвращает не просто ID, а массив объектов с подробной информацией
+   * о каждом дочернем элементе, включая его ID, имя, тип чата и другие детали.
+   *
+   * @async
+   * @param {string} roomId - ID родительского пространства, для которого нужно получить дочерние элементы.
+   * @returns {Promise<any[]>} Промис, который разрешается массивом объектов, описывающих дочерние комнаты.
+   * В случае ошибки или отсутствия дочерних элементов возвращает пустой массив.
+   * Пример объекта в массиве: `{ room_id: string, name: string, chat_type: "private_chat" | "public_chat" | null, ... }`
+   */
+  getRoomChildrenWithDetails: async (roomId: string): Promise<any[]> => {
+    const base_url = localStorage.getItem("base_url");
+    // Этот эндпоинт /room_children/ является кастомным для вашей сборки.
+    // Убедитесь, что он работает и возвращает массив { room_id, name, chat_type, ... }
+    const endpoint_url = `${base_url}/_synapse/admin/v1/room_children/${encodeURIComponent(roomId)}`;
+    try {
+      const { json } = await jsonClient(endpoint_url);
+      return json.children || [];
+    } catch (error) {
+      console.error(`Ошибка при получении дочерних комнат для ${roomId}:`, error);
+      return [];
+    }
   },
 
   create: async (resource, params) => {
@@ -999,7 +1128,7 @@ const baseDataProvider: SynapseDataProvider = {
           method: cre.method,
           body: JSON.stringify(cre.body, filterNullValues),
         });
-      })
+      }),
     );
     return { data: responses.map(({ json }) => json) };
   },
@@ -1045,7 +1174,7 @@ const baseDataProvider: SynapseDataProvider = {
             method: "method" in del ? del.method : "DELETE",
             body: "body" in del ? JSON.stringify(del.body) : null,
           });
-        })
+        }),
       );
 
       return {
@@ -1057,8 +1186,8 @@ const baseDataProvider: SynapseDataProvider = {
         params.ids.map(id =>
           jsonClient(`${endpoint_url}/${id}`, {
             method: "DELETE",
-          })
-        )
+          }),
+        ),
       );
       return { data: responses.map(({ json }) => json) };
     }
@@ -1193,18 +1322,6 @@ const baseDataProvider: SynapseDataProvider = {
     return json.rooms || [];
   },
 
-  getRoomChildrenWithDetails: async roomId => {
-    const base_url = localStorage.getItem("base_url");
-    const endpoint_url = `${base_url}/_synapse/admin/v1/room_children/${encodeURIComponent(roomId)}`;
-    try {
-      const { json } = await jsonClient(endpoint_url);
-      return json.children || [];
-    } catch (error) {
-      console.error(`Ошибка при получении дочерних чатов для ${roomId}:`, error);
-      return [];
-    }
-  },
-
   getHierarchyMembers: async (roomId: string) => {
     const base_url = localStorage.getItem("base_url");
     const endpoint_url = `${base_url}/_synapse/admin/v1/hierarchy_members/${encodeURIComponent(roomId)}`;
@@ -1297,7 +1414,7 @@ const baseDataProvider: SynapseDataProvider = {
   },
   getServerNotifications: async (
     serverNotificationsUrl: string,
-    burstCache = false
+    burstCache = false,
   ): Promise<ServerNotificationsResponse> => {
     let serverURL = `${serverNotificationsUrl}/notifications`;
     if (burstCache) {
@@ -1689,7 +1806,7 @@ const dataProvider = withLifecycleCallbacks(baseDataProvider, [
             const endpoint_url = `${base_url}/_synapse/admin/v1/user/${encodeURIComponent(returnMXID(id))}/redact`;
             await jsonClient(endpoint_url, { method: "POST", body: JSON.stringify({ rooms: [] }) });
           }
-        })
+        }),
       );
       return params;
     },

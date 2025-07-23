@@ -28,8 +28,8 @@ import {
   DatagridConfigurable,
   DateField,
   DeleteButton,
-  Edit, // предоставляет каркас для формы
-  EditButton, // кнопка для перехода
+  Edit,
+  EditButton,
   ExportButton,
   FunctionField,
   List,
@@ -53,7 +53,7 @@ import {
   SimpleForm,
   Tab as RaTab,
   TabbedShowLayout,
-  TextField as RaTextField, // Компонент для отображения текста. Переименован (с помощью `as`), чтобы избежать конфликта имен с компонентом `TextField` из библиотеки Material-UI.
+  TextField as RaTextField,
   TextInput,
   TopToolbar,
   useDataProvider,
@@ -62,9 +62,6 @@ import {
   useNotify,
   useRecordContext,
   useRedirect,
-  //  useRefresh: Хук, предоставляющий функцию для принудительного обновления данных на странице.
-  //  Используется в `RoomShow` для перезагрузки данных после сохранения изменений,
-  //  что является более чистым и надежным подходом, чем ручная перерисовка.
   useRefresh,
   useTranslate,
   WrapperField,
@@ -85,33 +82,46 @@ import { MediaIDField } from "../components/media";
 import { Room } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
 
+/**
+ * Компонент для редактирования названия и описания комнаты (чата или пространства).
+ *
+ * Этот компонент является "Edit" представлением для ресурса `rooms` в `react-admin`.
+ * Он предоставляет простую форму с двумя полями:
+ * - `name` (Название): Обязательное текстовое поле.
+ * - `topic` (Описание): Многострочное текстовое поле.
+ *
+ * **Особенности:**
+ * - **Контекстно-зависимый заголовок:** Заголовок формы меняется в зависимости от того,
+ *   редактируется ли "пространство" или "чат".
+ * - **Предупреждение для пространств:** Если редактируемый объект является пространством
+ *   (`room_type === 'm.space'`), компонент отображает `Alert`, информирующий
+ *   пользователя о том, что изменение имени вызовет каскадное обновление
+ *   имен всех дочерних чатов в иерархии.
+ * - **Пессимистичное обновление:** Использует `mutationMode="pessimistic"`, что гарантирует
+ *   обновление данных в UI только после подтверждения от сервера.
+ *
+ * @component
+ * @returns {JSX.Element} Компонент `<Edit>`, содержащий форму для редактирования комнаты.
+ */
 export const RoomEdit = () => {
-  const dataProvider = useDataProvider();
-  const notify = useNotify();
-  const record = useRecordContext();
-
-  const handleSave = async (values: any) => {
-    if (!record) return;
-    try {
-      // @ts-ignore
-      await dataProvider.sendStateEvent(
-        record.id, // room_id
-        "m.room.name", // event type
-        "", // state key
-        { name: values.name }, // новое имя
-        localStorage.getItem("user_id") // кто посылает
-      );
-      notify("Название пространства изменено", { type: "success" });
-    } catch (e: any) {
-      notify(`Ошибка: ${e.message}`, { type: "error" });
-    }
-  };
+  const record = useRecordContext<Room>();
+  const isSpace = record?.room_type === "m.space";
+  const translate = useTranslate();
 
   return (
-    <Edit mutationMode="optimistic" onSuccess={handleSave}>
+    <Edit mutationMode="pessimistic" title={<RoomTitle />}>
       <SimpleForm>
-        <TextInput source="name" validate={[required()]} fullWidth />
-        <TextInput source="topic" fullWidth />
+        <Typography variant="h6" gutterBottom>
+          {translate("ra.action.edit")} {isSpace ? "пространства" : "чата"}
+        </Typography>
+        {isSpace && (
+          <Alert severity="info">
+            При изменении названия этого пространства будут автоматически переименованы все дочерние чаты в его
+            иерархии.
+          </Alert>
+        )}
+        <TextInput source="name" validate={[required()]} fullWidth label="Название" />
+        <TextInput source="topic" fullWidth multiline label="Описание" />
       </SimpleForm>
     </Edit>
   );
@@ -199,7 +209,7 @@ const generateAbbreviation = (name: string): string => {
  * generateChatName("", "Общий чат")
  * // => "Общий чат"
  */
-const generateChatName = (hierarchicalName: string, chatType: string): string => {
+export const generateChatName = (hierarchicalName: string, chatType: string): string => {
   if (!hierarchicalName) return chatType;
   const stopWords = ["и", "а", "в", "на", "с", "к", "по", "о", "из", "у", "за", "над", "под"];
   const isNumeric = /^\d+$/;
@@ -799,6 +809,15 @@ export const RoomCreate = (props: any) => {
             createdSpace.id,
             { via: [localStorage.getItem("home_server")], suggested: true },
             adminCreatorId
+          );
+          // Добавьте этот блок. Он устанавливает обратную связь от ребёнка к родителю.
+          console.log(`[Create] Установка родителя ${parentId} для пространства ${createdSpace.id}`);
+          await dataProvider.sendStateEvent(
+            createdSpace.id, // ID дочернего пространства
+            "m.space.parent", // Тип события
+            parentId, // State Key - это ID родителя
+            { via: [localStorage.getItem("home_server")] }, // Содержимое события
+            adminCreatorId // От чьего имени выполняется действие
           );
           const userToJoin = nodeCreatorId;
           const allAncestors = [...ancestors, parentId];
