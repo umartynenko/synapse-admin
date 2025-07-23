@@ -1,9 +1,8 @@
-// src/synapse/dataProvider.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ
-
 import {
   DataProvider,
-  DeleteParams,
   DeleteManyParams,
+  DeleteParams,
+  fetchUtils,
   HttpError,
   Identifier,
   Options,
@@ -11,12 +10,11 @@ import {
   RaRecord,
   SortPayload,
   UpdateParams,
-  fetchUtils,
   withLifecycleCallbacks,
 } from "react-admin";
 
 import { GetConfig } from "../utils/config";
-import { MatrixError, displayError } from "../utils/error";
+import { displayError, MatrixError } from "../utils/error";
 import { returnMXID } from "../utils/mxid";
 
 const CACHED_MANY_REF: Record<string, any> = {};
@@ -49,7 +47,7 @@ const jsonClient = async (url: string, options: Options = {}) => {
 };
 
 const filterUndefined = (obj: Record<string, any>) => {
-  return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== undefined && value !== ''));
+  return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== undefined && value !== ""));
 };
 
 interface Action {
@@ -690,45 +688,65 @@ const baseDataProvider: SynapseDataProvider = {
     }
   },
 
+  /**
+   * Получает отфильтрованный, отсортированный и пагинированный список ресурсов из Synapse Admin API.
+   *
+   * Этот метод реализует стандартный контракт `getList` для `react-admin`. Он формирует
+   * запрос на основе параметров пагинации, сортировки и фильтрации.
+   *
+   * Ключевая особенность — специальная логика для ресурса 'rooms', которая позволяет
+   * разделить "Пространства" и "Чаты" на разные вкладки. API-эндпоинт Synapse
+   * возвращает оба типа комнат вместе. Эта функция перехватывает кастомный фильтр
+   * `creation_content.type`, запрашивает все комнаты, а затем фильтрует результат
+   * на стороне клиента, чтобы показать либо пространства (`m.space`), либо чаты (`null`).
+   *
+   * @async
+   * @method getList
+   * @param {string} resource - Имя ресурса для запроса (например, 'users', 'rooms').
+   * @param {object} params - Параметры запроса, предоставляемые react-admin.
+   * @param {PaginationPayload} params.pagination - Настройки пагинации (page, perPage).
+   * @param {SortPayload} params.sort - Настройки сортировки (field, order).
+   * @param {object} params.filter - Критерии фильтрации.
+   * @returns {Promise<{data: RaRecord[], total: number}>} Промис, который разрешается объектом,
+   * содержащим список записей и общее количество для пагинации.
+   */
   getList: async (resource, params) => {
     console.log(`getList ${resource}`, params);
 
     const { page, perPage } = params.pagination as PaginationPayload;
     const { field, order } = params.sort as SortPayload;
     const from = (page - 1) * perPage;
-
     const filter = { ...params.filter };
-
     const query: Record<string, any> = {
-        from: from,
-        limit: perPage,
-        order_by: field,
-        dir: getSearchOrder(order),
+      from: from,
+      limit: perPage,
+      order_by: field,
+      dir: getSearchOrder(order),
     };
 
     // Определяем, какой тип фильтрации на стороне клиента нам нужен
-    let clientSideFilterType: 'chats' | 'spaces' | null = null;
-    if (resource === 'rooms' && 'creation_content.type' in filter) {
-        const roomType = filter['creation_content.type'];
-        if (roomType === 'm.space') {
-            clientSideFilterType = 'spaces';
-        } else if (roomType === null) {
-            clientSideFilterType = 'chats';
-        }
-        // Удаляем фильтр, так как он будет применен на клиенте
-        delete filter['creation_content.type'];
+    let clientSideFilterType: "chats" | "spaces" | null = null;
+
+    if (resource === "rooms" && "creation_content.type" in filter) {
+      const roomType = filter["creation_content.type"];
+      if (roomType === "m.space") {
+        clientSideFilterType = "spaces";
+      } else if (roomType === null) {
+        clientSideFilterType = "chats";
+      }
+      // Удаляем фильтр, так как он будет применен на клиенте
+      delete filter["creation_content.type"];
     }
 
     Object.assign(query, filter);
 
     const homeserver = localStorage.getItem("base_url");
+
     if (!homeserver || !(resource in resourceMap)) throw new Error("Homeserver not set");
 
     const res = resourceMap[resource];
     const endpoint_url = homeserver + res.path;
-
     const url = `${endpoint_url}?${new URLSearchParams(filterUndefined(query)).toString()}`;
-
     const { json } = await jsonClient(url);
 
     let data = json[res.data];
@@ -736,22 +754,22 @@ const baseDataProvider: SynapseDataProvider = {
 
     // Применяем фильтрацию на стороне клиента, если это необходимо
     if (clientSideFilterType) {
-        if (clientSideFilterType === 'chats') {
-            // Оставляем комнаты, у которых НЕТ типа (это чаты)
-            data = data.filter((room: any) => !room.room_type);
-        } else if (clientSideFilterType === 'spaces') {
-            // Оставляем комнаты, у которых тип РАВЕН 'm.space'
-            data = data.filter((room: any) => room.room_type === 'm.space');
-        }
-        // Корректируем total для пагинации. Это компромисс при клиентской фильтрации.
-        total = data.length;
+      if (clientSideFilterType === "chats") {
+        // Оставляем комнаты, у которых НЕТ типа (это чаты)
+        data = data.filter((room: any) => !room.room_type);
+      } else if (clientSideFilterType === "spaces") {
+        // Оставляем комнаты, у которых тип РАВЕН 'm.space'
+        data = data.filter((room: any) => room.room_type === "m.space");
+      }
+      // Корректируем total для пагинации. Это компромисс при клиентской фильтрации.
+      total = data.length;
     }
 
     const formattedData = data.map((item: any) => res.map(item));
 
     return {
-        data: formattedData,
-        total: total,
+      data: formattedData,
+      total: total,
     };
   },
 
@@ -838,38 +856,76 @@ const baseDataProvider: SynapseDataProvider = {
     };
   },
 
+  /**
+   * Обновляет существующий ресурс.
+   *
+   * Этот метод реализует контракт `update` для `react-admin`. Он обрабатывает
+   * обновление ресурсов, применяя особую логику для определенных из них.
+   *
+   * **Особая логика для 'rooms':**
+   * Вместо одного PUT-запроса, обновление комнаты инициирует отправку одного или нескольких
+   * событий состояния (`m.room.name`, `m.room.topic`) в Matrix. Это позволяет
+   * гранулярно обновлять свойства комнаты, такие как название и тема, прямо из формы
+   * редактирования. Функция отправляет эти события параллельно с помощью `Promise.all`.
+   *
+   * **Стандартная логика:**
+   * для всех остальных ресурсов выполняется стандартный HTTP PUT-запрос
+   * к соответствующему эндпоинту с новыми данными.
+   *
+   * @async
+   * @method update
+   * @param {string} resource - Имя ресурса для обновления (например, 'users', 'rooms').
+   * @param {UpdateParams} params - Параметры для операции обновления, содержащие `id` и `data` ресурса.
+   * @returns {Promise<{data: RaRecord}>} Промис, который разрешается объектом, содержащим обновленную запись.
+   */
   update: async (resource, params) => {
-    console.log("update " + resource);
+    console.log("update " + resource, params);
     const homeserver = localStorage.getItem("base_url");
-    if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
+    if (!homeserver || !(resource in resourceMap)) throw new Error("Homeserver not set");
 
+    // --- НАЧАЛО ИЗМЕНЕНИЙ ---
+    // Специальная логика для обновления комнат (пространств)
+    if (resource === "rooms") {
+      const { id, data, previousData } = params;
+      const currentAdminId = localStorage.getItem("user_id");
+      const promises = [];
+
+      // Проверяем, изменилось ли название, и добавляем обещание для его обновления
+      if (data.name !== previousData.name && data.name) {
+        promises.push(
+          baseDataProvider.sendStateEvent(id.toString(), "m.room.name", "", { name: data.name }, currentAdminId)
+        );
+      }
+
+      // Проверяем, изменилась ли тема, и добавляем обещание для ее обновления
+      if (data.topic !== previousData.topic) {
+        promises.push(
+          baseDataProvider.sendStateEvent(
+            id.toString(),
+            "m.room.topic",
+            "",
+            { topic: data.topic || "" }, // Отправляем пустую строку, если тема удалена
+            currentAdminId
+          )
+        );
+      }
+
+      // Дожидаемся выполнения всех обещаний
+      await Promise.all(promises);
+
+      // React-admin ожидает получить обновленную запись в ответе
+      return { data: { ...previousData, ...data, id } };
+    }
+    // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
+    // Стандартная логика для всех остальных ресурсов
     const res = resourceMap[resource];
-
     const endpoint_url = homeserver + res.path;
     const { json } = await jsonClient(`${endpoint_url}/${encodeURIComponent(params.id)}`, {
       method: "PUT",
       body: JSON.stringify(params.data, filterNullValues),
     });
     return { data: res.map(json) };
-  },
-
-  updateMany: async (resource, params) => {
-    console.log("updateMany " + resource);
-    const homeserver = localStorage.getItem("base_url");
-    if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
-
-    const res = resourceMap[resource];
-
-    const endpoint_url = homeserver + res.path;
-    const responses = await Promise.all(
-      params.ids.map(id =>
-        jsonClient(`${endpoint_url}/${encodeURIComponent(id)}`, {
-          method: "PUT",
-          body: JSON.stringify(params.data, filterNullValues),
-        })
-      )
-    );
-    return { data: responses.map(({ json }) => json) };
   },
 
   create: async (resource, params) => {
@@ -1153,11 +1209,11 @@ const baseDataProvider: SynapseDataProvider = {
     const base_url = localStorage.getItem("base_url");
     const endpoint_url = `${base_url}/_synapse/admin/v1/hierarchy_members/${encodeURIComponent(roomId)}`;
     try {
-        const { json } = await jsonClient(endpoint_url);
-        return { data: json.users || [] };
+      const { json } = await jsonClient(endpoint_url);
+      return { data: json.users || [] };
     } catch (error) {
-        console.error(`Error getting hierarchy members for space ${roomId}:`, error);
-        return { data: [] };
+      console.error(`Error getting hierarchy members for space ${roomId}:`, error);
+      return { data: [] };
     }
   },
 
