@@ -184,7 +184,7 @@ export const UserList = (props: ListProps) => (
   <List
     {...props}
     filters={userFilters}
-    filterDefaultValues={{ guests: false, deactivated: false, locked: false, suspended: false }}
+    filterDefaultValues={{ guests: false, deactivated: true, locked: false, suspended: false }}
     sort={{ field: "name", order: "ASC" }}
     actions={<UserListActions />}
     pagination={<UserPagination />}
