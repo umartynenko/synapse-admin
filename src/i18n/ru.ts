@@ -204,10 +204,10 @@ const ru: SynapseTranslationMessages = {
         },
         locked: "Заблокирован",
         suspended: "Приостановлен",
-        deactivated: "Деактивирован",
+        deactivated: "Зарезервирован",
         erased: "Удалён",
         guests: "Показывать гостей",
-        show_deactivated: "Показывать деактивированных",
+        show_deactivated: "Показывать зарезервированных",
         show_locked: "Показывать заблокированных",
         show_suspended: "Показывать приостановленных",
         user_id: "Поиск пользователя",
@@ -347,6 +347,7 @@ const ru: SynapseTranslationMessages = {
       action: {
         create_room: "Создать пространство",
         create_room_title: "Создание пространства",
+        edit: "Изменить",
         erase: {
           title: "Удалить чат",
           content:

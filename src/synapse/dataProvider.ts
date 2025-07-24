@@ -1,9 +1,8 @@
-// src/synapse/dataProvider.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ
-
 import {
   DataProvider,
-  DeleteParams,
   DeleteManyParams,
+  DeleteParams,
+  fetchUtils,
   HttpError,
   Identifier,
   Options,
@@ -11,12 +10,12 @@ import {
   RaRecord,
   SortPayload,
   UpdateParams,
-  fetchUtils,
   withLifecycleCallbacks,
 } from "react-admin";
 
+import { generateChatName } from "../resources/rooms";
 import { GetConfig } from "../utils/config";
-import { MatrixError, displayError } from "../utils/error";
+import { displayError, MatrixError } from "../utils/error";
 import { returnMXID } from "../utils/mxid";
 
 const CACHED_MANY_REF: Record<string, any> = {};
@@ -49,7 +48,7 @@ const jsonClient = async (url: string, options: Options = {}) => {
 };
 
 const filterUndefined = (obj: Record<string, any>) => {
-  return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== undefined && value !== ''));
+  return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== undefined && value !== ""));
 };
 
 interface Action {
@@ -369,6 +368,7 @@ export interface SynapseDataProvider extends DataProvider {
   getRoomChildren: (roomId: string) => Promise<string[]>;
   getRoomChildrenWithDetails: (roomId: string) => Promise<any[]>;
   getHierarchyMembers: (roomId: string) => Promise<{ data: string[] }>;
+  getSpaceAncestors: (roomId: string) => Promise<Room[]>;
   sendStateEvent: (
     roomId: string,
     eventType: string,
@@ -393,11 +393,18 @@ const resourceMap = {
     }),
     data: "users",
     total: json => json.total,
-    create: (data: RaRecord) => ({
-      endpoint: `/_synapse/admin/v2/users/${encodeURIComponent(returnMXID(data.id))}`,
-      body: data,
-      method: "PUT",
-    }),
+    create: (data: RaRecord) => {
+      const body = { ...data };
+      // При создании пользователь всегда должен быть АКТИВНЫМ,
+      // чтобы его можно было найти и деактивировать в `afterCreate`.
+      body.deactivated = false;
+
+      return {
+        endpoint: `/_synapse/admin/v2/users/${encodeURIComponent(returnMXID(data.id))}`,
+        body: body,
+        method: "PUT",
+      };
+    },
     delete: (params: DeleteParams) => ({
       endpoint: `/_synapse/admin/v1/deactivate/${encodeURIComponent(returnMXID(params.id))}`,
       body: { erase: true },
@@ -690,45 +697,65 @@ const baseDataProvider: SynapseDataProvider = {
     }
   },
 
+  /**
+   * Получает отфильтрованный, отсортированный и пагинированный список ресурсов из Synapse Admin API.
+   *
+   * Этот метод реализует стандартный контракт `getList` для `react-admin`. Он формирует
+   * запрос на основе параметров пагинации, сортировки и фильтрации.
+   *
+   * Ключевая особенность — специальная логика для ресурса 'rooms', которая позволяет
+   * разделить "Пространства" и "Чаты" на разные вкладки. API-эндпоинт Synapse
+   * возвращает оба типа комнат вместе. Эта функция перехватывает кастомный фильтр
+   * `creation_content.type`, запрашивает все комнаты, а затем фильтрует результат
+   * на стороне клиента, чтобы показать либо пространства (`m.space`), либо чаты (`null`).
+   *
+   * @async
+   * @method getList
+   * @param {string} resource - Имя ресурса для запроса (например, 'users', 'rooms').
+   * @param {object} params - Параметры запроса, предоставляемые react-admin.
+   * @param {PaginationPayload} params.pagination - Настройки пагинации (page, perPage).
+   * @param {SortPayload} params.sort - Настройки сортировки (field, order).
+   * @param {object} params.filter - Критерии фильтрации.
+   * @returns {Promise<{data: RaRecord[], total: number}>} Промис, который разрешается объектом,
+   * содержащим список записей и общее количество для пагинации.
+   */
   getList: async (resource, params) => {
     console.log(`getList ${resource}`, params);
 
     const { page, perPage } = params.pagination as PaginationPayload;
     const { field, order } = params.sort as SortPayload;
     const from = (page - 1) * perPage;
-
     const filter = { ...params.filter };
-
     const query: Record<string, any> = {
-        from: from,
-        limit: perPage,
-        order_by: field,
-        dir: getSearchOrder(order),
+      from: from,
+      limit: perPage,
+      order_by: field,
+      dir: getSearchOrder(order),
     };
 
     // Определяем, какой тип фильтрации на стороне клиента нам нужен
-    let clientSideFilterType: 'chats' | 'spaces' | null = null;
-    if (resource === 'rooms' && 'creation_content.type' in filter) {
-        const roomType = filter['creation_content.type'];
-        if (roomType === 'm.space') {
-            clientSideFilterType = 'spaces';
-        } else if (roomType === null) {
-            clientSideFilterType = 'chats';
-        }
-        // Удаляем фильтр, так как он будет применен на клиенте
-        delete filter['creation_content.type'];
+    let clientSideFilterType: "chats" | "spaces" | null = null;
+
+    if (resource === "rooms" && "creation_content.type" in filter) {
+      const roomType = filter["creation_content.type"];
+      if (roomType === "m.space") {
+        clientSideFilterType = "spaces";
+      } else if (roomType === null) {
+        clientSideFilterType = "chats";
+      }
+      // Удаляем фильтр, так как он будет применен на клиенте
+      delete filter["creation_content.type"];
     }
 
     Object.assign(query, filter);
 
     const homeserver = localStorage.getItem("base_url");
+
     if (!homeserver || !(resource in resourceMap)) throw new Error("Homeserver not set");
 
     const res = resourceMap[resource];
     const endpoint_url = homeserver + res.path;
-
     const url = `${endpoint_url}?${new URLSearchParams(filterUndefined(query)).toString()}`;
-
     const { json } = await jsonClient(url);
 
     let data = json[res.data];
@@ -736,22 +763,22 @@ const baseDataProvider: SynapseDataProvider = {
 
     // Применяем фильтрацию на стороне клиента, если это необходимо
     if (clientSideFilterType) {
-        if (clientSideFilterType === 'chats') {
-            // Оставляем комнаты, у которых НЕТ типа (это чаты)
-            data = data.filter((room: any) => !room.room_type);
-        } else if (clientSideFilterType === 'spaces') {
-            // Оставляем комнаты, у которых тип РАВЕН 'm.space'
-            data = data.filter((room: any) => room.room_type === 'm.space');
-        }
-        // Корректируем total для пагинации. Это компромисс при клиентской фильтрации.
-        total = data.length;
+      if (clientSideFilterType === "chats") {
+        // Оставляем комнаты, у которых НЕТ типа (это чаты)
+        data = data.filter((room: any) => !room.room_type);
+      } else if (clientSideFilterType === "spaces") {
+        // Оставляем комнаты, у которых тип РАВЕН 'm.space'
+        data = data.filter((room: any) => room.room_type === "m.space");
+      }
+      // Корректируем total для пагинации. Это компромисс при клиентской фильтрации.
+      total = data.length;
     }
 
     const formattedData = data.map((item: any) => res.map(item));
 
     return {
-        data: formattedData,
-        total: total,
+      data: formattedData,
+      total: total,
     };
   },
 
@@ -838,13 +865,122 @@ const baseDataProvider: SynapseDataProvider = {
     };
   },
 
-  update: async (resource, params) => {
-    console.log("update " + resource);
+  /**
+   * Обновляет запись ресурса, с особой логикой для иерархических пространств.
+   *
+   * Этот метод реализует стандартный контракт `update` для `react-admin`.
+   * Для большинства ресурсов он выполняет простой PUT-запрос. Однако для ресурса `rooms`
+   * он запускает сложный процесс обновления, который может затронуть множество связанных комнат.
+   *
+   * **Логика для ресурса 'rooms':**
+   * 1.  **Обновление основной записи:** Сначала метод обновляет имя (`m.room.name`) и/или
+   *     описание (`m.room.topic`) самой редактируемой комнаты (пространства или чата),
+   *     отправляя соответствующие state events.
+   *
+   * 2.  **Иерархическое обновление (только для пространств):** Если редактируемая запись
+   *     является пространством (`isSpace`) и её имя было изменено, запускается
+   *     рекурсивное обновление всех дочерних элементов в иерархии.
+   *     - **Построение пути:** С помощью `getSpaceAncestors` определяется полный иерархический
+   *       путь к родителям редактируемого пространства (например, "Главный офис / Департамент ИТ").
+   *     - **Рекурсивный обход (`updateSubtree`):**
+   *       - Для каждого пространства в поддереве формируется новое полное иерархическое имя.
+   *       - Все дочерние *чаты* этого пространства переименовываются в соответствии с новым
+   *         иерархическим именем (например, `ГО.ДИ.Отдел разработки ОЧ`).
+   *       - Функция рекурсивно вызывается для каждого дочернего *пространства*.
+   *
+   * **Стандартная логика:**
+   * Для всех остальных ресурсов выполняется стандартный HTTP PUT-запрос к соответствующему
+   * эндпоинту API для обновления записи.
+   *
+   * @async
+   * @param {string} resource - Имя ресурса для обновления (например, 'users', 'rooms').
+   * @param {UpdateParams} params - Параметры для обновления, предоставляемые react-admin.
+   * @returns {Promise<{data: RaRecord}>} Промис, который разрешается с обновленными данными записи.
+   * @throws {Error} Выбрасывает ошибку, если homeserver не установлен или ресурс неизвестен.
+   */
+  update: async (resource, params: UpdateParams) => {
+    if (resource === "rooms") {
+      const { id, data, previousData } = params;
+      const roomId = id.toString();
+      const newName = data.name;
+      const oldName = previousData.name;
+      const newTopic = data.topic;
+      const isSpace = previousData.room_type === "m.space";
+
+      console.log(`[Update Start] Room: ${roomId}, New Name: ${newName}, Is Space: ${isSpace}`);
+
+      // Шаг 1: Обновляем состояние самого редактируемого пространства
+      const updatePromises = [];
+      if (newName && newName !== oldName) {
+        updatePromises.push(baseDataProvider.sendStateEvent(roomId, "m.room.name", "", { name: newName }));
+      }
+      if (newTopic !== previousData.topic) {
+        updatePromises.push(baseDataProvider.sendStateEvent(roomId, "m.room.topic", "", { topic: newTopic || "" }));
+      }
+
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+        console.log(`[Update] Состояние основного пространства ${roomId} обновлено.`);
+      }
+
+      // Шаг 2: Если это пространство и его имя изменилось, запускаем рекурсивное обновление иерархии
+      if (isSpace && newName && newName !== oldName) {
+        console.log(`[Update] Имя пространства изменилось. Запуск обновления иерархии.`);
+
+        const updateSubtree = async (spaceId: string, parentHierarchicalName: string): Promise<void> => {
+          // Для редактируемого пространства используем новое имя. Для всех дочерних — запрашиваем их текущее имя, чтобы избежать использования устаревших данных.
+          const currentShortName =
+            spaceId === roomId ? newName : (await baseDataProvider.getOne("rooms", { id: spaceId })).data.name;
+
+          const currentHierarchicalName = parentHierarchicalName
+            ? `${parentHierarchicalName} / ${currentShortName}`
+            : currentShortName;
+
+          console.log(`[Subtree] Обработка: ${spaceId} (${currentShortName}). Полный путь: ${currentHierarchicalName}`);
+
+          // ВАЖНО: getRoomChildrenWithDetails - это кастомный метод. Убедитесь, что он правильно реализован на бэкенде.
+          const childRooms = await baseDataProvider.getRoomChildrenWithDetails(spaceId);
+
+          // Переименовываем дочерние чаты
+          const chatPromises = childRooms
+            .filter(child => child.chat_type) // только чаты
+            .map(childChat => {
+              const chatTypeAbbr = childChat.chat_type === "private_chat" ? "ЗЧ" : "ОЧ";
+              const newChatName = generateChatName(currentHierarchicalName, chatTypeAbbr);
+              console.log(`[Subtree] Переименование чата ${childChat.room_id} в "${newChatName}"`);
+              return baseDataProvider.sendStateEvent(childChat.room_id, "m.room.name", "", { name: newChatName });
+            });
+          await Promise.all(chatPromises);
+
+          // Рекурсивно обрабатываем дочерние пространства
+          const childSpaces = childRooms.filter(child => !child.chat_type); // только пространства
+          for (const childSpace of childSpaces) {
+            await updateSubtree(childSpace.room_id, currentHierarchicalName);
+          }
+        };
+
+        // Находим всех предков, чтобы построить корректный родительский путь
+        const ancestors = await baseDataProvider.getSpaceAncestors(roomId);
+        console.log(
+          "[Update] Найденные предки:",
+          ancestors.map(a => a.name)
+        );
+
+        const parentHierarchicalName = ancestors.map(a => a.name).join(" / ");
+        console.log(`[Update] Стартовый путь от родителей: "${parentHierarchicalName}"`);
+
+        // Запускаем рекурсивное обновление
+        await updateSubtree(roomId, parentHierarchicalName);
+        console.log("[Update] Обновление иерархии завершено.");
+      }
+
+      return { data: { ...previousData, ...data, id } };
+    }
+
+    // Стандартная логика для остальных ресурсов
     const homeserver = localStorage.getItem("base_url");
-    if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
-
+    if (!homeserver || !(resource in resourceMap)) throw new Error("Homeserver not set");
     const res = resourceMap[resource];
-
     const endpoint_url = homeserver + res.path;
     const { json } = await jsonClient(`${endpoint_url}/${encodeURIComponent(params.id)}`, {
       method: "PUT",
@@ -853,23 +989,79 @@ const baseDataProvider: SynapseDataProvider = {
     return { data: res.map(json) };
   },
 
-  updateMany: async (resource, params) => {
-    console.log("updateMany " + resource);
-    const homeserver = localStorage.getItem("base_url");
-    if (!homeserver || !(resource in resourceMap)) throw Error("Homeserver not set");
+  /**
+   * Находит и возвращает всех предков (родительские пространства) для указанной комнаты.
+   *
+   * Функция итеративно поднимается по иерархии пространств, начиная с `roomId`.
+   * На каждом шаге она запрашивает state-события текущей комнаты, находит событие
+   * `m.space.parent`, которое указывает на ID родительского пространства. Затем
+   * запрашиваются детали этого родителя, и он добавляется в начало массива предков.
+   * Процесс повторяется до тех пор, пока не будет достигнут корень иерархии (пространство без родителя).
+   *
+   * @async
+   * @param {string} roomId - ID комнаты или пространства, для которого нужно найти предков.
+   * @returns {Promise<Room[]>} Промис, который разрешается массивом объектов `Room`.
+   * Массив отсортирован от самого верхнего предка (корня) до прямого родителя `roomId`.
+   * Если предков нет, возвращается пустой массив.
+   */
+  getSpaceAncestors: async (roomId: string): Promise<Room[]> => {
+    const ancestors: Room[] = [];
+    let currentRoomId: string | null = roomId;
 
-    const res = resourceMap[resource];
+    while (currentRoomId) {
+      const stateUrl = `${localStorage.getItem("base_url")}/_synapse/admin/v1/rooms/${encodeURIComponent(currentRoomId)}/state`;
+      const { json: stateJson } = await jsonClient(stateUrl);
+      const stateEvents = stateJson.state || [];
 
-    const endpoint_url = homeserver + res.path;
-    const responses = await Promise.all(
-      params.ids.map(id =>
-        jsonClient(`${endpoint_url}/${encodeURIComponent(id)}`, {
-          method: "PUT",
-          body: JSON.stringify(params.data, filterNullValues),
-        })
-      )
-    );
-    return { data: responses.map(({ json }) => json) };
+      // Ищем событие, указывающее на родителя
+      const parentEvent = stateEvents.find(event => event.type === "m.space.parent" && event.state_key);
+      const parentId = parentEvent ? parentEvent.state_key : null;
+
+      if (parentId) {
+        try {
+          // Запрашиваем детали родителя, чтобы получить его имя
+          const parentDetailsUrl = `${localStorage.getItem("base_url")}/_synapse/admin/v1/rooms/${encodeURIComponent(parentId)}`;
+          const { json: parentJson } = await jsonClient(parentDetailsUrl);
+          // Добавляем родителя в начало массива, чтобы сохранить правильный порядок (от корня к прямому родителю)
+          ancestors.unshift(parentJson as Room);
+          currentRoomId = parentId;
+        } catch (e) {
+          console.error(`Не удалось получить детали родительского пространства ${parentId}`, e);
+          currentRoomId = null; // Прерываем цикл в случае ошибки
+        }
+      } else {
+        currentRoomId = null; // Больше родителей нет
+      }
+    }
+    return ancestors;
+  },
+
+  /**
+   * Получает детальную информацию о прямых дочерних элементах (комнатах и пространствах) для указанного пространства.
+   *
+   * Эта функция обращается к *кастомному* эндпоинту Synapse Admin API (`/room_children/{roomId}`),
+   * который должен быть реализован на стороне сервера. В отличие от `getRoomChildren`,
+   * этот метод возвращает не просто ID, а массив объектов с подробной информацией
+   * о каждом дочернем элементе, включая его ID, имя, тип чата и другие детали.
+   *
+   * @async
+   * @param {string} roomId - ID родительского пространства, для которого нужно получить дочерние элементы.
+   * @returns {Promise<any[]>} Промис, который разрешается массивом объектов, описывающих дочерние комнаты.
+   * В случае ошибки или отсутствия дочерних элементов возвращает пустой массив.
+   * Пример объекта в массиве: `{ room_id: string, name: string, chat_type: "private_chat" | "public_chat" | null, ... }`
+   */
+  getRoomChildrenWithDetails: async (roomId: string): Promise<any[]> => {
+    const base_url = localStorage.getItem("base_url");
+    // Этот эндпоинт /room_children/ является кастомным для вашей сборки.
+    // Убедитесь, что он работает и возвращает массив { room_id, name, chat_type, ... }
+    const endpoint_url = `${base_url}/_synapse/admin/v1/room_children/${encodeURIComponent(roomId)}`;
+    try {
+      const { json } = await jsonClient(endpoint_url);
+      return json.children || [];
+    } catch (error) {
+      console.error(`Ошибка при получении дочерних комнат для ${roomId}:`, error);
+      return [];
+    }
   },
 
   create: async (resource, params) => {
@@ -923,7 +1115,10 @@ const baseDataProvider: SynapseDataProvider = {
       };
     }
 
-    return { data: res.map(json) };
+    // --- ИЗМЕНЕНИЕ: ДОЖИДАЕМСЯ ВЫПОЛНЕНИЯ ASYNC MAP ---
+    // Это гарантирует, что в afterCreate придет объект, а не Promise.
+    const mappedData = await res.map(json);
+    return { data: mappedData };
   },
 
   createMany: async (resource: string, params: { ids: Identifier[]; data: RaRecord }) => {
@@ -1137,27 +1332,15 @@ const baseDataProvider: SynapseDataProvider = {
     return json.rooms || [];
   },
 
-  getRoomChildrenWithDetails: async roomId => {
-    const base_url = localStorage.getItem("base_url");
-    const endpoint_url = `${base_url}/_synapse/admin/v1/room_children/${encodeURIComponent(roomId)}`;
-    try {
-      const { json } = await jsonClient(endpoint_url);
-      return json.children || [];
-    } catch (error) {
-      console.error(`Ошибка при получении дочерних чатов для ${roomId}:`, error);
-      return [];
-    }
-  },
-
   getHierarchyMembers: async (roomId: string) => {
     const base_url = localStorage.getItem("base_url");
     const endpoint_url = `${base_url}/_synapse/admin/v1/hierarchy_members/${encodeURIComponent(roomId)}`;
     try {
-        const { json } = await jsonClient(endpoint_url);
-        return { data: json.users || [] };
+      const { json } = await jsonClient(endpoint_url);
+      return { data: json.users || [] };
     } catch (error) {
-        console.error(`Error getting hierarchy members for space ${roomId}:`, error);
-        return { data: [] };
+      console.error(`Error getting hierarchy members for space ${roomId}:`, error);
+      return { data: [] };
     }
   },
 
@@ -1636,6 +1819,44 @@ const dataProvider = withLifecycleCallbacks(baseDataProvider, [
         })
       );
       return params;
+    },
+
+    // --- ИЗМЕНЕНИЕ: ДОБАВЛЕН ОБРАБОТЧИК AFTERCREATE ---
+    /**
+     * Этот обработчик запускается автоматически после успешного создания пользователя.
+     * Он немедленно отправляет второй запрос для деактивации только что созданной учетной записи.
+     */
+    afterCreate: async (result, dataProvider) => {
+      console.log("Пользователь успешно создан. Запускаю немедленную деактивацию.");
+
+      // 1. Получаем ID только что созданного пользователя из результата операции create
+      const newUser = result.data;
+      const userId = newUser.id;
+
+      if (!userId) {
+        console.error("Не удалось получить ID нового пользователя, деактивация отменена.");
+        return result; // Возвращаем исходный результат, чтобы не сломать UI
+      }
+
+      // 2. Формируем URL для эндпоинта деактивации
+      const base_url = localStorage.getItem("base_url");
+      const endpoint_url = `${base_url}/_synapse/admin/v1/deactivate/${encodeURIComponent(userId)}`;
+
+      try {
+        // 3. Отправляем запрос на деактивацию
+        await jsonClient(endpoint_url, {
+          method: "POST",
+          body: JSON.stringify({}), // Пустое тело для деактивации без удаления
+        });
+        console.log(`Пользователь ${userId} успешно деактивирован.`);
+      } catch (error) {
+        console.error(`Произошла ошибка при автоматической деактивации пользователя ${userId}:`, error);
+        // Не пробрасываем ошибку дальше, чтобы UI не показывал ошибку "деактивации",
+        // так как основная операция "создания" прошла успешно.
+      }
+
+      // 4. Возвращаем оригинальный результат операции `create`
+      return result;
     },
   },
 ]);

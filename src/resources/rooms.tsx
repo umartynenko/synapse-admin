@@ -1,5 +1,3 @@
-// src/resources/rooms.tsx
-
 import EventIcon from "@mui/icons-material/Event";
 import FastForwardIcon from "@mui/icons-material/FastForward";
 import UserIcon from "@mui/icons-material/Group";
@@ -31,6 +29,8 @@ import {
   DatagridConfigurable,
   DateField,
   DeleteButton,
+  Edit,
+  EditButton,
   ExportButton,
   FunctionField,
   List,
@@ -41,7 +41,6 @@ import {
   number,
   NumberField,
   Pagination,
-  TextField as RaTextField,
   ReferenceField,
   ReferenceManyField,
   required,
@@ -55,6 +54,7 @@ import {
   SimpleForm,
   Tab as RaTab,
   TabbedShowLayout,
+  TextField as RaTextField,
   TextInput,
   TopToolbar,
   useDataProvider,
@@ -63,28 +63,105 @@ import {
   useNotify,
   useRecordContext,
   useRedirect,
+  useRefresh,
   useTranslate,
   WrapperField,
 } from "react-admin";
 import { useWatch } from "react-hook-form";
-import { ClampedNumberInput } from "../components/ClampedNumberInput";
 
-import AvatarField from "../components/AvatarField";
-import DeleteRoomButton from "../components/DeleteRoomButton";
-import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
-import { MediaIDField } from "../components/media";
-import { Room } from "../synapse/dataProvider";
-import { DATE_FORMAT } from "../utils/date";
 import {
   RoomDirectoryBulkPublishButton,
   RoomDirectoryBulkUnpublishButton,
   RoomDirectoryPublishButton,
   RoomDirectoryUnpublishButton,
 } from "./room_directory";
+
+import AvatarField from "../components/AvatarField";
+import { ClampedNumberInput } from "../components/ClampedNumberInput";
+import DeleteRoomButton from "../components/DeleteRoomButton";
+import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
+import { MediaIDField } from "../components/media";
+import { Room } from "../synapse/dataProvider";
+import { DATE_FORMAT } from "../utils/date";
+
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
 
+/**
+ * Компонент для редактирования названия и описания комнаты (чата или пространства).
+ *
+ * Этот компонент является "Edit" представлением для ресурса `rooms` в `react-admin`.
+ * Он предоставляет простую форму с двумя полями:
+ * - `name` (Название): Обязательное текстовое поле.
+ * - `topic` (Описание): Многострочное текстовое поле.
+ *
+ * **Особенности:**
+ * - **Контекстно-зависимый заголовок:** Заголовок формы меняется в зависимости от того,
+ *   редактируется ли "пространство" или "чат".
+ * - **Предупреждение для пространств:** Если редактируемый объект является пространством
+ *   (`room_type === 'm.space'`), компонент отображает `Alert`, информирующий
+ *   пользователя о том, что изменение имени вызовет каскадное обновление
+ *   имен всех дочерних чатов в иерархии.
+ * - **Пессимистичное обновление:** Использует `mutationMode="pessimistic"`, что гарантирует
+ *   обновление данных в UI только после подтверждения от сервера.
+ *
+ * @component
+ * @returns {JSX.Element} Компонент `<Edit>`, содержащий форму для редактирования комнаты.
+ */
+export const RoomEdit = () => {
+  const record = useRecordContext<Room>();
+  const isSpace = record?.room_type === "m.space";
+  const translate = useTranslate();
+
+  return (
+    <Edit mutationMode="pessimistic" title={<RoomTitle />}>
+      <SimpleForm>
+        <Typography variant="h6" gutterBottom>
+          {translate("ra.action.edit")} {isSpace ? "пространства" : "чата"}
+        </Typography>
+        {isSpace && (
+          <Alert severity="info">
+            При изменении названия этого пространства будут автоматически переименованы все дочерние чаты в его
+            иерархии.
+          </Alert>
+        )}
+        <TextInput source="name" validate={[required()]} fullWidth label="Название" />
+        <TextInput source="topic" fullWidth multiline label="Описание" />
+      </SimpleForm>
+    </Edit>
+  );
+};
+
+/**
+ * Генерирует аббревиатуру из строки (например, из названия пространства или отдела).
+ *
+ * Функция разбивает входную строку на слова по пробелам и дефисам.
+ * Для каждого слова применяется следующая логика:
+ * - Если слово состоит только из цифр, оно добавляется в аббревиатуру целиком.
+ * - В противном случае, берется только первая буква слова.
+ *
+ * Все полученные части соединяются в одну строку в нижнем регистре.
+ *
+ * @param {string} name - Входная строка для генерации аббревиатуры.
+ * @returns {string} Сгенерированная аббревиатура в нижнем регистре.
+ *
+ * @example
+ * generateAbbreviation("Главный Офис")
+ * // => "го"
+ *
+ * @example
+ * generateAbbreviation("Сектор 12-А")
+ * // => "с12а"
+ *
+ * @example
+ * generateAbbreviation("Отдел 7")
+ * // => "о7"
+ *
+ * @example
+ * generateAbbreviation("")
+ * // => ""
+ */
 const generateAbbreviation = (name: string): string => {
   if (!name) return "";
 
@@ -97,14 +174,48 @@ const generateAbbreviation = (name: string): string => {
     .map(word => {
       // Если слово - это число, используем его целиком.
       // В противном случае, берем первую букву.
-      return isNumeric.test(word)
-        ? word.toLowerCase()
-        : word.charAt(0).toLowerCase();
+      return isNumeric.test(word) ? word.toLowerCase() : word.charAt(0).toLowerCase();
     })
     .join("");
 };
 
-const generateChatName = (hierarchicalName: string, chatType: string): string => {
+/**
+ * Генерирует форматированное имя чата на основе иерархического имени и типа чата.
+ *
+ * Функция преобразует иерархическое имя (например, "Главный офис / Отдел продаж")
+ * в сокращенный префикс, сохраняя последнюю часть имени целиком.
+ *
+ * Логика работы:
+ * 1. Иерархическое имя разделяется на части по " / ".
+ * 2. Последняя часть (например, "Отдел продаж") используется как есть.
+ * 3. Каждая предыдущая часть ("Главный офис") преобразуется в аббревиатуру:
+ *    - Числа остаются без изменений.
+ *    - Стоп-слова (союзы, предлоги) остаются в нижнем регистре.
+ *    - От остальных слов берется первая заглавная буква.
+ * 4. Сокращенные части соединяются через точку, формируя префикс.
+ * 5. Результат собирается в формате: "[префикс.]<последняя часть> <тип чата>".
+ *
+ * @param {string} hierarchicalName - Иерархическое имя, например "Сектор 12 / Группа А".
+ * @param {string} chatType - Тип чата, который добавляется в конец, например "ОЧ" или "ЗЧ".
+ * @returns {string} Отформатированное имя чата.
+ *
+ * @example
+ * generateChatName("Главный офис / Отдел продаж", "ЗЧ")
+ * // => "ГО.Отдел продаж ЗЧ"
+ *
+ * @example
+ * generateChatName("Сектор 12 / Группа А", "ОЧ")
+ * // => "С12.Группа А ОЧ"
+ *
+ * @example
+ * generateChatName("Отдел маркетинга", "Лента")
+ * // => "Отдел маркетинга Лента"
+ *
+ * @example
+ * generateChatName("", "Общий чат")
+ * // => "Общий чат"
+ */
+export const generateChatName = (hierarchicalName: string, chatType: string): string => {
   if (!hierarchicalName) return chatType;
   const stopWords = ["и", "а", "в", "на", "с", "к", "по", "о", "из", "у", "за", "над", "под"];
   const isNumeric = /^\d+$/;
@@ -213,6 +324,26 @@ export const MakeAdminBtn = () => {
   );
 };
 
+/**
+ * Отображает страницу с детальной информацией о комнате или пространстве.
+ *
+ * Этот компонент является "Show" представлением для ресурса `rooms` в `react-admin`.
+ * Он использует `TabbedShowLayout` для организации данных по различным вкладкам:
+ * основная информация, участники, права доступа, медиа и т.д.
+ *
+ * Ключевая особенность — **встроенное редактирование названия**. Пользователь может
+ * изменить название комнаты прямо на этой странице. Логика редактирования
+ * управляется состоянием (`useState`) и функцией `handleSave`.
+ *
+ * При сохранении `handleSave` вызывает метод `dataProvider.sendStateEvent` для отправки
+ * события `m.room.name` на сервер, обновляя название комнаты в Matrix.
+ * Для обратной связи с пользователем используется хук `useNotify`, а для обновления
+ * данных на странице — `useRefresh`.
+ *
+ * @component
+ * @param {ShowProps} props - Стандартные пропсы для компонента Show в `react-admin`.
+ * @returns {JSX.Element} Компонент `<Show>`, содержащий детальную информацию о комнате.
+ */
 export const RoomShow = (props: ShowProps) => {
   const translate = useTranslate();
   const record = useRecordContext<Room>();
@@ -596,6 +727,33 @@ export const RoomCreate = (props: any) => {
         }
       };
 
+      /**
+       * Рекурсивно создает и настраивает иерархическую структуру пространств и чатов.
+       *
+       * Эта асинхронная функция является ядром логики создания сложных структур.
+       * Для каждого узла (`spaceNode`) она выполняет следующие действия:
+       * 1. Создает новое пространство Matrix с иерархическим именем и псевдонимом.
+       * 2. Создает связанные с ним "Общий чат" (ОЧ) и "Закрытый чат" (ЗЧ).
+       * 3. Делегирует права администратора указанному создателю (`nodeCreatorId`).
+       * 4. Если узел является дочерним, связывает его с родительским пространством (`parentId`)
+       *    и добавляет создателя в чаты всех вышестоящих пространств.
+       * 5. Рекурсивно вызывает себя для всех дочерних узлов (`spaceNode.subspaces`).
+       * 6. Собирает и возвращает уникальный набор ID всех пользователей, задействованных
+       *    в создании данной ветки иерархии, для последующего приглашения.
+       *
+       * @async
+       * @private
+       * @function createAndSetupRecursive
+       * @param {any} spaceNode - Объект узла, содержащий `name`, `creator_id` и массив `subspaces`.
+       * @param {string | null} parentId - ID родительского пространства Matrix. `null` для узлов верхнего уровня.
+       * @param {string[]} ancestors - Массив ID всех предков, для корректного добавления в их чаты.
+       * @param {string} inheritedCreatorId - ID создателя, унаследованный от родителя, если не указан явно.
+       * @param {string} [parentNamePrefix=""] - Иерархический префикс имени от родителя (e.g., "Главный офис").
+       * @param {string} [parentAliasPrefix=""] - Иерархический префикс псевдонима от родителя (e.g., "го").
+       * @returns {Promise<{ spaceId: string | null; collectedUserIds: Set<string> }>} Промис, который разрешается объектом,
+       * содержащим ID созданного пространства и `Set` ID всех пользователей в поддереве.
+       * @throws {Error} Выбрасывает ошибку, если критически важный API-запрос (например, создание пространства) завершается неудачно.
+       */
       const createAndSetupRecursive = async (
         spaceNode: any,
         parentId: string | null,
@@ -657,6 +815,15 @@ export const RoomCreate = (props: any) => {
             createdSpace.id,
             { via: [localStorage.getItem("home_server")], suggested: true },
             adminCreatorId
+          );
+          // Добавьте этот блок. Он устанавливает обратную связь от ребёнка к родителю.
+          console.log(`[Create] Установка родителя ${parentId} для пространства ${createdSpace.id}`);
+          await dataProvider.sendStateEvent(
+            createdSpace.id, // ID дочернего пространства
+            "m.space.parent", // Тип события
+            parentId, // State Key - это ID родителя
+            { via: [localStorage.getItem("home_server")] }, // Содержимое события
+            adminCreatorId // От чьего имени выполняется действие
           );
           const userToJoin = nodeCreatorId;
           const allAncestors = [...ancestors, parentId];
@@ -760,7 +927,7 @@ export const RoomCreate = (props: any) => {
         />
 
         <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
-        <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth multiline/>
+        <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth multiline />
 
         <AutocompleteInput
           source="creator_id"
@@ -782,6 +949,7 @@ export const RoomCreate = (props: any) => {
 
 export const ChatList = (props: ListProps) => {
   const theme = useTheme();
+  const translate = useTranslate();
 
   return (
     <List
@@ -792,7 +960,7 @@ export const ChatList = (props: ListProps) => {
       actions={<RoomListActions />}
       filter={{ "creation_content.type": null }}
       perPage={50}
-      title="Чаты"
+      title={translate("synapseadmin.rooms.tabs.chats")}
     >
       <DatagridConfigurable
         rowClick="show"
@@ -845,8 +1013,34 @@ export const ChatList = (props: ListProps) => {
   );
 };
 
+/**
+ * Отображает список пространств (Spaces) в виде настраиваемой таблицы.
+ *
+ * Этот компонент использует `<List>` и `<DatagridConfigurable>` из `react-admin`
+ * для получения и отображения отфильтрованного списка комнат. Фильтрация
+ * происходит по `creation_content.type: "m.space"`, чтобы в списке
+ * были только пространства.
+ *
+ * Ключевые колонки включают:
+ * - Аватар пространства.
+ * - ID и название (с fallback на alias).
+ * - Статус шифрования (с иконками).
+ * - Количество участников.
+ *
+ * Компонент предоставляет интерактивные элементы:
+ * - Переход на страницу детального просмотра по клику на строку.
+ * - Кнопка "Изменить" (`<EditButton>`) для перехода к форме редактирования.
+ * - Кнопка "Назначить администратора" (`<MakeAdminBtn>`).
+ *
+ * Является одной из вкладок в компоненте `RoomLists`.
+ *
+ * @component
+ * @param {ListProps} props - Стандартные пропсы для компонента List в `react-admin`.
+ * @returns {JSX.Element} Компонент `<List>`, содержащий таблицу пространств.
+ */
 export const SpaceList = (props: ListProps) => {
   const theme = useTheme();
+  const translate = useTranslate();
 
   return (
     <List
@@ -857,7 +1051,7 @@ export const SpaceList = (props: ListProps) => {
       actions={<RoomListActions />}
       filter={{ "creation_content.type": "m.space" }}
       perPage={50}
-      title="Пространства"
+      title={translate("synapseadmin.rooms.tabs.spaces")}
     >
       <DatagridConfigurable
         rowClick="show"
@@ -907,6 +1101,7 @@ export const SpaceList = (props: ListProps) => {
         <WrapperField label="resources.rooms.fields.actions">
           <MakeAdminBtn />
         </WrapperField>
+        <EditButton label={translate("resources.rooms.action.edit")} />
       </DatagridConfigurable>
     </List>
   );
@@ -932,12 +1127,29 @@ const RoomLists = (props: ListProps) => {
   );
 };
 
+/**
+ * Определяет ресурс "Пространства и чаты" (rooms) для `react-admin`.
+ *
+ * Этот объект связывает различные компоненты (для списка, просмотра, создания и редактирования)
+ * с именем ресурса "rooms", которое используется в URL-адресах и API-запросах.
+ * Он также задает иконку для отображения в меню навигации.
+ *
+ * @const
+ * @type {ResourceProps}
+ * @property {string} name - Уникальное имя ресурса.
+ * @property {React.ElementType} icon - Иконка, отображаемая в меню.
+ * @property {React.ElementType} list - Компонент для отображения списка ресурсов (в данном случае `RoomLists` с вкладками).
+ * @property {React.ElementType} show - Компонент для детального просмотра одного ресурса.
+ * @property {React.ElementType} create - Компонент для создания нового ресурса.
+ * @property {React.ElementType} edit - Компонент для редактирования существующего ресурса.
+ */
 const resource: ResourceProps = {
   name: "rooms",
   icon: RoomIcon,
   list: RoomLists,
   show: RoomShow,
   create: RoomCreate,
+  edit: RoomEdit,
 };
 
 export default resource;

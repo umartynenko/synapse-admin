@@ -195,10 +195,10 @@ const en: SynapseTranslationMessages = {
         },
         locked: "Locked",
         suspended: "Suspended",
-        deactivated: "Deactivated",
+        deactivated: "Reserved",
         erased: "Erased",
         guests: "Show guests",
-        show_deactivated: "Show deactivated users",
+        show_deactivated: "Show reserved users",
         show_locked: "Show locked users",
         show_suspended: "Show suspended users",
         user_id: "Search user",
@@ -237,6 +237,7 @@ const en: SynapseTranslationMessages = {
         overwrite_content: "This username is already taken. Are you sure that you want to overwrite the existing user?",
         overwrite_cancel: "Cancel",
         overwrite_confirm: "Overwrite",
+        edit: "Edit",
       },
       badge: {
         you: "You",
@@ -336,6 +337,7 @@ const en: SynapseTranslationMessages = {
       action: {
         create_room: "Create space",
         create_room_title: "Create a Space",
+        edit: "Edit",
         erase: {
           title: "Delete chat",
           content:
