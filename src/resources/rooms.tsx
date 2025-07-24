@@ -943,6 +943,7 @@ export const RoomCreate = (props: any) => {
 
 export const ChatList = (props: ListProps) => {
   const theme = useTheme();
+  const translate = useTranslate();
 
   return (
     <List
@@ -953,7 +954,7 @@ export const ChatList = (props: ListProps) => {
       actions={<RoomListActions />}
       filter={{ "creation_content.type": null }}
       perPage={50}
-      title="Чаты"
+      title={translate("synapseadmin.rooms.tabs.chats")}
     >
       <DatagridConfigurable
         rowClick="show"
@@ -1033,6 +1034,7 @@ export const ChatList = (props: ListProps) => {
  */
 export const SpaceList = (props: ListProps) => {
   const theme = useTheme();
+  const translate = useTranslate();
 
   return (
     <List
@@ -1043,7 +1045,7 @@ export const SpaceList = (props: ListProps) => {
       actions={<RoomListActions />}
       filter={{ "creation_content.type": "m.space" }}
       perPage={50}
-      title="Пространства"
+      title={translate("synapseadmin.rooms.tabs.spaces")}
     >
       <DatagridConfigurable
         rowClick="show"
@@ -1093,7 +1095,7 @@ export const SpaceList = (props: ListProps) => {
         <WrapperField label="resources.rooms.fields.actions">
           <MakeAdminBtn />
         </WrapperField>
-        <EditButton label="Изменить" />
+        <EditButton label={translate("resources.rooms.action.edit")} />
       </DatagridConfigurable>
     </List>
   );
