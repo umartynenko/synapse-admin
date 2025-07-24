@@ -16,6 +16,7 @@ import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
+import { useRefresh } from "react-admin";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import {
@@ -74,6 +75,7 @@ import {
   RoomDirectoryPublishButton,
   RoomDirectoryUnpublishButton,
 } from "./room_directory";
+
 import AvatarField from "../components/AvatarField";
 import { ClampedNumberInput } from "../components/ClampedNumberInput";
 import DeleteRoomButton from "../components/DeleteRoomButton";
@@ -81,6 +83,10 @@ import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
 import { MediaIDField } from "../components/media";
 import { Room } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
+
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import CloseIcon from "@mui/icons-material/Close";
 
 /**
  * Компонент для редактирования названия и описания комнаты (чата или пространства).
