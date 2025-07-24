@@ -374,7 +374,7 @@ export interface SynapseDataProvider extends DataProvider {
     eventType: string,
     stateKey: string,
     content: object,
-    impersonateId?: string,
+    impersonateId?: string
   ) => Promise<any>;
 }
 
@@ -393,11 +393,18 @@ const resourceMap = {
     }),
     data: "users",
     total: json => json.total,
-    create: (data: RaRecord) => ({
-      endpoint: `/_synapse/admin/v2/users/${encodeURIComponent(returnMXID(data.id))}`,
-      body: data,
-      method: "PUT",
-    }),
+    create: (data: RaRecord) => {
+      const body = { ...data };
+      // При создании пользователь всегда должен быть АКТИВНЫМ,
+      // чтобы его можно было найти и деактивировать в `afterCreate`.
+      body.deactivated = false;
+
+      return {
+        endpoint: `/_synapse/admin/v2/users/${encodeURIComponent(returnMXID(data.id))}`,
+        body: body,
+        method: "PUT",
+      };
+    },
     delete: (params: DeleteParams) => ({
       endpoint: `/_synapse/admin/v1/deactivate/${encodeURIComponent(returnMXID(params.id))}`,
       body: { erase: true },
@@ -807,7 +814,7 @@ const baseDataProvider: SynapseDataProvider = {
           }
         }
         return jsonClient(`${endpoint_url}/${encodeURIComponent(id)}`);
-      }),
+      })
     );
     return {
       data: responses.map(({ json }) => res.map(json)),
@@ -956,7 +963,7 @@ const baseDataProvider: SynapseDataProvider = {
         const ancestors = await baseDataProvider.getSpaceAncestors(roomId);
         console.log(
           "[Update] Найденные предки:",
-          ancestors.map(a => a.name),
+          ancestors.map(a => a.name)
         );
 
         const parentHierarchicalName = ancestors.map(a => a.name).join(" / ");
@@ -1108,7 +1115,10 @@ const baseDataProvider: SynapseDataProvider = {
       };
     }
 
-    return { data: res.map(json) };
+    // --- ИЗМЕНЕНИЕ: ДОЖИДАЕМСЯ ВЫПОЛНЕНИЯ ASYNC MAP ---
+    // Это гарантирует, что в afterCreate придет объект, а не Promise.
+    const mappedData = await res.map(json);
+    return { data: mappedData };
   },
 
   createMany: async (resource: string, params: { ids: Identifier[]; data: RaRecord }) => {
@@ -1128,7 +1138,7 @@ const baseDataProvider: SynapseDataProvider = {
           method: cre.method,
           body: JSON.stringify(cre.body, filterNullValues),
         });
-      }),
+      })
     );
     return { data: responses.map(({ json }) => json) };
   },
@@ -1174,7 +1184,7 @@ const baseDataProvider: SynapseDataProvider = {
             method: "method" in del ? del.method : "DELETE",
             body: "body" in del ? JSON.stringify(del.body) : null,
           });
-        }),
+        })
       );
 
       return {
@@ -1186,8 +1196,8 @@ const baseDataProvider: SynapseDataProvider = {
         params.ids.map(id =>
           jsonClient(`${endpoint_url}/${id}`, {
             method: "DELETE",
-          }),
-        ),
+          })
+        )
       );
       return { data: responses.map(({ json }) => json) };
     }
@@ -1414,7 +1424,7 @@ const baseDataProvider: SynapseDataProvider = {
   },
   getServerNotifications: async (
     serverNotificationsUrl: string,
-    burstCache = false,
+    burstCache = false
   ): Promise<ServerNotificationsResponse> => {
     let serverURL = `${serverNotificationsUrl}/notifications`;
     if (burstCache) {
@@ -1806,9 +1816,47 @@ const dataProvider = withLifecycleCallbacks(baseDataProvider, [
             const endpoint_url = `${base_url}/_synapse/admin/v1/user/${encodeURIComponent(returnMXID(id))}/redact`;
             await jsonClient(endpoint_url, { method: "POST", body: JSON.stringify({ rooms: [] }) });
           }
-        }),
+        })
       );
       return params;
+    },
+
+    // --- ИЗМЕНЕНИЕ: ДОБАВЛЕН ОБРАБОТЧИК AFTERCREATE ---
+    /**
+     * Этот обработчик запускается автоматически после успешного создания пользователя.
+     * Он немедленно отправляет второй запрос для деактивации только что созданной учетной записи.
+     */
+    afterCreate: async (result, dataProvider) => {
+      console.log("Пользователь успешно создан. Запускаю немедленную деактивацию.");
+
+      // 1. Получаем ID только что созданного пользователя из результата операции create
+      const newUser = result.data;
+      const userId = newUser.id;
+
+      if (!userId) {
+        console.error("Не удалось получить ID нового пользователя, деактивация отменена.");
+        return result; // Возвращаем исходный результат, чтобы не сломать UI
+      }
+
+      // 2. Формируем URL для эндпоинта деактивации
+      const base_url = localStorage.getItem("base_url");
+      const endpoint_url = `${base_url}/_synapse/admin/v1/deactivate/${encodeURIComponent(userId)}`;
+
+      try {
+        // 3. Отправляем запрос на деактивацию
+        await jsonClient(endpoint_url, {
+          method: "POST",
+          body: JSON.stringify({}), // Пустое тело для деактивации без удаления
+        });
+        console.log(`Пользователь ${userId} успешно деактивирован.`);
+      } catch (error) {
+        console.error(`Произошла ошибка при автоматической деактивации пользователя ${userId}:`, error);
+        // Не пробрасываем ошибку дальше, чтобы UI не показывал ошибку "деактивации",
+        // так как основная операция "создания" прошла успешно.
+      }
+
+      // 4. Возвращаем оригинальный результат операции `create`
+      return result;
     },
   },
 ]);
