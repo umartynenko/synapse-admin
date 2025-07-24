@@ -11,62 +11,62 @@ import PersonPinIcon from "@mui/icons-material/PersonPin";
 import ScienceIcon from "@mui/icons-material/Science";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import ViewListIcon from "@mui/icons-material/ViewList";
-import { Alert, Typography } from "@mui/material";
+import { Alert, Tab, Tabs, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
-  ArrayInput,
   ArrayField,
+  ArrayInput,
+  BooleanField,
+  BooleanInput,
+  BulkDeleteButton,
   Button,
+  Confirm,
+  Create,
+  CreateButton,
+  CreateProps,
   Datagrid,
   DatagridConfigurable,
   DateField,
-  Create,
-  CreateProps,
+  DeleteButton,
   Edit,
   EditProps,
+  ExportButton,
+  FormTab,
+  FunctionField,
+  Identifier,
+  ImageField,
+  ImageInput,
   List,
   ListProps,
-  SimpleForm,
-  SimpleFormIterator,
-  TabbedForm,
-  FormTab,
-  BooleanField,
-  BooleanInput,
+  NumberField,
+  Pagination,
   PasswordInput,
-  TextField,
-  TextInput,
   ReferenceField,
   ReferenceManyField,
   ResourceProps,
+  SaveButton,
   SearchInput,
+  SelectField,
   SelectInput,
-  DeleteButton,
+  SimpleForm,
+  SimpleFormIterator,
+  TabbedForm,
+  TextField,
+  TextInput,
+  Toolbar,
+  ToolbarClasses,
+  TopToolbar,
   maxLength,
   regex,
   required,
-  useRecordContext,
-  useTranslate,
-  Pagination,
-  SaveButton,
-  CreateButton,
-  ExportButton,
-  BulkDeleteButton,
-  TopToolbar,
-  Toolbar,
-  NumberField,
+  useCreate,
+  useDataProvider,
   useListContext,
   useNotify,
-  Identifier,
-  ToolbarClasses,
-  ImageInput,
-  ImageField,
-  FunctionField,
-  useDataProvider,
-  Confirm,
-  useCreate,
+  useRecordContext,
   useRedirect,
-  SelectField,
+  useTranslate,
 } from "react-admin";
 import { useFormContext } from "react-hook-form";
 import { Link } from "react-router-dom";
@@ -76,10 +76,10 @@ import AvatarField from "../components/AvatarField";
 import DeleteUserButton from "../components/DeleteUserButton";
 import DeviceRemoveButton from "../components/DeviceRemoveButton";
 import ExperimentalFeaturesList from "../components/ExperimentalFeatures";
-import { ServerNoticeButton, ServerNoticeBulkButton } from "../components/ServerNotices";
+import { MediaIDField, ProtectMediaButton, QuarantineMediaButton } from "../components/media";
+import { ServerNoticeBulkButton, ServerNoticeButton } from "../components/ServerNotices";
 import UserAccountData from "../components/UserAccountData";
 import UserRateLimits from "../components/UserRateLimits";
-import { MediaIDField, ProtectMediaButton, QuarantineMediaButton } from "../components/media";
 import { User, UsernameAvailabilityResult } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
 import decodeURLComponent from "../utils/decodeURLComponent";
@@ -122,13 +122,13 @@ const UserListActions = () => {
 
 const UserPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]} />;
 
-const userFilters = [
-  <SearchInput source="name" alwaysOn />,
-  <BooleanInput source="guests" alwaysOn />,
-  <BooleanInput label="resources.users.fields.show_deactivated" source="deactivated" alwaysOn />,
-  <BooleanInput label="resources.users.fields.show_locked" source="locked" alwaysOn />,
-  <BooleanInput label="resources.users.fields.show_suspended" source="suspended" alwaysOn />,
-];
+// 1. УБРАН ФИЛЬТР 'deactivated' ИЗ МАССИВА
+// const userFilters = [
+//   <SearchInput source="name" alwaysOn />,
+//   <BooleanInput source="guests" alwaysOn />,
+//   <BooleanInput label="resources.users.fields.show_locked" source="locked" alwaysOn />,
+//   <BooleanInput label="resources.users.fields.show_suspended" source="suspended" alwaysOn />,
+// ];
 
 const UserPreventSelfDelete: React.FC<{
   children: React.ReactNode;
@@ -179,72 +179,107 @@ const UserBulkActionButtons = () => {
   );
 };
 
-// --- НАЧАЛО ИЗМЕНЕНИЙ В ЭТОМ БЛОКЕ ---
-export const UserList = (props: ListProps) => (
+// 2. СОЗДАНА ОБЩАЯ ТАБЛИЦА ДЛЯ ПЕРЕИСПОЛЬЗОВАНИЯ
+const UserGrid = () => (
+  <DatagridConfigurable
+    rowClick={(id: Identifier, resource: string) => `/${resource}/${encodeURIComponent(id)}`}
+    bulkActionButtons={<UserBulkActionButtons />}
+  >
+    <AvatarField
+      source="avatar_src"
+      sx={{ height: "40px", width: "40px" }}
+      sortBy="avatar_url"
+      label="resources.users.fields.avatar"
+    />
+    <TextField
+      source="id"
+      sx={{
+        wordBreak: "break-word",
+        overflowWrap: "break-word",
+      }}
+      sortBy="name"
+      label="resources.users.fields.id"
+    />
+    <TextField
+      source="displayname"
+      sx={{
+        wordBreak: "break-word",
+        overflowWrap: "break-word",
+      }}
+      label="resources.users.fields.displayname"
+    />
+    <BooleanField source="is_guest" label="resources.users.fields.is_guest" />
+    <BooleanField source="admin" label="resources.users.fields.admin" />
+    <SelectField
+      source="custom_role"
+      label="resources.users.fields.custom_role"
+      choices={choices_custom_role}
+      sortable={false}
+    />
+    <BooleanField source="deactivated" label="resources.users.fields.deactivated" />
+    <BooleanField source="locked" label="resources.users.fields.locked" />
+    <BooleanField source="suspended" label="resources.users.fields.suspended" />
+    <BooleanField source="erased" sortable={false} label="resources.users.fields.erased" />
+    <DateField source="creation_ts" label="resources.users.fields.creation_ts_ms" showTime options={DATE_FORMAT} />
+  </DatagridConfigurable>
+);
+
+// 3. СОЗДАНЫ СПИСКИ ДЛЯ КАЖДОЙ ВКЛАДКИ
+const ActiveUserList = (props: Omit<ListProps, "children">) => (
   <List
     {...props}
-    filters={userFilters}
-    filterDefaultValues={{ guests: false, deactivated: true, locked: false, suspended: false }}
+    // filters={userFilters}
+    filterDefaultValues={{ guests: false, locked: false, suspended: false }}
+    filter={{ deactivated: false }} // Фильтр для активных
     sort={{ field: "name", order: "ASC" }}
     actions={<UserListActions />}
     pagination={<UserPagination />}
     perPage={50}
+    title={useTranslate()("synapseadmin.users.tabs.active")}
   >
-    <DatagridConfigurable
-      rowClick={(id: Identifier, resource: string) => `/${resource}/${encodeURIComponent(id)}`}
-      bulkActionButtons={<UserBulkActionButtons />}
-    >
-      <AvatarField
-        source="avatar_src"
-        sx={{ height: "40px", width: "40px" }}
-        sortBy="avatar_url"
-        label="resources.users.fields.avatar"
-      />
-      <TextField
-        source="id"
-        sx={{
-          wordBreak: "break-word",
-          overflowWrap: "break-word",
-        }}
-        sortBy="name"
-        label="resources.users.fields.id"
-      />
-      <TextField
-        source="displayname"
-        sx={{
-          wordBreak: "break-word",
-          overflowWrap: "break-word",
-        }}
-        label="resources.users.fields.displayname"
-      />
-      <BooleanField source="is_guest" label="resources.users.fields.is_guest" />
-      <BooleanField source="admin" label="resources.users.fields.admin" />
-
-      {/* ++ ВАША НОВАЯ КОЛОНКА ++ */}
-      {/*<TextField source="custom_role" label="resources.users.fields.custom_role" sortable={false} />*/}
-
-      <SelectField
-        source="custom_role"
-        label="resources.users.fields.custom_role"
-        choices={choices_custom_role}
-        sortable={false}
-      />
-      <BooleanField source="deactivated" label="resources.users.fields.deactivated" />
-      <BooleanField source="locked" label="resources.users.fields.locked" />
-      <BooleanField source="suspended" label="resources.users.fields.suspended" />
-      <BooleanField source="erased" sortable={false} label="resources.users.fields.erased" />
-      <DateField source="creation_ts" label="resources.users.fields.creation_ts_ms" showTime options={DATE_FORMAT} />
-    </DatagridConfigurable>
+    <UserGrid />
   </List>
 );
-// --- КОНЕЦ ИЗМЕНЕНИЙ В ЭТОМ БЛОКЕ ---
 
-// https://matrix.org/docs/spec/appendices#user-identifiers
-// here only local part of user_id
-// maxLength = 255 - "@" - ":" - storage.getItem("home_server").length
-// storage.getItem("home_server").length is not valid here
+const DeactivatedUserList = (props: Omit<ListProps, "children">) => (
+  <List
+    {...props}
+    // filters={userFilters}
+    filterDefaultValues={{ guests: false, locked: false, suspended: false }}
+    filter={{ deactivated: true }} // Фильтр для деактивированных
+    sort={{ field: "name", order: "ASC" }}
+    actions={<UserListActions />}
+    pagination={<UserPagination />}
+    perPage={50}
+    title={useTranslate()("synapseadmin.users.tabs.deactivated")}
+  >
+    <UserGrid />
+  </List>
+);
+
+// 4. СОЗДАН КОМПОНЕНТ-КОНТЕЙНЕР ДЛЯ ВКЛАДОК
+const UserLists = (props: ListProps) => {
+  const [tab, setTab] = useState(0);
+  const translate = useTranslate();
+
+  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTab(newValue);
+  };
+
+  return (
+    <Fragment>
+      <Tabs value={tab} onChange={handleChange} indicatorColor="primary" textColor="primary">
+        <Tab label={translate("synapseadmin.users.tabs.active")} />
+        <Tab label={translate("synapseadmin.users.tabs.deactivated")} />
+      </Tabs>
+      {tab === 0 && <ActiveUserList {...props} />}
+      {tab === 1 && <DeactivatedUserList {...props} />}
+    </Fragment>
+  );
+};
+
+// ВЕСЬ ОСТАЛЬНОЙ КОД ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ
 const validateUser = [required(), maxLength(253), regex(/^[a-z0-9._=\-\+/]+$/, "synapseadmin.users.invalid_user_id")];
-
 const validateAddress = [required(), maxLength(255)];
 
 const UserEditActions = () => {
@@ -713,10 +748,11 @@ export const UserEdit = (props: EditProps) => {
   );
 };
 
+// 5. ОБНОВЛЕН ЭКСПОРТ РЕСУРСА
 const resource: ResourceProps = {
   name: "users",
   icon: UserIcon,
-  list: UserList,
+  list: UserLists,
   edit: UserEdit,
   create: UserCreate,
 };
