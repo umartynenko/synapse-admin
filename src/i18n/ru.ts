@@ -60,6 +60,8 @@ const ru: SynapseTranslationMessages = {
         experimental: "Экспериментальные",
         limits: "Ограничения",
         account_data: "Данные пользователя",
+        active: "Активные пользователи",
+        deactivated: "Зарезервированные/удаленные пользователи",
       },
     },
     rooms: {

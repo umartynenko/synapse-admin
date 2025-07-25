@@ -60,6 +60,8 @@ const en: SynapseTranslationMessages = {
         experimental: "Experimental",
         limits: "Rate Limits",
         account_data: "Account Data",
+        active: "Active Users",
+        deactivated: "Deactivated Users",
       },
     },
     rooms: {
