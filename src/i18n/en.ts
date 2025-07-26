@@ -366,6 +366,8 @@ const en: SynapseTranslationMessages = {
           content: "Select one or more users to make them subscriber admins in this space.",
           search_placeholder: "Search by ID or display name",
           start_typing: "Start typing a name or user ID to search (min 2 characters)",
+          success:
+            "Successfully assigned %{smart_count} Subscriber Admin |||| Successfully assigned %{smart_count} Subscriber Admins",
         },
         search_member: "Search member",
         delegate: {

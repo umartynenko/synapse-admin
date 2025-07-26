@@ -1277,6 +1277,26 @@ const baseDataProvider: SynapseDataProvider = {
 
     await jsonClient(endpoint_url, { method: "POST", body: JSON.stringify(filtered) });
   },
+
+  getRoomStateEvent: async (roomId, eventType, stateKey) => {
+    const base_url = localStorage.getItem("base_url");
+    const endpoint_url = `${base_url}/_matrix/client/v3/rooms/${encodeURIComponent(
+      roomId
+    )}/state/${encodeURIComponent(eventType)}/${encodeURIComponent(stateKey)}`;
+
+    try {
+      const { json } = await jsonClient(endpoint_url);
+      return json;
+    } catch (error) {
+      // Если событие не найдено (404), это не критическая ошибка, просто вернем null.
+      if (error instanceof HttpError && error.status === 404) {
+        return null;
+      }
+      // Все другие ошибки пробрасываем дальше.
+      throw error;
+    }
+  },
+
   checkUsernameAvailability: async (username: string) => {
     const base_url = localStorage.getItem("base_url");
     const endpoint_url = `${base_url}/_synapse/admin/v1/username_available?username=${encodeURIComponent(username)}`;
