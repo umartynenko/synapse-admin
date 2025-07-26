@@ -11,9 +11,9 @@ import PersonPinIcon from "@mui/icons-material/PersonPin";
 import ScienceIcon from "@mui/icons-material/Science";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import ViewListIcon from "@mui/icons-material/ViewList";
-import { Alert, Box, Tab, Tabs, Typography } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { Fragment, useEffect, useState } from "react";
+import {Alert, Box, Tab, Tabs, Typography} from "@mui/material";
+import {useTheme} from "@mui/material/styles";
+import {Fragment, useEffect, useState} from "react";
 import {
   ArrayField,
   ArrayInput,
@@ -34,7 +34,6 @@ import {
   EditProps,
   ExportButton,
   FormTab,
-  WrapperField,
   FunctionField,
   Identifier,
   ImageField,
@@ -59,6 +58,7 @@ import {
   Toolbar,
   ToolbarClasses,
   TopToolbar,
+  WrapperField,
   maxLength,
   regex,
   required,
@@ -70,68 +70,75 @@ import {
   useRedirect,
   useTranslate,
 } from "react-admin";
-import { useFormContext } from "react-hook-form";
-import { Link } from "react-router-dom";
+import {useFormContext} from "react-hook-form";
+import {Link} from "react-router-dom";
 
-import { MakeAdminBtn } from "./rooms";
 import AvatarField from "../components/AvatarField";
 import BlockUserButton from "../components/BlockUserButton";
 import DeleteUserButton from "../components/DeleteUserButton";
 import DeviceRemoveButton from "../components/DeviceRemoveButton";
 import ExperimentalFeaturesList from "../components/ExperimentalFeatures";
-import { MediaIDField, ProtectMediaButton, QuarantineMediaButton } from "../components/media";
-import { ServerNoticeBulkButton, ServerNoticeButton } from "../components/ServerNotices";
+import {MediaIDField, ProtectMediaButton, QuarantineMediaButton} from "../components/media";
+import {ServerNoticeBulkButton, ServerNoticeButton} from "../components/ServerNotices";
 import UserAccountData from "../components/UserAccountData";
 import UserRateLimits from "../components/UserRateLimits";
-import { User, UsernameAvailabilityResult } from "../synapse/dataProvider";
-import { DATE_FORMAT } from "../utils/date";
+import {DATE_FORMAT} from "../utils/date";
 import decodeURLComponent from "../utils/decodeURLComponent";
-import { isASManaged } from "../utils/mxid";
-import { generateRandomPassword } from "../utils/password";
+import {isASManaged} from "../utils/mxid";
+import {generateRandomPassword} from "../utils/password";
+import {MakeAdminBtn} from "./rooms";
+import {User, UsernameAvailabilityResult} from "../synapse/dataProvider";
 
 const choices_medium = [
-  { id: "email", name: "resources.users.email" },
-  { id: "msisdn", name: "resources.users.msisdn" },
+  {id: "email", name: "resources.users.email"},
+  {id: "msisdn", name: "resources.users.msisdn"},
 ];
 
 const choices_type = [
-  { id: "bot", name: "bot" },
-  { id: "support", name: "support" },
+  {id: "bot", name: "bot"},
+  {id: "support", name: "support"},
 ];
 
 const choices_custom_role = [
-  { id: "admin", name: "resources.users.fields.choices_custom_role.admin" },
-  { id: "org_admin", name: "resources.users.fields.choices_custom_role.org_admin" },
-  { id: "space_leader", name: "resources.users.fields.choices_custom_role.space_leader" },
-  { id: "space_admin", name: "resources.users.fields.choices_custom_role.space_admin" },
-  { id: "vip", name: "resources.users.fields.choices_custom_role.vip" },
-  { id: "moderator", name: "resources.users.fields.choices_custom_role.moderator" },
-  { id: "user", name: "resources.users.fields.choices_custom_role.user" },
-  { id: "subscriber", name: "resources.users.fields.choices_custom_role.subscriber" },
+  {id: "admin", name: "resources.users.fields.choices_custom_role.admin"},
+  {id: "org_admin", name: "resources.users.fields.choices_custom_role.org_admin"},
+  {id: "space_leader", name: "resources.users.fields.choices_custom_role.space_leader"},
+  {id: "space_admin", name: "resources.users.fields.choices_custom_role.space_admin"},
+  {id: "vip", name: "resources.users.fields.choices_custom_role.vip"},
+  {id: "moderator", name: "resources.users.fields.choices_custom_role.moderator"},
+  {id: "user", name: "resources.users.fields.choices_custom_role.user"},
+  {id: "subscriber", name: "resources.users.fields.choices_custom_role.subscriber"},
 ];
 
 const UserListActions = () => {
-  const { isLoading, total } = useListContext();
+  const {isLoading, total} = useListContext();
   return (
     <TopToolbar>
-      <CreateButton />
-      <ExportButton disabled={isLoading || total === 0} maxResults={10000} />
+      <CreateButton/>
+      <ExportButton disabled={isLoading || total === 0} maxResults={10000}/>
       <Button component={Link} to="/import_users" label="CSV Import">
-        <GetAppIcon sx={{ transform: "rotate(180deg)", fontSize: "20px" }} />
+        <GetAppIcon sx={{transform: "rotate(180deg)", fontSize: "20px"}}/>
       </Button>
     </TopToolbar>
   );
 };
 
-const UserPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]} />;
+const UserPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]}/>;
+
+// --- 1. ОПРЕДЕЛЯЕМ ФИЛЬТРЫ ДЛЯ СПИСКА ПОЛЬЗОВАТЕЛЕЙ ---
+const userFilters = [
+  <SearchInput source="name" alwaysOn/>,
+  <BooleanInput source="guests"/>,
+  <BooleanInput label="resources.users.fields.show_locked" source="locked"/>,
+  <BooleanInput label="resources.users.fields.show_suspended" source="suspended"/>,
+];
 
 const UserPreventSelfDelete: React.FC<{
   children: React.ReactNode;
   ownUserIsSelected: boolean;
   asManagedUserIsSelected: boolean;
 }> = props => {
-  const ownUserIsSelected = props.ownUserIsSelected;
-  const asManagedUserIsSelected = props.asManagedUserIsSelected;
+  const {ownUserIsSelected, asManagedUserIsSelected, children} = props;
   const notify = useNotify();
   const translate = useTranslate();
 
@@ -145,24 +152,23 @@ const UserPreventSelfDelete: React.FC<{
     }
   };
 
-  return <div onClickCapture={handleDeleteClick}>{props.children}</div>;
+  return <div onClickCapture={handleDeleteClick}>{children}</div>;
 };
 
 const UserBulkActionButtons = () => {
-  const record = useListContext();
+  const {selectedIds} = useListContext();
   const [ownUserIsSelected, setOwnUserIsSelected] = useState(false);
   const [asManagedUserIsSelected, setAsManagedUserIsSelected] = useState(false);
-  const selectedIds = record.selectedIds;
   const ownUserId = localStorage.getItem("user_id");
 
   useEffect(() => {
-    setOwnUserIsSelected(selectedIds.includes(ownUserId));
+    setOwnUserIsSelected(selectedIds.includes(ownUserId || ""));
     setAsManagedUserIsSelected(selectedIds.some(id => isASManaged(id)));
-  }, [selectedIds]);
+  }, [selectedIds, ownUserId]);
 
   return (
     <>
-      <ServerNoticeBulkButton />
+      <ServerNoticeBulkButton/>
       <UserPreventSelfDelete ownUserIsSelected={ownUserIsSelected} asManagedUserIsSelected={asManagedUserIsSelected}>
         <DeleteUserButton
           selectedIds={selectedIds}
@@ -174,7 +180,7 @@ const UserBulkActionButtons = () => {
   );
 };
 
-const UserRowActions = () => {
+export const UserRowActions = () => {
   const record = useRecordContext();
   if (!record) return null;
 
@@ -183,61 +189,55 @@ const UserRowActions = () => {
   const isManagedUser = isASManaged(record.id);
 
   return (
-    <Box sx={{ display: "inline-flex", flexWrap: "nowrap" }}>
-      <EditButton disabled={isCurrentUser || isManagedUser} />
+    <Box sx={{display: "inline-flex", flexWrap: "nowrap"}}>
       <UserPreventSelfDelete ownUserIsSelected={isCurrentUser} asManagedUserIsSelected={isManagedUser}>
-        <BlockUserButton record={record} />
+        <BlockUserButton record={record}/>
       </UserPreventSelfDelete>
     </Box>
   );
 };
 
-// --- ИЗМЕНЕНИЕ 1: Компонент теперь принимает свойство showActions ---
-const UserGrid = ({ showActions = true }: { showActions?: boolean }) => (
+const UserGrid = ({showActions = true}: { showActions?: boolean }) => (
   <DatagridConfigurable
     rowClick={(id: Identifier, resource: string) => `/${resource}/${encodeURIComponent(id)}`}
-    bulkActionButtons={<UserBulkActionButtons />}
+    bulkActionButtons={<UserBulkActionButtons/>}
   >
     <AvatarField
       source="avatar_src"
-      sx={{ height: "40px", width: "40px" }}
+      sx={{height: "40px", width: "40px"}}
       sortBy="avatar_url"
       label="resources.users.fields.avatar"
     />
     <TextField
       source="id"
-      sx={{
-        wordBreak: "break-word",
-        overflowWrap: "break-word",
-      }}
+      sx={{wordBreak: "break-word", overflowWrap: "break-word"}}
       sortBy="name"
       label="resources.users.fields.id"
     />
     <TextField
       source="displayname"
-      sx={{
-        wordBreak: "break-word",
-        overflowWrap: "break-word",
-      }}
+      sx={{wordBreak: "break-word", overflowWrap: "break-word"}}
       label="resources.users.fields.displayname"
     />
-    <BooleanField source="is_guest" label="resources.users.fields.is_guest" />
-    <BooleanField source="admin" label="resources.users.fields.admin" />
+    <BooleanField source="is_guest" label="resources.users.fields.is_guest"/>
+    <BooleanField source="admin" label="resources.users.fields.admin"/>
     <SelectField
       source="custom_role"
       label="resources.users.fields.custom_role"
       choices={choices_custom_role}
       sortable={false}
     />
-    <BooleanField source="deactivated" label="resources.users.fields.deactivated" />
-    <BooleanField source="locked" label="resources.users.fields.locked" />
-    <BooleanField source="suspended" label="resources.users.fields.suspended" />
-    <BooleanField source="erased" sortable={false} label="resources.users.fields.erased" />
-    <DateField source="creation_ts" label="resources.users.fields.creation_ts_ms" showTime options={DATE_FORMAT} />
-    {/* --- ИЗМЕНЕНИЕ 2: Столбец отображается только при условии --- */}
+    <BooleanField source="deactivated" label="resources.users.fields.deactivated"/>
+    <BooleanField source="locked" label="resources.users.fields.locked"/>
+    <BooleanField source="suspended" label="resources.users.fields.suspended"/>
+    <BooleanField source="erased" sortable={false} label="resources.users.fields.erased"/>
+    <DateField source="creation_ts" label="resources.users.fields.creation_ts_ms" showTime options={DATE_FORMAT}/>
     {showActions && (
       <WrapperField label="resources.rooms.fields.actions" sortBy={false}>
-        <UserRowActions />
+        <ReferenceField source="id" reference="users" link={false}>
+          <EditButton/>
+        </ReferenceField>
+        <UserRowActions/>
       </WrapperField>
     )}
   </DatagridConfigurable>
@@ -246,32 +246,33 @@ const UserGrid = ({ showActions = true }: { showActions?: boolean }) => (
 const ActiveUserList = (props: Omit<ListProps, "children">) => (
   <List
     {...props}
-    filterDefaultValues={{ guests: false, locked: false, suspended: false }}
-    filter={{ deactivated: false }}
-    sort={{ field: "name", order: "ASC" }}
-    actions={<UserListActions />}
-    pagination={<UserPagination />}
+    filters={userFilters} // <-- 2. ДОБАВЛЯЕМ ФИЛЬТРЫ В СПИСОК АКТИВНЫХ ПОЛЬЗОВАТЕЛЕЙ
+    filterDefaultValues={{guests: false, locked: false, suspended: false}}
+    filter={{deactivated: false}}
+    sort={{field: "name", order: "ASC"}}
+    actions={<UserListActions/>}
+    pagination={<UserPagination/>}
     perPage={50}
     title={useTranslate()("synapseadmin.users.tabs.active")}
   >
-    {/* --- ИЗМЕНЕНИЕ 3: Явно указываем, что нужно показать действия --- */}
-    <UserGrid showActions={true} />
+    <UserGrid showActions={true}/>
   </List>
 );
 
 const DeactivatedUserList = (props: Omit<ListProps, "children">) => (
   <List
     {...props}
-    filterDefaultValues={{ guests: false, locked: false, suspended: false }}
-    filter={{ deactivated: true }}
-    sort={{ field: "name", order: "ASC" }}
-    actions={<UserListActions />}
-    pagination={<UserPagination />}
+    // Можно также добавить фильтры сюда, если нужен поиск по деактивированным
+    filters={userFilters}
+    filterDefaultValues={{guests: false, locked: false, suspended: false}}
+    filter={{deactivated: true}}
+    sort={{field: "name", order: "ASC"}}
+    actions={<UserListActions/>}
+    pagination={<UserPagination/>}
     perPage={50}
     title={useTranslate()("synapseadmin.users.tabs.deactivated")}
   >
-    {/* --- ИЗМЕНЕНИЕ 4: Явно указываем, что нужно скрыть действия --- */}
-    <UserGrid showActions={false} />
+    <UserGrid showActions={false}/>
   </List>
 );
 
@@ -279,15 +280,15 @@ const UserLists = (props: ListProps) => {
   const [tab, setTab] = useState(0);
   const translate = useTranslate();
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
   };
 
   return (
     <Fragment>
       <Tabs value={tab} onChange={handleChange} indicatorColor="primary" textColor="primary">
-        <Tab label={translate("synapseadmin.users.tabs.active")} />
-        <Tab label={translate("synapseadmin.users.tabs.deactivated")} />
+        <Tab label={translate("synapseadmin.users.tabs.active")}/>
+        <Tab label={translate("synapseadmin.users.tabs.deactivated")}/>
       </Tabs>
       {tab === 0 && <ActiveUserList {...props} />}
       {tab === 1 && <DeactivatedUserList {...props} />}
@@ -310,7 +311,7 @@ const UserEditActions = () => {
 
   return (
     <TopToolbar>
-      {!record?.deactivated && <ServerNoticeButton />}
+      {!record?.deactivated && <ServerNoticeButton/>}
       {record && record.id && (
         <UserPreventSelfDelete ownUserIsSelected={ownUserIsSelected} asManagedUserIsSelected={asManagedUserIsSelected}>
           <DeleteUserButton
@@ -345,13 +346,13 @@ export const UserCreate = (props: CreateProps) => {
     setUserIsAvailable(!!result?.available);
     if (result?.available) {
       setUserAvailabilityEl(
-        <Typography component="span" variant="body2" sx={{ color: theme.palette.success.main }}>
+        <Typography component="span" variant="body2" sx={{color: theme.palette.success.main}}>
           ✔️ {translate("resources.users.helper.username_available")}
         </Typography>
       );
     } else {
       setUserAvailabilityEl(
-        <Typography component="span" variant="body2" sx={{ color: theme.palette.warning.main }}>
+        <Typography component="span" variant="body2" sx={{color: theme.palette.warning.main}}>
           ⚠️ {result?.error || "unknown error"}
         </Typography>
       );
@@ -365,18 +366,12 @@ export const UserCreate = (props: CreateProps) => {
       return;
     }
 
-    create(
-      "users",
-      { data: data },
-      {
-        onSuccess: (resource: User) => {
-          notify("ra.notification.created", { messageArgs: { smart_count: 1 } });
-          redirect(() => {
-            return `users/${encodeURIComponent(resource.id as string)}`;
-          });
-        },
-      }
-    );
+    create("users", {data}, {
+      onSuccess: (resource: User) => {
+        notify("ra.notification.created", {messageArgs: {smart_count: 1}});
+        redirect(() => `users/${encodeURIComponent(resource.id as string)}`);
+      },
+    });
   };
 
   const handleConfirm = () => {
@@ -389,18 +384,12 @@ export const UserCreate = (props: CreateProps) => {
   };
 
   const updateUser = () => {
-    create(
-      "users",
-      { data: formData },
-      {
-        onSuccess: (resource: User) => {
-          notify("ra.notification.updated", { messageArgs: { smart_count: 1 } });
-          redirect(() => {
-            return `users/${encodeURIComponent(resource.id as string)}`;
-          });
-        },
-      }
-    );
+    create("users", {data: formData}, {
+      onSuccess: (resource: User) => {
+        notify("ra.notification.updated", {messageArgs: {smart_count: 1}});
+        redirect(() => `users/${encodeURIComponent(resource.id as string)}`);
+      },
+    });
   };
 
   return (
@@ -413,10 +402,10 @@ export const UserCreate = (props: CreateProps) => {
           onBlur={checkAvailability}
           helperText={userAvailabilityEl}
         />
-        <TextInput source="displayname" validate={maxLength(256)} />
-        <UserPasswordInput source="password" autoComplete="new-password" helperText="resources.users.helper.password" />
-        <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable />
-        <BooleanInput source="admin" />
+        <TextInput source="displayname" validate={maxLength(256)}/>
+        <UserPasswordInput source="password" autoComplete="new-password" helperText="resources.users.helper.password"/>
+        <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable/>
+        <BooleanInput source="admin"/>
         <SelectInput
           source="custom_role"
           choices={choices_custom_role}
@@ -426,14 +415,14 @@ export const UserCreate = (props: CreateProps) => {
         />
         <ArrayInput source="threepids">
           <SimpleFormIterator disableReordering>
-            <SelectInput source="medium" choices={choices_medium} validate={required()} />
-            <TextInput source="address" validate={validateAddress} />
+            <SelectInput source="medium" choices={choices_medium} validate={required()}/>
+            <TextInput source="address" validate={validateAddress}/>
           </SimpleFormIterator>
         </ArrayInput>
         <ArrayInput source="external_ids" label="synapseadmin.users.tabs.sso">
           <SimpleFormIterator disableReordering>
-            <TextInput source="auth_provider" validate={required()} />
-            <TextInput source="external_id" label="resources.users.fields.id" validate={required()} />
+            <TextInput source="auth_provider" validate={required()}/>
+            <TextInput source="external_id" label="resources.users.fields.id" validate={required()}/>
           </SimpleFormIterator>
         </ArrayInput>
       </SimpleForm>
@@ -453,17 +442,12 @@ export const UserCreate = (props: CreateProps) => {
 const UserTitle = () => {
   const record = useRecordContext();
   const translate = useTranslate();
-  if (!record) {
-    return null;
-  }
+  if (!record) return null;
 
-  const username = record ? (record.displayname ? `"${record.displayname}"` : `"${record.name}"`) : "";
+  const username = record.displayname ? `"${record.displayname}"` : `"${record.name}"`;
   return (
     <span>
-      {translate("resources.users.name", {
-        smart_count: 1,
-      })}{" "}
-      {username}
+      {translate("resources.users.name", {smart_count: 1})} {username}
     </span>
   );
 };
@@ -479,23 +463,21 @@ const UserEditToolbar = () => {
   }
 
   return (
-    <>
-      <div className={ToolbarClasses.defaultToolbar}>
-        <Toolbar sx={{ justifyContent: "space-between" }}>
-          <SaveButton />
-          <UserPreventSelfDelete
-            ownUserIsSelected={ownUserIsSelected}
-            asManagedUserIsSelected={asManagedUserIsSelected}
-          >
-            <DeleteButton />
-          </UserPreventSelfDelete>
-        </Toolbar>
-      </div>
-    </>
+    <div className={ToolbarClasses.defaultToolbar}>
+      <Toolbar sx={{justifyContent: "space-between"}}>
+        <SaveButton/>
+        <UserPreventSelfDelete
+          ownUserIsSelected={ownUserIsSelected}
+          asManagedUserIsSelected={asManagedUserIsSelected}
+        >
+          <DeleteButton/>
+        </UserPreventSelfDelete>
+      </Toolbar>
+    </div>
   );
 };
 
-const UserBooleanInput = props => {
+const UserBooleanInput = (props: any) => {
   const record = useRecordContext();
   const ownUserId = localStorage.getItem("user_id");
   let ownUserIsSelected = false;
@@ -507,23 +489,22 @@ const UserBooleanInput = props => {
 
   return (
     <UserPreventSelfDelete ownUserIsSelected={ownUserIsSelected} asManagedUserIsSelected={asManagedUserIsSelected}>
-      <BooleanInput {...props} disabled={ownUserIsSelected || asManagedUserIsSelected} />
+      <BooleanInput {...props} disabled={ownUserIsSelected || asManagedUserIsSelected}/>
     </UserPreventSelfDelete>
   );
 };
 
-const UserPasswordInput = props => {
+const UserPasswordInput = (props: any) => {
   const record = useRecordContext();
-  let asManagedUserIsSelected = false;
-
   const form = useFormContext();
+  let asManagedUserIsSelected = false;
   if (record) {
     asManagedUserIsSelected = isASManaged(record.id);
   }
 
   const generatePassword = () => {
     const password = generateRandomPassword();
-    form.setValue("password", password, { shouldDirty: true });
+    form.setValue("password", password, {shouldDirty: true});
   };
 
   return (
@@ -543,7 +524,7 @@ const UserPasswordInput = props => {
         variant="outlined"
         label="resources.users.action.generate_password"
         onClick={generatePassword}
-        sx={{ marginBottom: "10px" }}
+        sx={{marginBottom: "10px"}}
         disabled={asManagedUserIsSelected}
       />
     </>
@@ -556,24 +537,16 @@ export const UserEdit = (props: EditProps) => {
   return (
     <Edit
       {...props}
-      title={<UserTitle />}
-      actions={<UserEditActions />}
+      title={<UserTitle/>}
+      actions={<UserEditActions/>}
       mutationMode="pessimistic"
-      queryOptions={{
-        meta: {
-          include: ["features"],
-        },
-      }}
+      queryOptions={{meta: {include: ["features"]}}}
     >
-      <TabbedForm toolbar={<UserEditToolbar />}>
-        <FormTab label={translate("resources.users.name", { smart_count: 1 })} icon={<PersonPinIcon />}>
-          <AvatarField source="avatar_src" sx={{ height: "120px", width: "120px" }} />
-          <BooleanInput source="avatar_erase" label="resources.users.action.erase_avatar" />
-          <ImageInput
-            source="avatar_file"
-            label="resources.users.fields.avatar"
-            accept={{ "image/*": [".png", ".jpg"] }}
-          >
+      <TabbedForm toolbar={<UserEditToolbar/>}>
+        <FormTab label={translate("resources.users.name", {smart_count: 1})} icon={<PersonPinIcon/>}>
+          <AvatarField source="avatar_src" sx={{height: "120px", width: "120px"}}/>
+          <BooleanInput source="avatar_erase" label="resources.users.action.erase_avatar"/>
+          <ImageInput source="avatar_file" label="resources.users.fields.avatar" accept={{"image/*": [".png", ".jpg"]}}>
             <ImageField
               source="src"
               title="Avatar"
@@ -582,175 +555,136 @@ export const UserEdit = (props: EditProps) => {
                   width: "120px !important",
                   height: "120px !important",
                   objectFit: "cover !important",
-                  borderRadius: "50% !important",
-                },
+                  borderRadius: "50% !important"
+                }
               }}
             />
           </ImageInput>
-          <TextInput source="id" readOnly />
-          <TextInput source="displayname" />
-          <UserPasswordInput
-            source="password"
-            autoComplete="new-password"
-            helperText="resources.users.helper.password"
-          />
-          <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable />
-          <SelectInput source="custom_role" choices={choices_custom_role} optionText="name" translateChoice />
-          <BooleanInput source="admin" />
-          <UserBooleanInput source="locked" />
-          <UserBooleanInput source="deactivated" helperText="resources.users.helper.deactivate" />
-          <UserBooleanInput source="suspended" helperText="resources.users.helper.suspend" />
-          <BooleanInput source="erased" disabled />
-          <DateField source="creation_ts_ms" showTime options={DATE_FORMAT} />
-          <TextField source="consent_version" />
+          <TextInput source="id" readOnly/>
+          <TextInput source="displayname"/>
+          <UserPasswordInput source="password" autoComplete="new-password"
+                             helperText="resources.users.helper.password"/>
+          <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable/>
+          <SelectInput source="custom_role" choices={choices_custom_role} optionText="name" translateChoice/>
+          <BooleanInput source="admin"/>
+          <UserBooleanInput source="locked"/>
+          <UserBooleanInput source="deactivated" helperText="resources.users.helper.deactivate"/>
+          <UserBooleanInput source="suspended" helperText="resources.users.helper.suspend"/>
+          <BooleanInput source="erased" disabled/>
+          <DateField source="creation_ts_ms" showTime options={DATE_FORMAT}/>
+          <TextField source="consent_version"/>
         </FormTab>
-
-        <FormTab label="resources.users.threepid" icon={<ContactMailIcon />} path="threepid">
+        <FormTab label="resources.users.threepid" icon={<ContactMailIcon/>} path="threepid">
           <ArrayInput source="threepids">
             <SimpleFormIterator disableReordering>
-              <SelectInput source="medium" choices={choices_medium} />
-              <TextInput source="address" />
+              <SelectInput source="medium" choices={choices_medium}/>
+              <TextInput source="address"/>
             </SimpleFormIterator>
           </ArrayInput>
         </FormTab>
-
-        <FormTab label="synapseadmin.users.tabs.sso" icon={<AssignmentIndIcon />} path="sso">
+        <FormTab label="synapseadmin.users.tabs.sso" icon={<AssignmentIndIcon/>} path="sso">
           <ArrayInput source="external_ids" label={false}>
             <SimpleFormIterator disableReordering>
-              <TextInput source="auth_provider" validate={required()} />
-              <TextInput source="external_id" label="resources.users.fields.id" validate={required()} />
+              <TextInput source="auth_provider" validate={required()}/>
+              <TextInput source="external_id" label="resources.users.fields.id" validate={required()}/>
             </SimpleFormIterator>
           </ArrayInput>
         </FormTab>
-
-        <FormTab label={translate("resources.devices.name", { smart_count: 2 })} icon={<DevicesIcon />} path="devices">
+        <FormTab label={translate("resources.devices.name", {smart_count: 2})} icon={<DevicesIcon/>} path="devices">
           <ReferenceManyField reference="devices" target="user_id" label={false}>
-            <Datagrid sx={{ width: "100%" }} bulkActionButtons={false}>
-              <TextField source="device_id" sortable={false} />
-              <TextField source="display_name" sortable={false} />
-              <TextField source="last_seen_ip" sortable={false} />
-              <DateField source="last_seen_ts" showTime options={DATE_FORMAT} sortable={false} />
-              <DeviceRemoveButton />
+            <Datagrid sx={{width: "100%"}} bulkActionButtons={false}>
+              <TextField source="device_id" sortable={false}/>
+              <TextField source="display_name" sortable={false}/>
+              <TextField source="last_seen_ip" sortable={false}/>
+              <DateField source="last_seen_ts" showTime options={DATE_FORMAT} sortable={false}/>
+              <DeviceRemoveButton/>
             </Datagrid>
           </ReferenceManyField>
         </FormTab>
-
-        <FormTab label="resources.connections.name" icon={<SettingsInputComponentIcon />} path="connections">
+        <FormTab label="resources.connections.name" icon={<SettingsInputComponentIcon/>} path="connections">
           <ReferenceField reference="connections" source="id" label={false} link={false}>
             <ArrayField source="devices[].sessions[0].connections" label="resources.connections.name">
-              <Datagrid sx={{ width: "100%" }} bulkActionButtons={false}>
-                <TextField source="ip" sortable={false} />
-                <DateField source="last_seen" showTime options={DATE_FORMAT} sortable={false} />
-                <TextField source="user_agent" sortable={false} style={{ width: "100%" }} />
+              <Datagrid sx={{width: "100%"}} bulkActionButtons={false}>
+                <TextField source="ip" sortable={false}/>
+                <DateField source="last_seen" showTime options={DATE_FORMAT} sortable={false}/>
+                <TextField source="user_agent" sortable={false} style={{width: "100%"}}/>
               </Datagrid>
             </ArrayField>
           </ReferenceField>
         </FormTab>
-
-        <FormTab
-          label={translate("resources.users_media.name", { smart_count: 2 })}
-          icon={<PermMediaIcon />}
-          path="media"
-        >
+        <FormTab label={translate("resources.users_media.name", {smart_count: 2})} icon={<PermMediaIcon/>} path="media">
           <ReferenceManyField
             reference="users_media"
             target="user_id"
             label={false}
-            pagination={<UserPagination />}
+            pagination={<UserPagination/>}
             perPage={10}
-            sort={{ field: "created_ts", order: "DESC" }}
+            sort={{field: "created_ts", order: "DESC"}}
           >
-            <Datagrid sx={{ width: "100%" }} bulkActionButtons={<BulkDeleteButton />}>
-              <MediaIDField source="media_id" />
-              <DateField source="created_ts" showTime options={DATE_FORMAT} />
-              <DateField source="last_access_ts" showTime options={DATE_FORMAT} />
-              <NumberField source="media_length" />
-              <TextField source="media_type" sx={{ display: "block", width: 200, wordBreak: "break-word" }} />
-              <FunctionField
-                source="upload_name"
-                render={record => (record.upload_name ? decodeURLComponent(record.upload_name) : "")}
-              />
-              <TextField source="quarantined_by" />
-              <QuarantineMediaButton label="resources.quarantine_media.action.name" />
-              <ProtectMediaButton label="resources.users_media.fields.safe_from_quarantine" />
-              <DeleteButton mutationMode="pessimistic" redirect={false} />
+            <Datagrid sx={{width: "100%"}} bulkActionButtons={<BulkDeleteButton/>}>
+              <MediaIDField source="media_id"/>
+              <DateField source="created_ts" showTime options={DATE_FORMAT}/>
+              <DateField source="last_access_ts" showTime options={DATE_FORMAT}/>
+              <NumberField source="media_length"/>
+              <TextField source="media_type" sx={{display: "block", width: 200, wordBreak: "break-word"}}/>
+              <FunctionField render={record => (record.upload_name ? decodeURLComponent(record.upload_name) : "")}/>
+              <TextField source="quarantined_by"/>
+              <QuarantineMediaButton label="resources.quarantine_media.action.name"/>
+              <ProtectMediaButton label="resources.users_media.fields.safe_from_quarantine"/>
+              <DeleteButton mutationMode="pessimistic" redirect={false}/>
             </Datagrid>
           </ReferenceManyField>
         </FormTab>
-
-        <FormTab label={translate("resources.rooms.name", { smart_count: 2 })} icon={<ViewListIcon />} path="rooms">
+        <FormTab label={translate("resources.rooms.name", {smart_count: 2})} icon={<ViewListIcon/>} path="rooms">
           <ReferenceManyField
             reference="joined_rooms"
             target="user_id"
             label={false}
             perPage={10}
-            pagination={<Pagination />}
+            pagination={<Pagination/>}
           >
-            <Datagrid sx={{ width: "100%" }} rowClick={id => "/rooms/" + id + "/show"} bulkActionButtons={false}>
+            <Datagrid sx={{width: "100%"}} rowClick={id => `/rooms/${id}/show`} bulkActionButtons={false}>
               <ReferenceField reference="rooms" source="id" label={false} link={false} sortable={false}>
-                <AvatarField source="avatar" sx={{ height: "40px", width: "40px" }} />
+                <AvatarField source="avatar" sx={{height: "40px", width: "40px"}}/>
               </ReferenceField>
-              <TextField source="id" label="resources.rooms.fields.room_id" sortable={false} />
-              <ReferenceField
-                reference="rooms"
-                source="id"
-                label="resources.rooms.fields.name"
-                link={false}
-                sortable={false}
-              >
-                <TextField
-                  source="name"
-                  sx={{
-                    wordBreak: "break-word",
-                    overflowWrap: "break-word",
-                  }}
-                />
+              <TextField source="id" label="resources.rooms.fields.room_id" sortable={false}/>
+              <ReferenceField reference="rooms" source="id" label="resources.rooms.fields.name" link={false}
+                              sortable={false}>
+                <TextField source="name" sx={{wordBreak: "break-word", overflowWrap: "break-word"}}/>
               </ReferenceField>
-              <ReferenceField
-                reference="rooms"
-                source="id"
-                label="resources.rooms.fields.joined_members"
-                link={false}
-                sortable={false}
-              >
-                <TextField source="joined_members" sortable={false} />
+              <ReferenceField reference="rooms" source="id" label="resources.rooms.fields.joined_members" link={false}
+                              sortable={false}>
+                <TextField source="joined_members" sortable={false}/>
               </ReferenceField>
               <ReferenceField reference="rooms" source="id" label={false} link={false} sortable={false}>
-                <MakeAdminBtn />
+                <MakeAdminBtn/>
               </ReferenceField>
             </Datagrid>
           </ReferenceManyField>
         </FormTab>
-
-        <FormTab
-          label={translate("resources.pushers.name", { smart_count: 2 })}
-          icon={<NotificationsIcon />}
-          path="pushers"
-        >
+        <FormTab label={translate("resources.pushers.name", {smart_count: 2})} icon={<NotificationsIcon/>}
+                 path="pushers">
           <ReferenceManyField reference="pushers" target="user_id" label={false}>
-            <Datagrid sx={{ width: "100%" }} bulkActionButtons={false}>
-              <TextField source="kind" sortable={false} />
-              <TextField source="app_display_name" sortable={false} />
-              <TextField source="app_id" sortable={false} />
-              <TextField source="data.url" sortable={false} />
-              <TextField source="device_display_name" sortable={false} />
-              <TextField source="lang" sortable={false} />
-              <TextField source="profile_tag" sortable={false} />
-              <TextField source="pushkey" sortable={false} />
+            <Datagrid sx={{width: "100%"}} bulkActionButtons={false}>
+              <TextField source="kind" sortable={false}/>
+              <TextField source="app_display_name" sortable={false}/>
+              <TextField source="app_id" sortable={false}/>
+              <TextField source="data.url" sortable={false}/>
+              <TextField source="device_display_name" sortable={false}/>
+              <TextField source="lang" sortable={false}/>
+              <TextField source="profile_tag" sortable={false}/>
+              <TextField source="pushkey" sortable={false}/>
             </Datagrid>
           </ReferenceManyField>
         </FormTab>
-
-        <FormTab label="synapseadmin.users.tabs.experimental" icon={<ScienceIcon />} path="experimental">
-          <ExperimentalFeaturesList />
+        <FormTab label="synapseadmin.users.tabs.experimental" icon={<ScienceIcon/>} path="experimental">
+          <ExperimentalFeaturesList/>
         </FormTab>
-
-        <FormTab label="synapseadmin.users.tabs.limits" icon={<LockClockIcon />} path="limits">
-          <UserRateLimits />
+        <FormTab label="synapseadmin.users.tabs.limits" icon={<LockClockIcon/>} path="limits">
+          <UserRateLimits/>
         </FormTab>
-
-        <FormTab label="synapseadmin.users.tabs.account_data" icon={<DocumentScannerIcon />} path="accountdata">
-          <UserAccountData />
+        <FormTab label="synapseadmin.users.tabs.account_data" icon={<DocumentScannerIcon/>} path="accountdata">
+          <UserAccountData/>
         </FormTab>
       </TabbedForm>
     </Edit>

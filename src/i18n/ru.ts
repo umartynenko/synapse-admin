@@ -377,6 +377,7 @@ const ru: SynapseTranslationMessages = {
           search_placeholder: "Поиск по ID или отображаемому имени",
           start_typing: "Начните вводить имя или ID пользователя (минимум 2 символа)",
         },
+        search_member: "Поиск участника",
         delegate: {
           success: "Права на «%{roomName}» делегированы %{delegateToUserId}.",
           failure: "Не удалось делегировать права на «%{roomName}»: %{error}",

@@ -367,6 +367,7 @@ const en: SynapseTranslationMessages = {
           search_placeholder: "Search by ID or display name",
           start_typing: "Start typing a name or user ID to search (min 2 characters)",
         },
+        search_member: "Search member",
         delegate: {
           success: 'Permissions for "%{roomName}" have been delegated to %{delegateToUserId}.',
           failure: 'Failed to delegate permissions for "%{roomName}": %{error}',
