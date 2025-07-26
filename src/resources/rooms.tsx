@@ -66,6 +66,7 @@ import {
   useTranslate,
   WrapperField,
 } from "react-admin";
+import AddSubscriberAdminButton from "../components/AddSubscriberAdminButton";
 import { useWatch } from "react-hook-form";
 
 import {
@@ -438,7 +439,10 @@ export const RoomShow = (props: ShowProps) => {
           <RaTextField source="encryption" emptyText={translate("resources.rooms.enums.unencrypted")} />
         </RaTab>
         <RaTab label="synapseadmin.rooms.tabs.members" icon={<UserIcon />} path="members">
-          <MakeAdminBtn />
+          <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+            <MakeAdminBtn />
+            <AddSubscriberAdminButton />
+          </Box>
           <ReferenceManyField reference="room_members" target="room_id" label={false}>
             <Datagrid sx={{ width: "100%" }} rowClick={id => `/users/${id}/show`} bulkActionButtons={false}>
               <RaTextField source="id" sortable={false} label="resources.users.fields.id" />
@@ -451,10 +455,6 @@ export const RoomShow = (props: ShowProps) => {
               >
                 <RaTextField source="displayname" sortable={false} />
               </ReferenceField>
-              {/* --- ИЗМЕНЕНИЕ: Добавлен столбец с кнопками --- */}
-              <WrapperField label="resources.rooms.fields.actions" sortBy={false}>
-                <RoomMemberActions />
-              </WrapperField>
             </Datagrid>
           </ReferenceManyField>
         </RaTab>
