@@ -11,7 +11,7 @@ import PersonPinIcon from "@mui/icons-material/PersonPin";
 import ScienceIcon from "@mui/icons-material/Science";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import ViewListIcon from "@mui/icons-material/ViewList";
-import { Alert, Tab, Tabs, Typography } from "@mui/material";
+import { Alert, Box, Tab, Tabs, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Fragment, useEffect, useState } from "react";
 import {
@@ -30,9 +30,11 @@ import {
   DateField,
   DeleteButton,
   Edit,
+  EditButton,
   EditProps,
   ExportButton,
   FormTab,
+  WrapperField,
   FunctionField,
   Identifier,
   ImageField,
@@ -73,6 +75,7 @@ import { Link } from "react-router-dom";
 
 import { MakeAdminBtn } from "./rooms";
 import AvatarField from "../components/AvatarField";
+import BlockUserButton from "../components/BlockUserButton";
 import DeleteUserButton from "../components/DeleteUserButton";
 import DeviceRemoveButton from "../components/DeviceRemoveButton";
 import ExperimentalFeaturesList from "../components/ExperimentalFeatures";
@@ -121,14 +124,6 @@ const UserListActions = () => {
 };
 
 const UserPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]} />;
-
-// 1. УБРАН ФИЛЬТР 'deactivated' ИЗ МАССИВА
-// const userFilters = [
-//   <SearchInput source="name" alwaysOn />,
-//   <BooleanInput source="guests" alwaysOn />,
-//   <BooleanInput label="resources.users.fields.show_locked" source="locked" alwaysOn />,
-//   <BooleanInput label="resources.users.fields.show_suspended" source="suspended" alwaysOn />,
-// ];
 
 const UserPreventSelfDelete: React.FC<{
   children: React.ReactNode;
@@ -179,8 +174,26 @@ const UserBulkActionButtons = () => {
   );
 };
 
-// 2. СОЗДАНА ОБЩАЯ ТАБЛИЦА ДЛЯ ПЕРЕИСПОЛЬЗОВАНИЯ
-const UserGrid = () => (
+const UserRowActions = () => {
+  const record = useRecordContext();
+  if (!record) return null;
+
+  const ownUserId = localStorage.getItem("user_id");
+  const isCurrentUser = record.id === ownUserId;
+  const isManagedUser = isASManaged(record.id);
+
+  return (
+    <Box sx={{ display: "inline-flex", flexWrap: "nowrap" }}>
+      <EditButton disabled={isCurrentUser || isManagedUser} />
+      <UserPreventSelfDelete ownUserIsSelected={isCurrentUser} asManagedUserIsSelected={isManagedUser}>
+        <BlockUserButton record={record} />
+      </UserPreventSelfDelete>
+    </Box>
+  );
+};
+
+// --- ИЗМЕНЕНИЕ 1: Компонент теперь принимает свойство showActions ---
+const UserGrid = ({ showActions = true }: { showActions?: boolean }) => (
   <DatagridConfigurable
     rowClick={(id: Identifier, resource: string) => `/${resource}/${encodeURIComponent(id)}`}
     bulkActionButtons={<UserBulkActionButtons />}
@@ -221,43 +234,47 @@ const UserGrid = () => (
     <BooleanField source="suspended" label="resources.users.fields.suspended" />
     <BooleanField source="erased" sortable={false} label="resources.users.fields.erased" />
     <DateField source="creation_ts" label="resources.users.fields.creation_ts_ms" showTime options={DATE_FORMAT} />
+    {/* --- ИЗМЕНЕНИЕ 2: Столбец отображается только при условии --- */}
+    {showActions && (
+      <WrapperField label="resources.rooms.fields.actions" sortBy={false}>
+        <UserRowActions />
+      </WrapperField>
+    )}
   </DatagridConfigurable>
 );
 
-// 3. СОЗДАНЫ СПИСКИ ДЛЯ КАЖДОЙ ВКЛАДКИ
 const ActiveUserList = (props: Omit<ListProps, "children">) => (
   <List
     {...props}
-    // filters={userFilters}
     filterDefaultValues={{ guests: false, locked: false, suspended: false }}
-    filter={{ deactivated: false }} // Фильтр для активных
+    filter={{ deactivated: false }}
     sort={{ field: "name", order: "ASC" }}
     actions={<UserListActions />}
     pagination={<UserPagination />}
     perPage={50}
     title={useTranslate()("synapseadmin.users.tabs.active")}
   >
-    <UserGrid />
+    {/* --- ИЗМЕНЕНИЕ 3: Явно указываем, что нужно показать действия --- */}
+    <UserGrid showActions={true} />
   </List>
 );
 
 const DeactivatedUserList = (props: Omit<ListProps, "children">) => (
   <List
     {...props}
-    // filters={userFilters}
     filterDefaultValues={{ guests: false, locked: false, suspended: false }}
-    filter={{ deactivated: true }} // Фильтр для деактивированных
+    filter={{ deactivated: true }}
     sort={{ field: "name", order: "ASC" }}
     actions={<UserListActions />}
     pagination={<UserPagination />}
     perPage={50}
     title={useTranslate()("synapseadmin.users.tabs.deactivated")}
   >
-    <UserGrid />
+    {/* --- ИЗМЕНЕНИЕ 4: Явно указываем, что нужно скрыть действия --- */}
+    <UserGrid showActions={false} />
   </List>
 );
 
-// 4. СОЗДАН КОМПОНЕНТ-КОНТЕЙНЕР ДЛЯ ВКЛАДОК
 const UserLists = (props: ListProps) => {
   const [tab, setTab] = useState(0);
   const translate = useTranslate();
@@ -278,13 +295,11 @@ const UserLists = (props: ListProps) => {
   );
 };
 
-// ВЕСЬ ОСТАЛЬНОЙ КОД ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ
 const validateUser = [required(), maxLength(253), regex(/^[a-z0-9._=\-\+/]+$/, "synapseadmin.users.invalid_user_id")];
 const validateAddress = [required(), maxLength(255)];
 
 const UserEditActions = () => {
   const record = useRecordContext();
-  const translate = useTranslate();
   const ownUserId = localStorage.getItem("user_id");
   let ownUserIsSelected = false;
   let asManagedUserIsSelected = false;
@@ -405,9 +420,9 @@ export const UserCreate = (props: CreateProps) => {
         <SelectInput
           source="custom_role"
           choices={choices_custom_role}
-          optionText="name" // Указываем использовать поле "name" для текста
-          translateChoice // Включаем автоматический перевод
-          defaultValue={"subscriber"} // Устанавливаем значение по умолчанию
+          optionText="name"
+          translateChoice
+          defaultValue={"subscriber"}
         />
         <ArrayInput source="threepids">
           <SimpleFormIterator disableReordering>
@@ -501,7 +516,6 @@ const UserPasswordInput = props => {
   const record = useRecordContext();
   let asManagedUserIsSelected = false;
 
-  // Get form context to update field value
   const form = useFormContext();
   if (record) {
     asManagedUserIsSelected = isASManaged(record.id);
@@ -547,7 +561,7 @@ export const UserEdit = (props: EditProps) => {
       mutationMode="pessimistic"
       queryOptions={{
         meta: {
-          include: ["features"], // Tell your dataProvider to include features
+          include: ["features"],
         },
       }}
     >
@@ -581,12 +595,7 @@ export const UserEdit = (props: EditProps) => {
             helperText="resources.users.helper.password"
           />
           <SelectInput source="user_type" choices={choices_type} translateChoice={false} resettable />
-          <SelectInput
-            source="custom_role"
-            choices={choices_custom_role}
-            optionText="name" // Указываем использовать поле "name" для текста
-            translateChoice // Включаем автоматический перевод
-          />
+          <SelectInput source="custom_role" choices={choices_custom_role} optionText="name" translateChoice />
           <BooleanInput source="admin" />
           <UserBooleanInput source="locked" />
           <UserBooleanInput source="deactivated" helperText="resources.users.helper.deactivate" />
@@ -748,7 +757,6 @@ export const UserEdit = (props: EditProps) => {
   );
 };
 
-// 5. ОБНОВЛЕН ЭКСПОРТ РЕСУРСА
 const resource: ResourceProps = {
   name: "users",
   icon: UserIcon,

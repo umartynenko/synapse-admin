@@ -76,12 +76,14 @@ import {
 } from "./room_directory";
 
 import AvatarField from "../components/AvatarField";
+import BlockUserButton from "../components/BlockUserButton";
 import { ClampedNumberInput } from "../components/ClampedNumberInput";
 import DeleteRoomButton from "../components/DeleteRoomButton";
 import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
 import { MediaIDField } from "../components/media";
 import { Room } from "../synapse/dataProvider";
 import { DATE_FORMAT } from "../utils/date";
+import { isASManaged } from "../utils/mxid"; // <-- ИЗМЕНЕНИЕ: Импорт для проверки системных пользователей
 
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
@@ -323,6 +325,41 @@ export const MakeAdminBtn = () => {
   );
 };
 
+// --- ИЗМЕНЕНИЕ: Добавлен компонент для предотвращения само-удаления ---
+const MemberPreventSelfDelete = ({ children, isCurrentUser, isManagedUser }) => {
+  const notify = useNotify();
+  const translate = useTranslate();
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isCurrentUser) {
+      notify("resources.users.helper.erase_admin_error", { type: "error" });
+      e.stopPropagation();
+    } else if (isManagedUser) {
+      notify("resources.users.helper.modify_managed_user_error", { type: "error" });
+      e.stopPropagation();
+    }
+  };
+  return <div onClickCapture={handleClick}>{children}</div>;
+};
+
+// --- ИЗМЕНЕНИЕ: Добавлен компонент с кнопками действий для участника комнаты ---
+const RoomMemberActions = () => {
+  const record = useRecordContext();
+  if (!record) return null;
+
+  const ownUserId = localStorage.getItem("user_id");
+  const isCurrentUser = record.id === ownUserId;
+  const isManagedUser = isASManaged(record.id);
+
+  return (
+    <Box sx={{ display: "inline-flex", flexWrap: "nowrap" }}>
+      <EditButton resource="users" record={record} disabled={isManagedUser} />
+      <MemberPreventSelfDelete isCurrentUser={isCurrentUser} isManagedUser={isManagedUser}>
+        <BlockUserButton record={record} />
+      </MemberPreventSelfDelete>
+    </Box>
+  );
+};
+
 /**
  * Отображает страницу с детальной информацией о комнате или пространстве.
  *
@@ -414,6 +451,10 @@ export const RoomShow = (props: ShowProps) => {
               >
                 <RaTextField source="displayname" sortable={false} />
               </ReferenceField>
+              {/* --- ИЗМЕНЕНИЕ: Добавлен столбец с кнопками --- */}
+              <WrapperField label="resources.rooms.fields.actions" sortBy={false}>
+                <RoomMemberActions />
+              </WrapperField>
             </Datagrid>
           </ReferenceManyField>
         </RaTab>

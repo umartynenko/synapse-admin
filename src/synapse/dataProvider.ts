@@ -341,6 +341,7 @@ export interface RecurringCommand {
 }
 
 export interface SynapseDataProvider extends DataProvider {
+  deactivateUser: (id: Identifier) => Promise<void>;
   deleteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
   purgeRemoteMedia: (params: DeleteMediaParams) => Promise<DeleteMediaResult>;
   uploadMedia: (params: UploadMediaParams) => Promise<UploadMediaResult>;
@@ -1288,6 +1289,16 @@ const baseDataProvider: SynapseDataProvider = {
       }
       throw error;
     }
+  },
+
+  deactivateUser: async (id: Identifier) => {
+    const base_url = localStorage.getItem("base_url");
+    const endpoint_url = `${base_url}/_synapse/admin/v1/deactivate/${encodeURIComponent(returnMXID(id))}`;
+
+    await jsonClient(endpoint_url, {
+      method: "POST",
+      body: JSON.stringify({}), // Пустое тело для деактивации без удаления
+    });
   },
 
   makeRoomAdmin: async (roomId, userId, impersonateId) => {
