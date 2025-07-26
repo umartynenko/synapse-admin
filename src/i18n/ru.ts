@@ -370,6 +370,13 @@ const ru: SynapseTranslationMessages = {
           failure: "Пользователь не может быть назначен администратором чата. %{errMsg}",
         },
         add_subscriber_admin: "Добавить Абонента Администратора",
+        add_subscriber_admin_dialog: {
+          title: "Добавить Абонента Администратора",
+          content:
+            "Выберите одного или нескольких пользователей, чтобы назначить их администраторами-абонентами в этом пространстве.",
+          search_placeholder: "Поиск по ID или отображаемому имени",
+          start_typing: "Начните вводить имя или ID пользователя (минимум 2 символа)",
+        },
         delegate: {
           success: "Права на «%{roomName}» делегированы %{delegateToUserId}.",
           failure: "Не удалось делегировать права на «%{roomName}»: %{error}",

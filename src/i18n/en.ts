@@ -361,6 +361,12 @@ const en: SynapseTranslationMessages = {
           failure: "The user could not be set as chat admin. %{errMsg}",
         },
         add_subscriber_admin: "Add Subscriber Admin",
+        add_subscriber_admin_dialog: {
+          title: "Add Subscriber Admin",
+          content: "Select one or more users to make them subscriber admins in this space.",
+          search_placeholder: "Search by ID or display name",
+          start_typing: "Start typing a name or user ID to search (min 2 characters)",
+        },
         delegate: {
           success: 'Permissions for "%{roomName}" have been delegated to %{delegateToUserId}.',
           failure: 'Failed to delegate permissions for "%{roomName}": %{error}',
