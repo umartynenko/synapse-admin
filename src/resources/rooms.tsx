@@ -6,7 +6,7 @@ import NoEncryptionIcon from "@mui/icons-material/NoEncryption";
 import PageviewIcon from "@mui/icons-material/Pageview";
 import PermMediaIcon from "@mui/icons-material/PermMedia";
 import PersonIcon from "@mui/icons-material/Person";
-import {default as RoomIcon, default as ViewListIcon} from "@mui/icons-material/ViewList";
+import { default as RoomIcon, default as ViewListIcon } from "@mui/icons-material/ViewList";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -15,9 +15,9 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {useTheme} from "@mui/material/styles";
-import {useMutation, useQuery} from "@tanstack/react-query";
-import {Fragment, useState} from "react";
+import { useTheme } from "@mui/material/styles";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Fragment, useState } from "react";
 import {
   AutocompleteInput,
   BooleanField,
@@ -67,7 +67,7 @@ import {
   WrapperField,
 } from "react-admin";
 import AddSubscriberAdminButton from "../components/AddSubscriberAdminButton";
-import {useWatch} from "react-hook-form";
+import { useWatch } from "react-hook-form";
 
 import {
   RoomDirectoryBulkPublishButton,
@@ -78,14 +78,14 @@ import {
 
 import AvatarField from "../components/AvatarField";
 import BlockUserButton from "../components/BlockUserButton";
-import {ClampedNumberInput} from "../components/ClampedNumberInput";
+import { ClampedNumberInput } from "../components/ClampedNumberInput";
 import DeleteRoomButton from "../components/DeleteRoomButton";
-import {SubspaceTreeInput} from "../components/SubspaceTreeInput";
-import {MediaIDField} from "../components/media";
-import {Room} from "../synapse/dataProvider";
-import {DATE_FORMAT} from "../utils/date";
-import {isASManaged} from "../utils/mxid"; // <-- ИЗМЕНЕНИЕ: Импорт для проверки системных пользователей
-import {UserRowActions} from "./users";
+import { SubspaceTreeInput } from "../components/SubspaceTreeInput";
+import { MediaIDField } from "../components/media";
+import { Room } from "../synapse/dataProvider";
+import { DATE_FORMAT } from "../utils/date";
+import { isASManaged } from "../utils/mxid"; // <-- ИЗМЕНЕНИЕ: Импорт для проверки системных пользователей
+import { UserRowActions } from "./users";
 
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
@@ -118,7 +118,7 @@ export const RoomEdit = () => {
   const translate = useTranslate();
 
   return (
-    <Edit mutationMode="pessimistic" title={<RoomTitle/>}>
+    <Edit mutationMode="pessimistic" title={<RoomTitle />}>
       <SimpleForm>
         <Typography variant="h6" gutterBottom>
           {translate("ra.action.edit")} {isSpace ? "пространства" : "чата"}
@@ -129,8 +129,8 @@ export const RoomEdit = () => {
             иерархии.
           </Alert>
         )}
-        <TextInput source="name" validate={[required()]} fullWidth label="Название"/>
-        <TextInput source="topic" fullWidth multiline label="Описание"/>
+        <TextInput source="name" validate={[required()]} fullWidth label="Название" />
+        <TextInput source="topic" fullWidth multiline label="Описание" />
       </SimpleForm>
     </Edit>
   );
@@ -242,7 +242,7 @@ export const generateChatName = (hierarchicalName: string, chatType: string): st
   return `${baseName}${lastPart} ${chatType}`;
 };
 
-const RoomPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]}/>;
+const RoomPagination = () => <Pagination rowsPerPageOptions={[10, 25, 50, 100, 500, 1000]} />;
 
 const RoomTitle = () => {
   const record = useRecordContext();
@@ -257,11 +257,11 @@ const RoomTitle = () => {
 const RoomShowActions = () => {
   const record = useRecordContext();
   if (!record) return null;
-  const publishButton = record?.public ? <RoomDirectoryUnpublishButton/> : <RoomDirectoryPublishButton/>;
+  const publishButton = record?.public ? <RoomDirectoryUnpublishButton /> : <RoomDirectoryPublishButton />;
   return (
     <TopToolbar>
       {publishButton}
-      <MakeAdminBtn/>
+      <MakeAdminBtn />
       <DeleteRoomButton
         selectedIds={[record.id]}
         confirmTitle="resources.rooms.action.erase.title"
@@ -279,18 +279,18 @@ export const MakeAdminBtn = () => {
   const notify = useNotify();
   const translate = useTranslate();
 
-  const {mutate, isPending} = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: async () => {
       // @ts-ignore
       const result = await dataProvider.makeRoomAdmin(record.room_id, userIdValue);
       if (!result.success) throw new Error(result.error);
     },
     onSuccess: () => {
-      notify("resources.rooms.action.make_admin.success", {type: "success"});
+      notify("resources.rooms.action.make_admin.success", { type: "success" });
       setOpen(false);
     },
     onError: (err: any) => {
-      notify("resources.rooms.action.make_admin.failure", {type: "error", messageArgs: {errMsg: err.message}});
+      notify("resources.rooms.action.make_admin.failure", { type: "error", messageArgs: { errMsg: err.message } });
       setOpen(false);
     },
   });
@@ -302,16 +302,16 @@ export const MakeAdminBtn = () => {
   return (
     <>
       <Button size="small" onClick={() => setOpen(true)} disabled={isPending}>
-        <PersonIcon/> {translate("resources.rooms.action.make_admin.assign_admin")}
+        <PersonIcon /> {translate("resources.rooms.action.make_admin.assign_admin")}
       </Button>
       <Confirm
         isOpen={open}
         onConfirm={handleConfirm}
         onClose={() => setOpen(false)}
-        title={translate("resources.rooms.action.make_admin.title", {roomName: record.name || record.room_id})}
+        title={translate("resources.rooms.action.make_admin.title", { roomName: record.name || record.room_id })}
         content={
           <>
-            <Typography sx={{mb: 2}}>{translate("resources.rooms.action.make_admin.content")}</Typography>
+            <Typography sx={{ mb: 2 }}>{translate("resources.rooms.action.make_admin.content")}</Typography>
             <TextField
               type="text"
               variant="filled"
@@ -328,15 +328,15 @@ export const MakeAdminBtn = () => {
 };
 
 // --- ИЗМЕНЕНИЕ: Добавлен компонент для предотвращения само-удаления ---
-const MemberPreventSelfDelete = ({children, isCurrentUser, isManagedUser}) => {
+const MemberPreventSelfDelete = ({ children, isCurrentUser, isManagedUser }) => {
   const notify = useNotify();
   const translate = useTranslate();
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isCurrentUser) {
-      notify("resources.users.helper.erase_admin_error", {type: "error"});
+      notify("resources.users.helper.erase_admin_error", { type: "error" });
       e.stopPropagation();
     } else if (isManagedUser) {
-      notify("resources.users.helper.modify_managed_user_error", {type: "error"});
+      notify("resources.users.helper.modify_managed_user_error", { type: "error" });
       e.stopPropagation();
     }
   };
@@ -353,10 +353,10 @@ const RoomMemberActions = () => {
   const isManagedUser = isASManaged(record.id);
 
   return (
-    <Box sx={{display: "inline-flex", flexWrap: "nowrap"}}>
-      <EditButton resource="users" record={record} disabled={isManagedUser}/>
+    <Box sx={{ display: "inline-flex", flexWrap: "nowrap" }}>
+      <EditButton resource="users" record={record} disabled={isManagedUser} />
       <MemberPreventSelfDelete isCurrentUser={isCurrentUser} isManagedUser={isManagedUser}>
-        <BlockUserButton record={record}/>
+        <BlockUserButton record={record} />
       </MemberPreventSelfDelete>
     </Box>
   );
@@ -402,51 +402,51 @@ export const RoomShow = (props: ShowProps) => {
         record.room_id,
         "m.room.name",
         "",
-        {name: newName},
+        { name: newName },
         localStorage.getItem("user_id")
       );
-      notify("Имя пространства обновлено", {type: "success"});
+      notify("Имя пространства обновлено", { type: "success" });
       setEditing(false);
       if (record.name !== undefined) record.name = newName; // обновить локальный record
       setNewName(newName); // обновить поле ввода
       setRerender(x => x + 1); // форс-обновление UI
       refresh(); // перезагрузить данные Show view
     } catch (e: any) {
-      notify(`Ошибка: ${e.message}`, {type: "error"});
+      notify(`Ошибка: ${e.message}`, { type: "error" });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Show {...props} actions={<RoomShowActions/>} title={<RoomTitle/>}>
+    <Show {...props} actions={<RoomShowActions />} title={<RoomTitle />}>
       <TabbedShowLayout>
-        <RaTab label="synapseadmin.rooms.tabs.basic" icon={<ViewListIcon/>}>
-          <AvatarField source="avatar" sx={{height: "120px", width: "120px"}} label="resources.rooms.fields.avatar"/>
-          <RaTextField source="room_id"/>
-          <RaTextField source="name"/>
-          <RaTextField source="topic"/>
-          <RaTextField source="canonical_alias"/>
+        <RaTab label="synapseadmin.rooms.tabs.basic" icon={<ViewListIcon />}>
+          <AvatarField source="avatar" sx={{ height: "120px", width: "120px" }} label="resources.rooms.fields.avatar" />
+          <RaTextField source="room_id" />
+          <RaTextField source="name" />
+          <RaTextField source="topic" />
+          <RaTextField source="canonical_alias" />
           <ReferenceField source="creator" reference="users" link="show">
-            <RaTextField source="id"/>
+            <RaTextField source="id" />
           </ReferenceField>
         </RaTab>
-        <RaTab label="synapseadmin.rooms.tabs.detail" icon={<PageviewIcon/>} path="detail">
-          <RaTextField source="joined_members"/>
-          <RaTextField source="joined_local_members"/>
-          <RaTextField source="joined_local_devices"/>
-          <RaTextField source="state_events"/>
-          <RaTextField source="version"/>
-          <RaTextField source="encryption" emptyText={translate("resources.rooms.enums.unencrypted")}/>
+        <RaTab label="synapseadmin.rooms.tabs.detail" icon={<PageviewIcon />} path="detail">
+          <RaTextField source="joined_members" />
+          <RaTextField source="joined_local_members" />
+          <RaTextField source="joined_local_devices" />
+          <RaTextField source="state_events" />
+          <RaTextField source="version" />
+          <RaTextField source="encryption" emptyText={translate("resources.rooms.enums.unencrypted")} />
         </RaTab>
-        <RaTab label="synapseadmin.rooms.tabs.members" icon={<UserIcon/>} path="members">
-          <Box sx={{display: "flex", gap: 1, mb: 2}}>
-            <MakeAdminBtn/>
-            <AddSubscriberAdminButton/>
+        <RaTab label="synapseadmin.rooms.tabs.members" icon={<UserIcon />} path="members">
+          <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+            <MakeAdminBtn />
+            <AddSubscriberAdminButton />
           </Box>
           <ReferenceManyField reference="room_members" target="room_id" label={false}>
-            <Datagrid sx={{width: "100%"}} rowClick={id => `/users/${id}/show`} bulkActionButtons={false}>
-              <RaTextField source="id" sortable={false} label="resources.users.fields.id"/>
+            <Datagrid sx={{ width: "100%" }} rowClick={id => `/users/${id}/show`} bulkActionButtons={false}>
+              <RaTextField source="id" sortable={false} label="resources.users.fields.id" />
               <ReferenceField
                 label="resources.users.fields.displayname"
                 source="id"
@@ -454,95 +454,94 @@ export const RoomShow = (props: ShowProps) => {
                 sortable={false}
                 link=""
               >
-                <RaTextField source="displayname" sortable={false}/>
+                <RaTextField source="displayname" sortable={false} />
               </ReferenceField>
 
               <WrapperField label="resources.rooms.fields.actions" sortBy={false}>
-                <Box sx={{display: "inline-flex", flexWrap: "nowrap"}}>
+                <Box sx={{ display: "inline-flex", flexWrap: "nowrap" }}>
                   {/*
                     Кнопке EditButton нужен контекст ресурса "users".
                     ReferenceField предоставляет его, загружая данные пользователя.
                     Мы отключаем ссылку (link={false}), чтобы не было двойной ссылки.
                   */}
                   <ReferenceField source="id" reference="users" link={false}>
-                    <EditButton/>
+                    <EditButton />
                   </ReferenceField>
 
                   {/*
                     Кнопке BlockUserButton нужен record участника из Datagrid.
                     Она получает его автоматически.
                   */}
-                  <UserRowActions/>
+                  <UserRowActions />
                 </Box>
               </WrapperField>
-
             </Datagrid>
           </ReferenceManyField>
         </RaTab>
-        <RaTab label="synapseadmin.rooms.tabs.media" icon={<PermMediaIcon/>} path="media">
+        <RaTab label="synapseadmin.rooms.tabs.media" icon={<PermMediaIcon />} path="media">
           <Alert severity="warning">{translate("resources.room_media.helper.info")}</Alert>
           <ReferenceManyField reference="room_media" target="room_id" label={false}>
-            <Datagrid sx={{width: "100%"}} bulkActionButtons={false}>
-              <MediaIDField source="media_id"/>
-              <DeleteButton mutationMode="pessimistic" redirect={false}/>
+            <Datagrid sx={{ width: "100%" }} bulkActionButtons={false}>
+              <MediaIDField source="media_id" />
+              <DeleteButton mutationMode="pessimistic" redirect={false} />
             </Datagrid>
           </ReferenceManyField>
         </RaTab>
-        <RaTab label="synapseadmin.rooms.tabs.permission" icon={<VisibilityIcon/>} path="permission">
-          <BooleanField source="federatable"/>
-          <BooleanField source="public"/>
+        <RaTab label="synapseadmin.rooms.tabs.permission" icon={<VisibilityIcon />} path="permission">
+          <BooleanField source="federatable" />
+          <BooleanField source="public" />
           <SelectField
             source="join_rules"
             choices={[
-              {id: "public", name: "resources.rooms.enums.join_rules.public"},
-              {id: "knock", name: "resources.rooms.enums.join_rules.knock"},
-              {id: "invite", name: "resources.rooms.enums.join_rules.invite"},
-              {id: "private", name: "resources.rooms.enums.join_rules.private"},
+              { id: "public", name: "resources.rooms.enums.join_rules.public" },
+              { id: "knock", name: "resources.rooms.enums.join_rules.knock" },
+              { id: "invite", name: "resources.rooms.enums.join_rules.invite" },
+              { id: "private", name: "resources.rooms.enums.join_rules.private" },
             ]}
           />
           <SelectField
             source="guest_access"
             choices={[
-              {id: "can_join", name: "resources.rooms.enums.guest_access.can_join"},
-              {id: "forbidden", name: "resources.rooms.enums.guest_access.forbidden"},
+              { id: "can_join", name: "resources.rooms.enums.guest_access.can_join" },
+              { id: "forbidden", name: "resources.rooms.enums.guest_access.forbidden" },
             ]}
           />
           <SelectField
             source="history_visibility"
             choices={[
-              {id: "invited", name: "resources.rooms.enums.history_visibility.invited"},
-              {id: "joined", name: "resources.rooms.enums.history_visibility.joined"},
-              {id: "shared", name: "resources.rooms.enums.history_visibility.shared"},
-              {id: "world_readable", name: "resources.rooms.enums.history_visibility.world_readable"},
+              { id: "invited", name: "resources.rooms.enums.history_visibility.invited" },
+              { id: "joined", name: "resources.rooms.enums.history_visibility.joined" },
+              { id: "shared", name: "resources.rooms.enums.history_visibility.shared" },
+              { id: "world_readable", name: "resources.rooms.enums.history_visibility.world_readable" },
             ]}
           />
         </RaTab>
-        <RaTab label={translate("resources.room_state.name", {smart_count: 2})} icon={<EventIcon/>} path="state">
+        <RaTab label={translate("resources.room_state.name", { smart_count: 2 })} icon={<EventIcon />} path="state">
           <ReferenceManyField reference="room_state" target="room_id" label={false}>
-            <Datagrid sx={{width: "100%"}} bulkActionButtons={false}>
-              <RaTextField source="type" sortable={false}/>
-              <DateField source="origin_server_ts" showTime options={DATE_FORMAT} sortable={false}/>
+            <Datagrid sx={{ width: "100%" }} bulkActionButtons={false}>
+              <RaTextField source="type" sortable={false} />
+              <DateField source="origin_server_ts" showTime options={DATE_FORMAT} sortable={false} />
               <FunctionField
                 source="content"
                 sortable={false}
                 render={record => `${JSON.stringify(record.content, null, 2)}`}
               />
               <ReferenceField source="sender" reference="users" sortable={false} link="show">
-                <RaTextField source="id"/>
+                <RaTextField source="id" />
               </ReferenceField>
             </Datagrid>
           </ReferenceManyField>
         </RaTab>
-        <RaTab label="resources.forward_extremities.name" icon={<FastForwardIcon/>} path="forward_extremities">
-          <Box sx={{fontFamily: "Roboto, Helvetica, Arial, sans-serif", margin: "0.5em"}}>
+        <RaTab label="resources.forward_extremities.name" icon={<FastForwardIcon />} path="forward_extremities">
+          <Box sx={{ fontFamily: "Roboto, Helvetica, Arial, sans-serif", margin: "0.5em" }}>
             {translate("resources.rooms.helper.forward_extremities")}
           </Box>
           <ReferenceManyField reference="forward_extremities" target="room_id" label={false}>
-            <Datagrid sx={{width: "100%"}} bulkActionButtons={false}>
-              <RaTextField source="id" sortable={false}/>
-              <DateField source="received_ts" showTime options={DATE_FORMAT} sortable={false}/>
-              <NumberField source="depth" sortable={false}/>
-              <RaTextField source="state_group" sortable={false}/>
+            <Datagrid sx={{ width: "100%" }} bulkActionButtons={false}>
+              <RaTextField source="id" sortable={false} />
+              <DateField source="received_ts" showTime options={DATE_FORMAT} sortable={false} />
+              <NumberField source="depth" sortable={false} />
+              <RaTextField source="state_group" sortable={false} />
             </Datagrid>
           </ReferenceManyField>
         </RaTab>
@@ -555,8 +554,8 @@ const RoomBulkActionButtons = () => {
   const record = useListContext();
   return (
     <>
-      <RoomDirectoryBulkPublishButton/>
-      <RoomDirectoryBulkUnpublishButton/>
+      <RoomDirectoryBulkPublishButton />
+      <RoomDirectoryBulkUnpublishButton />
       <DeleteRoomButton
         selectedIds={record.selectedIds}
         confirmTitle="resources.rooms.action.erase.title"
@@ -566,26 +565,26 @@ const RoomBulkActionButtons = () => {
   );
 };
 
-const roomFilters = [<SearchInput source="search_term" alwaysOn/>];
+const roomFilters = [<SearchInput source="search_term" alwaysOn />];
 
 const RoomListActions = () => (
   <TopToolbar>
-    <CreateButton label="resources.rooms.action.create_room"/>
-    <SelectColumnsButton/>
-    <ExportButton/>
+    <CreateButton label="resources.rooms.action.create_room" />
+    <SelectColumnsButton />
+    <ExportButton />
   </TopToolbar>
 );
 
 const ParentSpaceInput = () => {
   const dataProvider = useDataProvider();
 
-  const {data: spaces, isLoading} = useQuery({
+  const { data: spaces, isLoading } = useQuery({
     queryKey: ["spaces_for_feed"],
     // @ts-ignore
     queryFn: () => dataProvider.getRoomsByCategory("space"),
   });
 
-  if (isLoading) return <Loading/>;
+  if (isLoading) return <Loading />;
 
   return (
     <AutocompleteInput
@@ -600,22 +599,22 @@ const ParentSpaceInput = () => {
   );
 };
 
-const ConditionalFormInputs = ({users}) => {
-  const roomType = useWatch({name: "room_type"});
+const ConditionalFormInputs = ({ users }) => {
+  const roomType = useWatch({ name: "room_type" });
 
   switch (roomType) {
     case "department":
     case "group":
-      return <>{roomType === "department" && <SubspaceTreeInput source="subspaces" fullWidth users={users}/>}</>;
+      return <>{roomType === "department" && <SubspaceTreeInput source="subspaces" fullWidth users={users} />}</>;
     case "feed":
-      return <ParentSpaceInput/>;
+      return <ParentSpaceInput />;
     default:
       return null;
   }
 };
 
 const ConditionalGroupFields = () => {
-  const roomType = useWatch({name: "room_type"});
+  const roomType = useWatch({ name: "room_type" });
   const translate = useTranslate();
   const minUsers = 2;
   const minChats = 2;
@@ -627,7 +626,7 @@ const ConditionalGroupFields = () => {
   }
 
   return (
-    <Box display="flex" sx={{gap: 2, width: "100%"}}>
+    <Box display="flex" sx={{ gap: 2, width: "100%" }}>
       <ClampedNumberInput
         source="max_users"
         label={translate("resources.rooms.fields.max_users")}
@@ -657,13 +656,28 @@ export const RoomCreate = (props: any) => {
   const redirect = useRedirect();
   const [isSaving, setIsSaving] = useState(false);
 
+  // const {
+  //   data: users,
+  //   isLoading,
+  //   error,
+  // } = useGetList("users", {
+  //   pagination: {page: 1, perPage: 1000},
+  //   sort: {field: "name", order: "ASC"},
+  // });
   const {
     data: users,
     isLoading,
     error,
-  } = useGetList("users", {
-    pagination: {page: 1, perPage: 1000},
-    sort: {field: "name", order: "ASC"},
+  } = useQuery({
+    queryKey: ["active_users_for_autocomplete"], // Уникальный ключ для кэширования
+    queryFn: () =>
+      dataProvider
+        .getList("users", {
+          pagination: { page: 1, perPage: 1000 }, // Можно увеличить, если нужно
+          sort: { field: "displayname", order: "ASC" },
+          filter: { deactivated: false }, // <-- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: фильтруем только активных
+        })
+        .then(response => response.data), // useQuery ожидает промис с данными
   });
 
   const handleSave = async (values: any) => {
@@ -674,8 +688,8 @@ export const RoomCreate = (props: any) => {
       // Логика для 'feed' остается без изменений
       try {
         const feedCreatorId = values.creator_id || adminCreatorId;
-        notify("Creating the feed room...", {type: "info"});
-        const powerLevelUsers = {[feedCreatorId]: 100};
+        notify("Creating the feed room...", { type: "info" });
+        const powerLevelUsers = { [feedCreatorId]: 100 };
         if (adminCreatorId !== feedCreatorId) {
           powerLevelUsers[adminCreatorId] = 100;
         }
@@ -683,56 +697,56 @@ export const RoomCreate = (props: any) => {
           preset: "public_chat",
           name: values.name,
           topic: values.topic,
-          power_level_content_override: {events_default: 100, users: powerLevelUsers},
-          creation_content: {"custom.room_category": "chat", "custom.chat_type": "feed"},
+          power_level_content_override: { events_default: 100, users: powerLevelUsers },
+          creation_content: { "custom.room_category": "chat", "custom.chat_type": "feed" },
           creator: feedCreatorId,
-          meta: {impersonate: adminCreatorId},
+          meta: { impersonate: adminCreatorId },
         };
         // @ts-ignore
-        const {data: createdFeed} = await dataProvider.create("rooms", {data: payload});
-        notify(`Feed "${values.name}" created successfully.`, {type: "success"});
+        const { data: createdFeed } = await dataProvider.create("rooms", { data: payload });
+        notify(`Feed "${values.name}" created successfully.`, { type: "success" });
         if (feedCreatorId !== adminCreatorId) {
-          notify(`Delegating permissions to ${feedCreatorId}...`, {type: "info"});
+          notify(`Delegating permissions to ${feedCreatorId}...`, { type: "info" });
           // @ts-ignore
           await dataProvider.joinRoom(createdFeed.id, feedCreatorId, adminCreatorId);
           // @ts-ignore
           await dataProvider.makeRoomAdmin(createdFeed.id, feedCreatorId);
-          notify(`Permissions for feed "${values.name}" delegated.`, {type: "success"});
+          notify(`Permissions for feed "${values.name}" delegated.`, { type: "success" });
         }
         if (values.parent_id) {
-          notify(`Linking feed to parent space...`, {type: "info"});
+          notify(`Linking feed to parent space...`, { type: "info" });
           // @ts-ignore
           await dataProvider.sendStateEvent(
             values.parent_id,
             "m.space.child",
             createdFeed.id,
-            {via: [localStorage.getItem("home_server")], suggested: true},
+            { via: [localStorage.getItem("home_server")], suggested: true },
             adminCreatorId
           );
         }
         let userIdsToInvite: string[] = [];
         if (values.parent_id) {
-          notify("Gathering users from the space hierarchy...", {type: "info"});
+          notify("Gathering users from the space hierarchy...", { type: "info" });
           try {
             // @ts-ignore
-            const {data: hierarchyUsers} = await dataProvider.getHierarchyMembers(values.parent_id);
+            const { data: hierarchyUsers } = await dataProvider.getHierarchyMembers(values.parent_id);
             userIdsToInvite = hierarchyUsers;
-            notify(`Found ${userIdsToInvite.length} users to add.`, {type: "info"});
+            notify(`Found ${userIdsToInvite.length} users to add.`, { type: "info" });
           } catch (e: any) {
-            notify(`Could not get hierarchy members: ${e.message}`, {type: "error"});
+            notify(`Could not get hierarchy members: ${e.message}`, { type: "error" });
           }
         } else {
-          notify("Gathering all server users...", {type: "info"});
+          notify("Gathering all server users...", { type: "info" });
           try {
-            const {data: allUsers} = await dataProvider.getList("users", {
-              pagination: {page: 1, perPage: 10000},
-              sort: {field: "name", order: "ASC"},
+            const { data: allUsers } = await dataProvider.getList("users", {
+              pagination: { page: 1, perPage: 10000 },
+              sort: { field: "name", order: "ASC" },
               filter: {},
             });
             userIdsToInvite = allUsers.map((u: any) => u.id);
-            notify(`Found ${userIdsToInvite.length} users to add.`, {type: "info"});
+            notify(`Found ${userIdsToInvite.length} users to add.`, { type: "info" });
           } catch (e: any) {
-            notify(`Could not get all users: ${e.message}`, {type: "error"});
+            notify(`Could not get all users: ${e.message}`, { type: "error" });
           }
         }
         if (userIdsToInvite.length > 0) {
@@ -755,25 +769,36 @@ export const RoomCreate = (props: any) => {
         }
         redirect("/rooms");
       } catch (e: any) {
-        notify(`Error creating feed: ${e.message}`, {type: "error"});
+        notify(`Error creating feed: ${e.message}`, { type: "error" });
       } finally {
         setIsSaving(false);
       }
     } else {
       // Логика для "department" и "group"
       const mainDelegateUserId = values.creator_id || adminCreatorId;
-      const {subspaces, ...mainSpaceData} = values;
+      const { subspaces, ...mainSpaceData } = values;
 
       const delegatePermissions = async (roomId: string, roomName: string, delegateToUserId: string) => {
+        // Эта проверка нужна, чтобы не выполнять лишних действий,
+        // если создатель пространства - это тот же администратор,
+        // который выполняет всю операцию.
         if (delegateToUserId !== adminCreatorId) {
           try {
-            // @ts-ignore
-            await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);
-            // @ts-ignore
-            await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId);
-            notify(`Permissions for "${roomName}" delegated to ${delegateToUserId}.`, {type: "info"});
+            // УДАЛЯЕМ ЭТИ ДВЕ СТРОКИ:
+            // Synapse API при создании комнаты с параметром 'creator'
+            // автоматически делает этого пользователя участником и администратором.
+            // Эти вызовы избыточны и вызывают ошибку M_FORBIDDEN при попытке
+            // повторно присоединить уже состоящего в комнате пользователя.
+            // ----------------------------------------------------
+            // await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);  // <-- УДАЛИТЬ
+            // await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId); // <-- УДАЛИТЬ
+            // ----------------------------------------------------
+
+            notify(`Permissions for "${roomName}" delegated to ${delegateToUserId}.`, { type: "info" });
           } catch (e: any) {
-            notify(`Failed to delegate permissions for "${roomName}": ${e.message}`, {type: "warning"});
+            // Так как мы убрали вызовы, которые могли вызвать ошибку,
+            // этот блок теперь вряд ли сработает, но оставим его для надежности.
+            notify(`Failed to delegate permissions for "${roomName}": ${e.message}`, { type: "warning" });
           }
         }
       };
@@ -781,10 +806,10 @@ export const RoomCreate = (props: any) => {
       const setRoomName = async (roomId: string, newName: string) => {
         try {
           // @ts-ignore
-          await dataProvider.sendStateEvent(roomId, "m.room.name", "", {name: newName}, adminCreatorId);
-          notify(`Room renamed to "${newName}".`, {type: "info"});
+          await dataProvider.sendStateEvent(roomId, "m.room.name", "", { name: newName }, adminCreatorId);
+          notify(`Room renamed to "${newName}".`, { type: "info" });
         } catch (e: any) {
-          notify(`Failed to rename room: ${e.message}`, {type: "warning"});
+          notify(`Failed to rename room: ${e.message}`, { type: "warning" });
         }
       };
 
@@ -825,7 +850,7 @@ export const RoomCreate = (props: any) => {
       ): Promise<{ spaceId: string | null; collectedUserIds: Set<string> }> => {
         const shortNodeName = spaceNode.name;
         if (!shortNodeName) {
-          return {spaceId: null, collectedUserIds: new Set()};
+          return { spaceId: null, collectedUserIds: new Set() };
         }
 
         const userIdsInThisSubtree = new Set<string>();
@@ -841,16 +866,16 @@ export const RoomCreate = (props: any) => {
           name: hierarchicalName,
           room_alias_name: hierarchicalAlias,
           preset,
-          creation_content: {type: "m.space", "custom.room_category": "space"},
+          creation_content: { type: "m.space", "custom.room_category": "space" },
           creator: nodeCreatorId,
-          meta: {impersonate: adminCreatorId},
+          meta: { impersonate: adminCreatorId },
           room_type: values.room_type,
           topic: spaceNode.topic || undefined,
         };
 
         // @ts-ignore
-        const {data: createdSpace} = await dataProvider.create("rooms", {data: payload});
-        notify(`Space "${hierarchicalName}" created.`, {type: "info"});
+        const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
+        notify(`Space "${hierarchicalName}" created.`, { type: "info" });
 
         await setRoomName(createdSpace.id, shortNodeName);
         await delegatePermissions(createdSpace.id, shortNodeName, nodeCreatorId);
@@ -865,7 +890,7 @@ export const RoomCreate = (props: any) => {
             await delegatePermissions(child.room_id, finalChatName, nodeCreatorId);
           }
         } catch (e: any) {
-          notify(`Failed to process child chats for "${shortNodeName}"`, {type: "error"});
+          notify(`Failed to process child chats for "${shortNodeName}"`, { type: "error" });
         }
 
         if (parentId) {
@@ -874,7 +899,7 @@ export const RoomCreate = (props: any) => {
             parentId,
             "m.space.child",
             createdSpace.id,
-            {via: [localStorage.getItem("home_server")], suggested: true},
+            { via: [localStorage.getItem("home_server")], suggested: true },
             adminCreatorId
           );
           // Добавьте этот блок. Он устанавливает обратную связь от ребёнка к родителю.
@@ -883,7 +908,7 @@ export const RoomCreate = (props: any) => {
             createdSpace.id, // ID дочернего пространства
             "m.space.parent", // Тип события
             parentId, // State Key - это ID родителя
-            {via: [localStorage.getItem("home_server")]}, // Содержимое события
+            { via: [localStorage.getItem("home_server")] }, // Содержимое события
             adminCreatorId // От чьего имени выполняется действие
           );
           const userToJoin = nodeCreatorId;
@@ -895,19 +920,19 @@ export const RoomCreate = (props: any) => {
               if (ancestorId === parentId) {
                 const privateChat = ancestorChildren.find((c: any) => c.chat_type === "private_chat");
                 if (privateChat) {
-                  notify(`Adding ${userToJoin} to the parent's private chat...`, {type: "info"});
+                  notify(`Adding ${userToJoin} to the parent's private chat...`, { type: "info" });
                   // @ts-ignore
                   await dataProvider.joinRoom(privateChat.room_id, userToJoin, adminCreatorId);
                 }
               }
               const publicChats = ancestorChildren.filter((c: any) => c.chat_type === "public_chat");
               for (const publicChat of publicChats) {
-                notify(`Adding ${userToJoin} to public chat ${publicChat.room_id}...`, {type: "info"});
+                notify(`Adding ${userToJoin} to public chat ${publicChat.room_id}...`, { type: "info" });
                 // @ts-ignore
                 await dataProvider.joinRoom(publicChat.room_id, userToJoin, adminCreatorId);
               }
             } catch (e: any) {
-              notify(`Error adding user to ancestor chats ${ancestorId}: ${e.message}`, {type: "error"});
+              notify(`Error adding user to ancestor chats ${ancestorId}: ${e.message}`, { type: "error" });
             }
           }
         }
@@ -946,23 +971,23 @@ export const RoomCreate = (props: any) => {
             await Promise.allSettled(joinPromises);
           }
         }
-        return {spaceId: createdSpace.id, collectedUserIds: userIdsInThisSubtree};
+        return { spaceId: createdSpace.id, collectedUserIds: userIdsInThisSubtree };
       };
 
       try {
-        await createAndSetupRecursive({...mainSpaceData, subspaces: subspaces}, null, [], mainDelegateUserId);
+        await createAndSetupRecursive({ ...mainSpaceData, subspaces: subspaces }, null, [], mainDelegateUserId);
 
-        notify("The entire structure was created successfully!", {type: "success"});
+        notify("The entire structure was created successfully!", { type: "success" });
         redirect("/rooms");
       } catch (error: any) {
-        notify(`Critical error during creation: ${error.message || "Unknown error"}`, {type: "error"});
+        notify(`Critical error during creation: ${error.message || "Unknown error"}`, { type: "error" });
       } finally {
         setIsSaving(false);
       }
     }
   };
 
-  if (isLoading) return <Loading/>;
+  if (isLoading) return <Loading />;
   if (error) return <p>Error loading users: {error.message}</p>;
 
   return (
@@ -970,8 +995,7 @@ export const RoomCreate = (props: any) => {
       {...props}
       title="resources.rooms.action.create_room_title"
       mutationOptions={{
-        onSuccess: () => {
-        },
+        onSuccess: () => {},
       }}
     >
       <SimpleForm onSubmit={handleSave} saving={isSaving}>
@@ -979,31 +1003,31 @@ export const RoomCreate = (props: any) => {
           source="room_type"
           label="resources.rooms.fields.room_type.label"
           choices={[
-            {id: "department", name: "resources.rooms.fields.room_type.department"},
-            {id: "group", name: "resources.rooms.fields.room_type.group"},
-            {id: "feed", name: "resources.rooms.fields.room_type.feed"},
+            { id: "department", name: "resources.rooms.fields.room_type.department" },
+            { id: "group", name: "resources.rooms.fields.room_type.group" },
+            { id: "feed", name: "resources.rooms.fields.room_type.feed" },
           ]}
           defaultValue="department"
           validate={required()}
           fullWidth
         />
 
-        <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth/>
-        <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth multiline/>
+        <TextInput source="name" validate={required()} label="resources.rooms.fields.name" fullWidth />
+        <TextInput source="topic" label="resources.rooms.fields.topic" fullWidth multiline />
 
         <AutocompleteInput
           source="creator_id"
           label="resources.rooms.fields.creator"
-          choices={users}
+          choices={users || []} // <-- Передаем отфильтрованный список
           optionValue="id"
-          optionText="id"
-          filterToQuery={searchText => ({name: searchText})}
+          optionText={choice => `${choice.displayname} (${choice.id})`} // Улучшаем отображение для однозначности
+          filterToQuery={searchText => ({ name: searchText, deactivated: false })} // Добавляем фильтр и в поиск
           helperText="resources.rooms.helper.creator"
           defaultValue={currentAdminId}
           fullWidth
         />
 
-        <ConditionalFormInputs users={users || []}/>
+        <ConditionalFormInputs users={users || []} />
       </SimpleForm>
     </Create>
   );
@@ -1016,17 +1040,17 @@ export const ChatList = (props: ListProps) => {
   return (
     <List
       {...props}
-      pagination={<RoomPagination/>}
-      sort={{field: "name", order: "ASC"}}
+      pagination={<RoomPagination />}
+      sort={{ field: "name", order: "ASC" }}
       filters={roomFilters}
-      actions={<RoomListActions/>}
-      filter={{"creation_content.type": null}}
+      actions={<RoomListActions />}
+      filter={{ "creation_content.type": null }}
       perPage={50}
       title={translate("synapseadmin.rooms.tabs.chats")}
     >
       <DatagridConfigurable
         rowClick="show"
-        bulkActionButtons={<RoomBulkActionButtons/>}
+        bulkActionButtons={<RoomBulkActionButtons />}
         omit={["joined_local_members", "state_events", "version", "federatable"]}
       >
         <ReferenceField
@@ -1036,19 +1060,19 @@ export const ChatList = (props: ListProps) => {
           link={false}
           sortable={false}
         >
-          <AvatarField source="avatar" sx={{height: "40px", width: "40px"}}/>
+          <AvatarField source="avatar" sx={{ height: "40px", width: "40px" }} />
         </ReferenceField>
-        <RaTextField source="id" label="resources.rooms.fields.room_id" sortable={false}/>
+        <RaTextField source="id" label="resources.rooms.fields.room_id" sortable={false} />
         <WrapperField source="encryption" sortBy="is_encrypted" label="resources.rooms.fields.encryption">
           <BooleanField
             source="is_encrypted"
             sortBy="encryption"
             TrueIcon={HttpsIcon}
             FalseIcon={NoEncryptionIcon}
-            label={<HttpsIcon/>}
+            label={<HttpsIcon />}
             sx={{
-              [`& [data-testid="true"]`]: {color: theme.palette.success.main},
-              [`& [data-testid="false"]`]: {color: theme.palette.error.main},
+              [`& [data-testid="true"]`]: { color: theme.palette.success.main },
+              [`& [data-testid="false"]`]: { color: theme.palette.error.main },
             }}
           />
         </WrapperField>
@@ -1061,14 +1085,14 @@ export const ChatList = (props: ListProps) => {
           render={record => record["name"] || record["canonical_alias"] || record["id"]}
           label="resources.rooms.fields.name"
         />
-        <RaTextField source="joined_members" label="resources.rooms.fields.joined_members"/>
-        <RaTextField source="joined_local_members" label="resources.rooms.fields.joined_local_members"/>
-        <RaTextField source="state_events" label="resources.rooms.fields.state_events"/>
-        <RaTextField source="version" label="resources.rooms.fields.version"/>
-        <BooleanField source="federatable" label="resources.rooms.fields.federatable"/>
-        <BooleanField source="public" label="resources.rooms.fields.public"/>
+        <RaTextField source="joined_members" label="resources.rooms.fields.joined_members" />
+        <RaTextField source="joined_local_members" label="resources.rooms.fields.joined_local_members" />
+        <RaTextField source="state_events" label="resources.rooms.fields.state_events" />
+        <RaTextField source="version" label="resources.rooms.fields.version" />
+        <BooleanField source="federatable" label="resources.rooms.fields.federatable" />
+        <BooleanField source="public" label="resources.rooms.fields.public" />
         <WrapperField label="resources.rooms.fields.actions">
-          <MakeAdminBtn/>
+          <MakeAdminBtn />
         </WrapperField>
       </DatagridConfigurable>
     </List>
@@ -1107,17 +1131,17 @@ export const SpaceList = (props: ListProps) => {
   return (
     <List
       {...props}
-      pagination={<RoomPagination/>}
-      sort={{field: "name", order: "ASC"}}
+      pagination={<RoomPagination />}
+      sort={{ field: "name", order: "ASC" }}
       filters={roomFilters}
-      actions={<RoomListActions/>}
-      filter={{"creation_content.type": "m.space"}}
+      actions={<RoomListActions />}
+      filter={{ "creation_content.type": "m.space" }}
       perPage={50}
       title={translate("synapseadmin.rooms.tabs.spaces")}
     >
       <DatagridConfigurable
         rowClick="show"
-        bulkActionButtons={<RoomBulkActionButtons/>}
+        bulkActionButtons={<RoomBulkActionButtons />}
         // Убрали 'encryption' из omit
         omit={["joined_local_members", "state_events", "version", "federatable"]}
       >
@@ -1128,9 +1152,9 @@ export const SpaceList = (props: ListProps) => {
           link={false}
           sortable={false}
         >
-          <AvatarField source="avatar" sx={{height: "40px", width: "40px"}}/>
+          <AvatarField source="avatar" sx={{ height: "40px", width: "40px" }} />
         </ReferenceField>
-        <RaTextField source="id" label="resources.rooms.fields.room_id" sortable={false}/>
+        <RaTextField source="id" label="resources.rooms.fields.room_id" sortable={false} />
         {/* Добавили колонку Шифрование */}
         <WrapperField source="encryption" sortBy="is_encrypted" label="resources.rooms.fields.encryption">
           <BooleanField
@@ -1138,10 +1162,10 @@ export const SpaceList = (props: ListProps) => {
             sortBy="encryption"
             TrueIcon={HttpsIcon}
             FalseIcon={NoEncryptionIcon}
-            label={<HttpsIcon/>}
+            label={<HttpsIcon />}
             sx={{
-              [`& [data-testid="true"]`]: {color: theme.palette.success.main},
-              [`& [data-testid="false"]`]: {color: theme.palette.error.main},
+              [`& [data-testid="true"]`]: { color: theme.palette.success.main },
+              [`& [data-testid="false"]`]: { color: theme.palette.error.main },
             }}
           />
         </WrapperField>
@@ -1154,16 +1178,16 @@ export const SpaceList = (props: ListProps) => {
           render={record => record["name"] || record["canonical_alias"] || record["id"]}
           label="resources.rooms.fields.name"
         />
-        <RaTextField source="joined_members" label="resources.rooms.fields.joined_members"/>
-        <RaTextField source="joined_local_members" label="resources.rooms.fields.joined_local_members"/>
-        <RaTextField source="state_events" label="resources.rooms.fields.state_events"/>
-        <RaTextField source="version" label="resources.rooms.fields.version"/>
-        <BooleanField source="federatable" label="resources.rooms.fields.federatable"/>
-        <BooleanField source="public" label="resources.rooms.fields.public"/>
+        <RaTextField source="joined_members" label="resources.rooms.fields.joined_members" />
+        <RaTextField source="joined_local_members" label="resources.rooms.fields.joined_local_members" />
+        <RaTextField source="state_events" label="resources.rooms.fields.state_events" />
+        <RaTextField source="version" label="resources.rooms.fields.version" />
+        <BooleanField source="federatable" label="resources.rooms.fields.federatable" />
+        <BooleanField source="public" label="resources.rooms.fields.public" />
         <WrapperField label="resources.rooms.fields.actions">
-          <MakeAdminBtn/>
+          <MakeAdminBtn />
         </WrapperField>
-        <EditButton label={translate("resources.rooms.action.edit")}/>
+        <EditButton label={translate("resources.rooms.action.edit")} />
       </DatagridConfigurable>
     </List>
   );
@@ -1180,8 +1204,8 @@ const RoomLists = (props: ListProps) => {
   return (
     <Fragment>
       <Tabs value={tab} onChange={handleChange} aria-label="room and space tabs">
-        <Tab label={translate("synapseadmin.rooms.tabs.spaces")}/>
-        <Tab label={translate("synapseadmin.rooms.tabs.chats")}/>
+        <Tab label={translate("synapseadmin.rooms.tabs.spaces")} />
+        <Tab label={translate("synapseadmin.rooms.tabs.chats")} />
       </Tabs>
       {tab === 1 && <ChatList {...props} />}
       {tab === 0 && <SpaceList {...props} />}
