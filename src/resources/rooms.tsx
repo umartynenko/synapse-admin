@@ -779,25 +779,14 @@ export const RoomCreate = (props: any) => {
       const { subspaces, ...mainSpaceData } = values;
 
       const delegatePermissions = async (roomId: string, roomName: string, delegateToUserId: string) => {
-        // Эта проверка нужна, чтобы не выполнять лишних действий,
-        // если создатель пространства - это тот же администратор,
-        // который выполняет всю операцию.
         if (delegateToUserId !== adminCreatorId) {
           try {
-            // УДАЛЯЕМ ЭТИ ДВЕ СТРОКИ:
-            // Synapse API при создании комнаты с параметром 'creator'
-            // автоматически делает этого пользователя участником и администратором.
-            // Эти вызовы избыточны и вызывают ошибку M_FORBIDDEN при попытке
-            // повторно присоединить уже состоящего в комнате пользователя.
-            // ----------------------------------------------------
-            // await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);  // <-- УДАЛИТЬ
-            // await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId); // <-- УДАЛИТЬ
-            // ----------------------------------------------------
-
+            // @ts-ignore
+            await dataProvider.joinRoom(roomId, delegateToUserId, adminCreatorId);
+            // @ts-ignore
+            await dataProvider.makeRoomAdmin(roomId, delegateToUserId, adminCreatorId);
             notify(`Permissions for "${roomName}" delegated to ${delegateToUserId}.`, { type: "info" });
           } catch (e: any) {
-            // Так как мы убрали вызовы, которые могли вызвать ошибку,
-            // этот блок теперь вряд ли сработает, но оставим его для надежности.
             notify(`Failed to delegate permissions for "${roomName}": ${e.message}`, { type: "warning" });
           }
         }
