@@ -32,9 +32,10 @@ import {
   useNotify,
   useRecordContext,
   useTranslate,
-  useRefresh, // <-- 1. ИМПОРТИРУЕМ ХУК useRefresh
+  useRefresh,
 } from "react-admin";
-import { SynapseDataProvider } from "../synapse/dataProvider";
+// Убедитесь, что ваш dataProvider.tsx экспортирует этот тип
+import { SynapseDataProvider } from "../dataProvider";
 import { isMXID } from "../utils/mxid";
 import { splitMxid } from "../synapse/matrix";
 import AvatarField from "./AvatarField";
@@ -42,20 +43,18 @@ import AvatarField from "./AvatarField";
 const SUBSCRIBER_ADMIN_LEVEL = 50;
 
 const AddSubscriberAdminButton = () => {
-  // --- Хуки для работы с react-admin и локализацией ---
   const record = useRecordContext<RaRecord>();
   const translate = useTranslate();
   const notify = useNotify();
+  // Указываем тип для dataProvider
   const dataProvider = useDataProvider<SynapseDataProvider>();
-  const refresh = useRefresh(); // <-- 2. ИНИЦИАЛИЗИРУЕМ ХУК
+  const refresh = useRefresh();
 
-  // --- Состояние компонента ---
   const [open, setOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedUserIds, setSelectedUserIds] = useState<Identifier[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- Логика подготовки поискового запроса ---
   let effectiveSearchTerm = searchTerm;
   if (isMXID(searchTerm)) {
     const parts = splitMxid(searchTerm);
@@ -65,7 +64,6 @@ const AddSubscriberAdminButton = () => {
   }
   const filter = { deactivated: false, name: effectiveSearchTerm };
 
-  // --- Хук для получения списка пользователей ---
   const {
     data: users,
     isLoading,
@@ -82,12 +80,10 @@ const AddSubscriberAdminButton = () => {
 
   const debouncedSetSearch = useMemo(() => debounce((value: string) => setSearchTerm(value), 500), []);
 
-  // --- Условие отображения ---
   if (!record || record.room_type !== "m.space") {
     return null;
   }
 
-  // --- Обработчики событий ---
   const handleClick = () => setOpen(true);
 
   const handleClose = () => {
@@ -110,38 +106,71 @@ const AddSubscriberAdminButton = () => {
     const spaceId = record.id.toString();
 
     try {
-      // ... (шаги 1 и 2: обновление power levels и приглашение в пространство) ...
+      // Шаг 1: Обновление power levels для управления внутри пространства
       let powerLevels = await dataProvider.getRoomStateEvent(spaceId, "m.room.power_levels", "");
       if (!powerLevels) powerLevels = { users: {}, events: {} };
+
+      // Глубокое копирование, чтобы избежать мутации исходного объекта
       const newPowerLevels = JSON.parse(JSON.stringify(powerLevels));
       if (!newPowerLevels.users) newPowerLevels.users = {};
       if (!newPowerLevels.events) newPowerLevels.events = {};
+
+      // Устанавливаем уровни по умолчанию для ключевых действий, если они не заданы
       newPowerLevels.events["m.space.child"] = newPowerLevels.events["m.space.child"] ?? SUBSCRIBER_ADMIN_LEVEL;
       newPowerLevels.invite = newPowerLevels.invite ?? SUBSCRIBER_ADMIN_LEVEL;
       newPowerLevels.kick = newPowerLevels.kick ?? SUBSCRIBER_ADMIN_LEVEL;
       newPowerLevels.redact = newPowerLevels.redact ?? SUBSCRIBER_ADMIN_LEVEL;
       newPowerLevels.state_default = newPowerLevels.state_default ?? SUBSCRIBER_ADMIN_LEVEL;
 
-      const spaceInvitePromises = selectedUserIds.map(async userId => {
-        const userIdStr = userId.toString();
-        await dataProvider.inviteUser(spaceId, userIdStr);
-        newPowerLevels.users[userIdStr] = SUBSCRIBER_ADMIN_LEVEL;
+      // Назначаем выбранным пользователям новый уровень прав
+      selectedUserIds.forEach(userId => {
+        newPowerLevels.users[userId.toString()] = SUBSCRIBER_ADMIN_LEVEL;
       });
-      await Promise.all(spaceInvitePromises);
-      await dataProvider.sendStateEvent(spaceId, "m.room.power_levels", "", newPowerLevels);
 
-      // ... (шаг 3: приглашение в дочерние чаты) ...
+      // Отправляем обновленное событие power_levels
+      await dataProvider.sendStateEvent(spaceId, "m.room.power_levels", "", newPowerLevels);
+      console.log("Power levels updated for space:", spaceId);
+
+      // <<< НАЧАЛО: НОВЫЙ БЛОК ДЛЯ ВЫЗОВА КАСТОМНОГО API >>>
+      // Шаг 2: Добавляем пользователей в наш кастомный список администраторов
+      // Это даст им право на СОЗДАНИЕ комнат
+      const addAdminPromises = selectedUserIds.map(userId =>
+        dataProvider.addSubscriberAdmin({
+          spaceId: spaceId,
+          userId: userId.toString(),
+        })
+      );
+      await Promise.all(addAdminPromises);
+      console.log("Users added to subscriber admin list for space:", spaceId);
+      // <<< КОНЕЦ: НОВЫЙ БЛОК >>>
+
+      // Шаг 3: Приглашаем пользователей в само пространство (это делает и наш API, но для надежности оставим)
+      const spaceInvitePromises = selectedUserIds.map(userId =>
+        dataProvider.inviteUser(spaceId, userId.toString())
+      );
+      await Promise.all(spaceInvitePromises);
+      console.log("Users invited to the main space:", spaceId);
+
+      // Шаг 4: Приглашаем пользователей в дочерние чаты
       const childRooms = await dataProvider.getRoomChildrenWithDetails(spaceId);
       const publicChat = childRooms.find(r => r.chat_type === "public_chat");
       const privateChat = childRooms.find(r => r.chat_type === "private_chat");
-      if (publicChat || privateChat) {
-        const chatInvitePromises: Promise<any>[] = [];
+
+      const chatInvitePromises: Promise<any>[] = [];
+      if (publicChat) {
         selectedUserIds.forEach(userId => {
-          const userIdStr = userId.toString();
-          if (publicChat) chatInvitePromises.push(dataProvider.inviteUser(publicChat.room_id, userIdStr));
-          if (privateChat) chatInvitePromises.push(dataProvider.inviteUser(privateChat.room_id, userIdStr));
+          chatInvitePromises.push(dataProvider.inviteUser(publicChat.room_id, userId.toString()));
         });
+      }
+      if (privateChat) {
+        selectedUserIds.forEach(userId => {
+          chatInvitePromises.push(dataProvider.inviteUser(privateChat.room_id, userId.toString()));
+        });
+      }
+
+      if (chatInvitePromises.length > 0) {
         await Promise.all(chatInvitePromises);
+        console.log("Users invited to child chats.");
       }
 
       notify("resources.rooms.action.add_subscriber_admin_dialog.success", {
@@ -149,8 +178,9 @@ const AddSubscriberAdminButton = () => {
         messageArgs: { smart_count: selectedUserIds.length },
       });
 
-      refresh(); // <-- 3. ВЫЗЫВАЕМ REFRESH ПОСЛЕ УСПЕШНОГО ЗАВЕРШЕНИЯ
+      refresh();
     } catch (e: any) {
+      console.error("Failed to add subscriber admin:", e);
       notify(e.message || "ra.notification.error", { type: "error" });
     } finally {
       setIsSaving(false);
@@ -158,7 +188,6 @@ const AddSubscriberAdminButton = () => {
     }
   };
 
-  // --- Рендеринг компонента (без изменений) ---
   return (
     <>
       <Button
