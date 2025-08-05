@@ -101,79 +101,115 @@ const AddSubscriberAdminButton = () => {
     setSelectedUserIds(newSelectedUserIds);
   };
 
+  // const handleConfirm = async () => {
+  //   setIsSaving(true);
+  //   const spaceId = record.id.toString();
+  //
+  //   try {
+  //     // Шаг 1: Обновление power levels для управления внутри пространства
+  //     let powerLevels = await dataProvider.getRoomStateEvent(spaceId, "m.room.power_levels", "");
+  //     if (!powerLevels) powerLevels = { users: {}, events: {} };
+  //
+  //     const newPowerLevels = JSON.parse(JSON.stringify(powerLevels));
+  //     if (!newPowerLevels.users) newPowerLevels.users = {};
+  //     if (!newPowerLevels.events) newPowerLevels.events = {};
+  //
+  //     newPowerLevels.events["m.space.child"] = newPowerLevels.events["m.space.child"] ?? SUBSCRIBER_ADMIN_LEVEL;
+  //     newPowerLevels.invite = newPowerLevels.invite ?? SUBSCRIBER_ADMIN_LEVEL;
+  //     newPowerLevels.kick = newPowerLevels.kick ?? SUBSCRIBER_ADMIN_LEVEL;
+  //     newPowerLevels.redact = newPowerLevels.redact ?? SUBSCRIBER_ADMIN_LEVEL;
+  //     newPowerLevels.state_default = newPowerLevels.state_default ?? SUBSCRIBER_ADMIN_LEVEL;
+  //
+  //     selectedUserIds.forEach(userId => {
+  //       newPowerLevels.users[userId.toString()] = SUBSCRIBER_ADMIN_LEVEL;
+  //     });
+  //
+  //     await dataProvider.sendStateEvent(spaceId, "m.room.power_levels", "", newPowerLevels);
+  //     console.log("Power levels updated for space:", spaceId);
+  //
+  //     // Шаг 2: Добавляем пользователей в наш кастомный список администраторов
+  //     const addAdminPromises = selectedUserIds.map(userId =>
+  //       dataProvider.addSubscriberAdmin({
+  //         spaceId: spaceId,
+  //         userId: userId.toString(),
+  //       })
+  //     );
+  //     await Promise.all(addAdminPromises);
+  //     console.log("Users added to subscriber admin list for space:", spaceId);
+  //
+  //     // Шаг 3: Приглашаем пользователей в само пространство
+  //     const spaceInvitePromises = selectedUserIds.map(userId =>
+  //       dataProvider.inviteUser(spaceId, userId.toString())
+  //     );
+  //     await Promise.all(spaceInvitePromises);
+  //     console.log("Users invited to the main space:", spaceId);
+  //
+  //     // <<< НАЧАЛО ИЗМЕНЕНИЙ >>>
+  //     // Шаг 4: Приглашаем пользователей ТОЛЬКО в ОЧ (Общий Чат)
+  //     const childRooms = await dataProvider.getRoomChildrenWithDetails(spaceId);
+  //     const publicChat = childRooms.find(r => r.chat_type === "public_chat");
+  //
+  //     // Игнорируем privateChat
+  //
+  //     if (publicChat) {
+  //       console.log("Found public chat:", publicChat.room_id, ". Inviting users...");
+  //       const chatInvitePromises: Promise<any>[] = [];
+  //       selectedUserIds.forEach(userId => {
+  //         const userIdStr = userId.toString();
+  //         chatInvitePromises.push(dataProvider.inviteUser(publicChat.room_id, userIdStr));
+  //       });
+  //
+  //       if (chatInvitePromises.length > 0) {
+  //         await Promise.all(chatInvitePromises);
+  //         console.log("Users invited to public chat.");
+  //       }
+  //     } else {
+  //       console.log("No public chat found in this space, skipping chat invites.");
+  //     }
+  //     // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
+  //
+  //     notify("resources.rooms.action.add_subscriber_admin_dialog.success", {
+  //       type: "success",
+  //       messageArgs: { smart_count: selectedUserIds.length },
+  //     });
+  //
+  //     refresh();
+  //   } catch (e: any) {
+  //     console.error("Failed to add subscriber admin:", e);
+  //     notify(e.message || "ra.notification.error", { type: "error" });
+  //   } finally {
+  //     setIsSaving(false);
+  //     handleClose();
+  //   }
+  // };
+  // <<< СТАЛО (НОВАЯ, ПРОСТАЯ ЛОГИКА) >>>
   const handleConfirm = async () => {
+    console.log(`[DEBUG] handleConfirm вызван! Пользователей для добавления: ${selectedUserIds.length}`, {
+      spaceId: record.id.toString(),
+      userIds: selectedUserIds,
+    });
+
     setIsSaving(true);
     const spaceId = record.id.toString();
 
     try {
-      // Шаг 1: Обновление power levels для управления внутри пространства
-      let powerLevels = await dataProvider.getRoomStateEvent(spaceId, "m.room.power_levels", "");
-      if (!powerLevels) powerLevels = { users: {}, events: {} };
-
-      const newPowerLevels = JSON.parse(JSON.stringify(powerLevels));
-      if (!newPowerLevels.users) newPowerLevels.users = {};
-      if (!newPowerLevels.events) newPowerLevels.events = {};
-
-      newPowerLevels.events["m.space.child"] = newPowerLevels.events["m.space.child"] ?? SUBSCRIBER_ADMIN_LEVEL;
-      newPowerLevels.invite = newPowerLevels.invite ?? SUBSCRIBER_ADMIN_LEVEL;
-      newPowerLevels.kick = newPowerLevels.kick ?? SUBSCRIBER_ADMIN_LEVEL;
-      newPowerLevels.redact = newPowerLevels.redact ?? SUBSCRIBER_ADMIN_LEVEL;
-      newPowerLevels.state_default = newPowerLevels.state_default ?? SUBSCRIBER_ADMIN_LEVEL;
-
-      selectedUserIds.forEach(userId => {
-        newPowerLevels.users[userId.toString()] = SUBSCRIBER_ADMIN_LEVEL;
-      });
-
-      await dataProvider.sendStateEvent(spaceId, "m.room.power_levels", "", newPowerLevels);
-      console.log("Power levels updated for space:", spaceId);
-
-      // Шаг 2: Добавляем пользователей в наш кастомный список администраторов
+      // Единственное действие: вызываем наш мощный бэкенд-эндпоинт для каждого пользователя.
+      // Бэкенд сам выполнит все необходимые шаги.
       const addAdminPromises = selectedUserIds.map(userId =>
         dataProvider.addSubscriberAdmin({
           spaceId: spaceId,
           userId: userId.toString(),
         })
       );
+
       await Promise.all(addAdminPromises);
-      console.log("Users added to subscriber admin list for space:", spaceId);
-
-      // Шаг 3: Приглашаем пользователей в само пространство
-      const spaceInvitePromises = selectedUserIds.map(userId =>
-        dataProvider.inviteUser(spaceId, userId.toString())
-      );
-      await Promise.all(spaceInvitePromises);
-      console.log("Users invited to the main space:", spaceId);
-
-      // <<< НАЧАЛО ИЗМЕНЕНИЙ >>>
-      // Шаг 4: Приглашаем пользователей ТОЛЬКО в ОЧ (Общий Чат)
-      const childRooms = await dataProvider.getRoomChildrenWithDetails(spaceId);
-      const publicChat = childRooms.find(r => r.chat_type === "public_chat");
-
-      // Игнорируем privateChat
-
-      if (publicChat) {
-        console.log("Found public chat:", publicChat.room_id, ". Inviting users...");
-        const chatInvitePromises: Promise<any>[] = [];
-        selectedUserIds.forEach(userId => {
-          const userIdStr = userId.toString();
-          chatInvitePromises.push(dataProvider.inviteUser(publicChat.room_id, userIdStr));
-        });
-
-        if (chatInvitePromises.length > 0) {
-          await Promise.all(chatInvitePromises);
-          console.log("Users invited to public chat.");
-        }
-      } else {
-        console.log("No public chat found in this space, skipping chat invites.");
-      }
-      // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
 
       notify("resources.rooms.action.add_subscriber_admin_dialog.success", {
         type: "success",
         messageArgs: { smart_count: selectedUserIds.length },
       });
 
-      refresh();
+      refresh(); // Обновляем данные на странице
     } catch (e: any) {
       console.error("Failed to add subscriber admin:", e);
       notify(e.message || "ra.notification.error", { type: "error" });

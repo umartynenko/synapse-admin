@@ -1793,6 +1793,12 @@ const baseDataProvider: SynapseDataProvider = {
   // Реализация нашего нового кастомного метода
   addSubscriberAdmin: async params => {
     const { spaceId, userId } = params;
+
+    console.log(`[DEBUG] dataProvider.addSubscriberAdmin вызван! Отправляем запрос...`, {
+      spaceId,
+      userId,
+    });
+
     const base_url = localStorage.getItem("base_url");
     // Убедитесь, что этот эндпоинт (`/v2/`) соответствует тому, что вы создали на бэкенде
     const endpoint_url = `${base_url}/_synapse/admin/v2/spaces/${encodeURIComponent(spaceId)}/subscriber_admins`;
