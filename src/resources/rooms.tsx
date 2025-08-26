@@ -327,7 +327,7 @@ export const MakeAdminBtn = () => {
   );
 };
 
-// --- ИЗМЕНЕНИЕ: Добавлен компонент для предотвращения само-удаления ---
+// --- Добавлен компонент для предотвращения само-удаления ---
 const MemberPreventSelfDelete = ({ children, isCurrentUser, isManagedUser }) => {
   const notify = useNotify();
   const translate = useTranslate();
@@ -343,7 +343,7 @@ const MemberPreventSelfDelete = ({ children, isCurrentUser, isManagedUser }) => 
   return <div onClickCapture={handleClick}>{children}</div>;
 };
 
-// --- ИЗМЕНЕНИЕ: Добавлен компонент с кнопками действий для участника комнаты ---
+// --- Добавлен компонент с кнопками действий для участника комнаты ---
 const RoomMemberActions = () => {
   const record = useRecordContext();
   if (!record) return null;
@@ -862,9 +862,18 @@ export const RoomCreate = (props: any) => {
           topic: spaceNode.topic || undefined,
         };
 
-        // @ts-ignore
-        const { data: createdSpace } = await dataProvider.create("rooms", { data: payload });
-        notify(`Space "${hierarchicalName}" created.`, { type: "info" });
+        // Обработка ошибок при создании пространства
+        let createdSpace;
+        try {
+          // @ts-ignore
+          const response = await dataProvider.create("rooms", { data: payload });
+          createdSpace = response.data;
+          notify(`Space "${hierarchicalName}" created.`, { type: "info" });
+        } catch (e: any) {
+          notify(`Failed to create space "${hierarchicalName}": ${e.message}`, { type: "error" });
+          // Прерываем создание этой ветки, если не удалось создать корневое пространство
+          return { spaceId: null, collectedUserIds: new Set() };
+        }
 
         await setRoomName(createdSpace.id, shortNodeName);
         await delegatePermissions(createdSpace.id, shortNodeName, nodeCreatorId);
@@ -906,19 +915,30 @@ export const RoomCreate = (props: any) => {
             try {
               // @ts-ignore
               const ancestorChildren = await dataProvider.getRoomChildrenWithDetails(ancestorId);
+              // Обработка ошибок при добавлении участников
               if (ancestorId === parentId) {
                 const privateChat = ancestorChildren.find((c: any) => c.chat_type === "private_chat");
                 if (privateChat) {
-                  notify(`Adding ${userToJoin} to the parent's private chat...`, { type: "info" });
-                  // @ts-ignore
-                  await dataProvider.joinRoom(privateChat.room_id, userToJoin, adminCreatorId);
+                    try {
+                      notify(`Adding ${userToJoin} to the parent's private chat...`, { type: "info" });
+                      // @ts-ignore
+                      await dataProvider.joinRoom(privateChat.room_id, userToJoin, adminCreatorId);
+                    } catch (e: any) {
+                      // Игнорируем ошибку, если пользователь уже в чате
+                      console.warn(`Could not add user to private chat ${privateChat.room_id}: ${e.message}`);
+                    }
                 }
               }
               const publicChats = ancestorChildren.filter((c: any) => c.chat_type === "public_chat");
               for (const publicChat of publicChats) {
-                notify(`Adding ${userToJoin} to public chat ${publicChat.room_id}...`, { type: "info" });
-                // @ts-ignore
-                await dataProvider.joinRoom(publicChat.room_id, userToJoin, adminCreatorId);
+                try {
+                    notify(`Adding ${userToJoin} to public chat ${publicChat.room_id}...`, { type: "info" });
+                    // @ts-ignore
+                    await dataProvider.joinRoom(publicChat.room_id, userToJoin, adminCreatorId);
+                } catch (e: any) {
+                    // Игнорируем ошибку, если пользователь уже в чате
+                    console.warn(`Could not add user to public chat ${publicChat.room_id}: ${e.message}`);
+                }
               }
             } catch (e: any) {
               notify(`Error adding user to ancestor chats ${ancestorId}: ${e.message}`, { type: "error" });
