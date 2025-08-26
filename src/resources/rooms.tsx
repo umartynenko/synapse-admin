@@ -327,7 +327,7 @@ export const MakeAdminBtn = () => {
   );
 };
 
-// --- Добавлен компонент для предотвращения само-удаления ---
+// --- ИЗМЕНЕНИЕ: Добавлен компонент для предотвращения само-удаления ---
 const MemberPreventSelfDelete = ({ children, isCurrentUser, isManagedUser }) => {
   const notify = useNotify();
   const translate = useTranslate();
@@ -343,7 +343,7 @@ const MemberPreventSelfDelete = ({ children, isCurrentUser, isManagedUser }) => 
   return <div onClickCapture={handleClick}>{children}</div>;
 };
 
-// --- Добавлен компонент с кнопками действий для участника комнаты ---
+// --- ИЗМЕНЕНИЕ: Добавлен компонент с кнопками действий для участника комнаты ---
 const RoomMemberActions = () => {
   const record = useRecordContext();
   if (!record) return null;
@@ -862,14 +862,22 @@ export const RoomCreate = (props: any) => {
           topic: spaceNode.topic || undefined,
         };
 
-        // Обработка ошибок при создании пространства
         let createdSpace;
         try {
+          // --- ДОБАВЛЕНО ЛОГИРОВАНИЕ ---
+          console.log(`[CREATE] Попытка создать пространство: "${hierarchicalName}"`, payload);
           // @ts-ignore
           const response = await dataProvider.create("rooms", { data: payload });
+          // --- ДОБАВЛЕНО ЛОГИРОВАНИЕ ---
+          console.log(`[CREATE] Ответ от dataProvider.create:`, response);
           createdSpace = response.data;
+          console.log(`[CREATE] Из ответа извлечен createdSpace:`, createdSpace);
           notify(`Space "${hierarchicalName}" created.`, { type: "info" });
         } catch (e: any) {
+          // --- ДОБАВЛЕНО ЛОГИРОВАНИЕ ---
+          console.error("!!! ОШИБКА ПЕРЕХВАЧЕНА ВНУТРИ createAndSetupRecursive !!!");
+          console.error("Сообщение:", e.message);
+          console.error("Полный объект ошибки:", e);
           notify(`Failed to create space "${hierarchicalName}": ${e.message}`, { type: "error" });
           // Прерываем создание этой ветки, если не удалось создать корневое пространство
           return { spaceId: null, collectedUserIds: new Set() };
@@ -915,7 +923,6 @@ export const RoomCreate = (props: any) => {
             try {
               // @ts-ignore
               const ancestorChildren = await dataProvider.getRoomChildrenWithDetails(ancestorId);
-              // Обработка ошибок при добавлении участников
               if (ancestorId === parentId) {
                 const privateChat = ancestorChildren.find((c: any) => c.chat_type === "private_chat");
                 if (privateChat) {
